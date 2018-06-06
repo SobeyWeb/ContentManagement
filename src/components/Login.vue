@@ -19,6 +19,7 @@
 <script>
 import PERMISSION from '../dicts/permission.js'
 import TYPES from '../dicts/mutationTypes.js'
+import EVENT from './dicts/eventTypes.js'
 export default {
   name: 'Login',
   data () {
@@ -80,6 +81,7 @@ export default {
             }
           }).then(res => {
             if (res.ext) {
+              this.$app.emit(EVENT.LOGINED, [this]) // dispatch login event
               this.$router.push('/index')
               this.loading = false
               localStorage.setItem('loginName', this.username)

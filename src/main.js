@@ -14,6 +14,7 @@ import vuexI18n from 'vuex-i18n'
 import translationsEn from './dicts/translationsEn.js'
 
 import eventPlugin from './plugins/eventPlugin.js'
+import EVENT from './dicts/eventTypes.js'
 
 Vue.use(Vuex)
 Vue.use(eventPlugin)
@@ -41,5 +42,11 @@ new Vue({
   store,
   router,
   components: { App },
-  template: '<App/>'
+  template: '<App/>',
+  created () {
+    this.$app.emit(EVENT.CREATED, [this])
+  },
+  mounted () {
+    this.$app.emit(EVENT.MOUNTED, [this])
+  }
 })
