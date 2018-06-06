@@ -13,7 +13,11 @@ import actions from './store/actions.js'
 import vuexI18n from 'vuex-i18n'
 import translationsEn from './dicts/translationsEn.js'
 
+import eventPlugin from './plugins/eventPlugin.js'
+
 Vue.use(Vuex)
+Vue.use(eventPlugin)
+
 let store = new Vuex.Store({
   state,
   getters,
