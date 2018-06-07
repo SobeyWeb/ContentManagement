@@ -1,4 +1,7 @@
 export default {
   system: 'WEBCM',
-  userInfo: null
+  userInfo: null,
+  showSearch: false,
+  player: null,
+  property: null
 }

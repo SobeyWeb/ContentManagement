@@ -34,6 +34,44 @@ Vue.use(vuexI18n.plugin, store, {
 Vue.i18n.add('en', translationsEn)
 Vue.i18n.set('en')
 
+Vue.config.keyCodes = {
+  num: [
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105
+  ]
+}
+
+Vue.directive('focus', {
+  inserted: function (el) {
+    el.value = el.getAttribute('val')
+    el.focus()
+    el.select()
+  }
+})
+
+Vue.directive('dispose', {
+  unbind: function (el) {
+    el.src = 'http://'
+  }
+})
 Vue.config.productionTip = false
 
 /* eslint-disable no-new */

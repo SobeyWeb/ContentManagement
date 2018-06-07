@@ -90,7 +90,7 @@ export default {
                 type: TYPES.GET_USERINFOBYID
               }).then(res => {
                 this.$store.state.userInfo.isAdmin = res.ext.type === 1
-                this.$store.state.userInfo.permission = res.ext.funcPermission.map(item => item.permissionName)
+                this.$store.state.userInfo.permission = res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
                 if (res.ext.templates && res.ext.templates.length) {
                   this.$store.state.userInfo.privilege = res.data.ext.templates[0].templatecode
                 } else {
@@ -135,7 +135,6 @@ export default {
 
     let userName = localStorage.getItem('loginName') // Remember last login name
     this.username = userName || ''
-    console.log(PERMISSION)
   }
 }
 </script>
