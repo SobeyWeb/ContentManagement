@@ -1,16 +1,18 @@
 import TYPES from '../dicts/mutationTypes.js'
 import API_CONFIG from '../config/apiConfig.js'
+import NODETYPES from '../dicts/guidMaps.js'
 import axios from 'axios'
 let md5 = require('../lib/md5.min.js').md5
 export default {
+  // Intercept request
   [TYPES.INTERCEPT_AXIOS] (context, payload) {
     axios.interceptors.request.use(
       config => {
         Object.assign(config.headers.common, {
-          'sobeyhive-http-system': 'WEBCM',
-          'sobeyhive-http-site': 'S1',
+          'sobeyhive-http-system': context.state.system || 'WEBCM',
+          'sobeyhive-http-site': context.state.userInfo.sitecode || 'S1',
           'sobeyhive-http-token': context.state.userInfo.usertoken,
-          'sobeyhive-http-tool': 'WEBCM'
+          'sobeyhive-http-tool': context.state.system || 'WEBCM'
         })
         return config
       },
@@ -28,9 +30,11 @@ export default {
       }
     )
   },
+  // get client ip for login
   [TYPES.GET_CLIENT_IP] (context, payload) {
     return axios.get(API_CONFIG[TYPES.GET_CLIENT_IP]())
   },
+  // login
   [TYPES.LOGIN] (context, payload) {
     return new Promise((resolve, reject) => {
       let url = API_CONFIG[TYPES.LOGIN](payload.data.isDomain)
@@ -68,6 +72,7 @@ export default {
         })
     })
   },
+  // get user info
   [TYPES.GET_USERINFOBYID] (context, payload) {
     let url = API_CONFIG[TYPES.GET_USERINFOBYID]({
       userid: context.state.userInfo.userid,
@@ -83,6 +88,7 @@ export default {
       })
     })
   },
+  // get user permission
   [TYPES.GET_USERPERMISSION] (context, payload) {
     let url = API_CONFIG[TYPES.GET_USERPERMISSION]({
       usertoken: context.state.userInfo.usertoken
@@ -107,5 +113,73 @@ export default {
           reject(err)
         })
     })
+  },
+  // node click
+  [TYPES.NODE_CLICK] (context, payload) {
+    let node = payload.data.target
+    switch (node.guid) {
+      case NODETYPES.SEARCH_RESULT:
+        context.commit({
+          type: TYPES.GET_NAVPATH,
+          target: node,
+          data: []
+        })
+        break
+      case NODETYPES.SEARCH_TEMPLATE:
+        context
+          .dispatch({
+            type: TYPES.GET_SEARCHRESULT,
+            source: node
+          })
+          .then(() => {
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node,
+              data: []
+            })
+          })
+        break
+      case NODETYPES.FAVORITE:
+        context
+          .dispatch({
+            type: TYPES.GET_FAVORITERESULT,
+            source: node
+          })
+          .then(() => {
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node,
+              data: []
+            })
+          })
+        break
+      case NODETYPES.TRASHCAN:
+        context
+          .dispatch({
+            type: TYPES.GET_TRASHCAN_OBJECTS,
+            source: node
+          })
+          .then(() => {
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node,
+              data: []
+            })
+          })
+        break
+      default:
+        context
+          .dispatch({
+            type: TYPES.GET_MATERIALS,
+            source: node
+          })
+          .then(() => {
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node,
+              data: []
+            })
+          })
+    }
   }
 }

@@ -19,7 +19,7 @@
 <script>
 import PERMISSION from '../dicts/permission.js'
 import TYPES from '../dicts/mutationTypes.js'
-import EVENT from './dicts/eventTypes.js'
+import EVENT from './dicts/EventTypes.js'
 export default {
   name: 'Login',
   data () {
