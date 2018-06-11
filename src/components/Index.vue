@@ -9,7 +9,6 @@ import TYPES from '../dicts/mutationTypes.js'
 import { mapState, mapGetters } from 'vuex'
 import KEYCODES from '../dicts/keycodes.js'
 import KeyEvent from '../lib/KeyEvent.js'
-
 export default {
   name: 'Index',
   data () {
@@ -69,6 +68,7 @@ export default {
               type: TYPES.PREV_ITEM,
               source: this.selectedNode
             })
+          } else if (this.isFocusPlayer) {
           } else if (!this.loading) {
             let rowCount = this.getRowCount()
             this.$store.dispatch({
@@ -87,6 +87,7 @@ export default {
               type: TYPES.PREV_ITEM,
               source: this.selectedNode
             })
+          } else if (this.isFocusPlayer) {
           } else if (!this.loading) {
             let rowCount = this.getRowCount()
             let selectedMaterials = this.orderedSelectedMaterials
@@ -111,6 +112,7 @@ export default {
         ctrlKey: true,
         action: event => {
           if (this.focusTree) {
+          } else if (this.isFocusPlayer) {
           } else if (!this.loading) {
             let rowCount = this.getRowCount()
             let selectedMaterials = this.orderedSelectedMaterials
@@ -122,6 +124,222 @@ export default {
             this.$store.dispatch({
               type: TYPES.MULTI_SELECTITEMS,
               data: this.tempIndex - rowCount
+            })
+          }
+        }
+      }))
+      // down
+      keyEvents.push(new KeyEvent(KEYCODES.down, {
+        action: event => {
+          if (this.focusTree) {
+            this.$store.commit({
+              type: TYPES.NEXT_ITEM,
+              source: this.selectedNode
+            })
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            let rowCount = this.getRowCount()
+            this.$store.dispatch({
+              type: TYPES.SELECT_MATERIAL,
+              data: this.signIndex + rowCount
+            })
+          }
+        }
+      }))
+      // shift + down
+      keyEvents.push(new KeyEvent(KEYCODES.down, {
+        shiftKey: true,
+        action: event => {
+          if (this.focusTree) {
+            this.$store.commit({
+              type: TYPES.NEXT_ITEM,
+              source: this.selectedNode
+            })
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            let rowCount = this.getRowCount()
+            let selectedMaterials = this.orderedSelectedMaterials
+            if (!selectedMaterials.length) {
+              this.tempIndex = this.signIndex
+            } else {
+              this.tempIndex = this.materials.indexOf(selectedMaterials[0])
+            }
+            this.$store.commit({
+              type: TYPES.CLEAR_SELECTEEDITEMS
+            })
+            this.$store.dispatch({
+              type: TYPES.MULTI_SELECTITEMS,
+              data: this.tempIndex + rowCount
+            })
+          }
+        }
+      }))
+      // ctrl + shift + down
+      keyEvents.push(new KeyEvent(KEYCODES.down, {
+        shiftKey: true,
+        ctrlKey: true,
+        action: event => {
+          if (this.focusTree) {
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            let rowCount = this.getRowCount()
+            let selectedMaterials = this.orderedSelectedMaterials
+            if (!selectedMaterials.length) {
+              this.tempIndex = this.signIndex
+            } else {
+              this.tempIndex = this.materials.indexOf(selectedMaterials[0])
+            }
+            this.$store.dispatch({
+              type: TYPES.MULTI_SELECTITEMS,
+              data: this.tempIndex + rowCount
+            })
+          }
+        }
+      }))
+      // right
+      keyEvents.push(new KeyEvent(KEYCODES.right, {
+        action: event => {
+          if (this.focusTree) {
+            this.$store.dispatch({
+              type: TYPES.EXPAND_FOLDER,
+              source: this.selectedNode
+            })
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            this.$store.dispatch({
+              type: TYPES.SELECT_MATERIAL,
+              data: this.signIndex + 1
+            })
+          }
+        }
+      }))
+      // shift + right
+      keyEvents.push(new KeyEvent(KEYCODES.right, {
+        shiftKey: true,
+        action: event => {
+          if (this.focusTree) {
+            this.$store.dispatch({
+              type: TYPES.EXPAND_FOLDER,
+              source: this.selectedNode
+            })
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            let selectedMaterials = this.orderedSelectedMaterials
+            if (!selectedMaterials.length) {
+              this.tempIndex = this.signIndex
+            } else {
+              this.tempIndex = this.materials.indexOf(selectedMaterials[0])
+            }
+            this.$store.commit({
+              type: TYPES.CLEAR_SELECTEEDITEMS
+            })
+            this.$store.dispatch({
+              type: TYPES.MULTI_SELECTITEMS,
+              data: this.tempIndex + 1
+            })
+          }
+        }
+      }))
+      // ctrl + shift + right
+      keyEvents.push(new KeyEvent(KEYCODES.right, {
+        shiftKey: true,
+        ctrlKey: true,
+        action: event => {
+          if (this.focusTree) {
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            let selectedMaterials = this.orderedSelectedMaterials
+            if (!selectedMaterials.length) {
+              this.tempIndex = this.signIndex
+            } else {
+              this.tempIndex = this.materials.indexOf(selectedMaterials[0])
+            }
+            this.$store.dispatch({
+              type: TYPES.MULTI_SELECTITEMS,
+              data: this.tempIndex + 1
+            })
+          }
+        }
+      }))
+      // left
+      keyEvents.push(new KeyEvent(KEYCODES.left, {
+        action: event => {
+          if (this.focusTree) {
+            this.$store.commit({
+              type: TYPES.CLOSE_FOLDER,
+              target: this.selectedNode
+            })
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            this.$store.dispatch({
+              type: TYPES.SELECT_MATERIAL,
+              data: this.signIndex - 1
+            })
+          }
+        }
+      }))
+      // shift + left
+      keyEvents.push(new KeyEvent(KEYCODES.left, {
+        shiftKey: true,
+        action: event => {
+          if (this.focusTree) {
+            this.$store.commit({
+              type: TYPES.CLOSE_FOLDER,
+              target: this.selectedNode
+            })
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            let selectedMaterials = this.orderedSelectedMaterials
+            if (!selectedMaterials.length) {
+              this.tempIndex = this.signIndex
+            } else {
+              this.tempIndex = this.materials.indexOf(selectedMaterials[0])
+            }
+            this.$store.commit({
+              type: TYPES.CLEAR_SELECTEEDITEMS
+            })
+            this.$store.dispatch({
+              type: TYPES.MULTI_SELECTITEMS,
+              data: this.tempIndex - 1
+            })
+          }
+        }
+      }))
+      // ctrl + shift + left
+      keyEvents.push(new KeyEvent(KEYCODES.left, {
+        shiftKey: true,
+        ctrlKey: true,
+        action: event => {
+          if (this.focusTree || this.focusPlayer) {
+          } else if (!this.loading) {
+            let selectedMaterials = this.orderedSelectedMaterials
+            if (!selectedMaterials.length) {
+              this.tempIndex = this.signIndex
+            } else {
+              this.tempIndex = this.materials.indexOf(selectedMaterials[0])
+            }
+            this.$store.dispatch({
+              type: TYPES.MULTI_SELECTITEMS,
+              data: this.tempIndex - 1
+            })
+          }
+        }
+      }))
+      // enter
+      keyEvents.push(new KeyEvent(KEYCODES.enter, {
+        action: event => {
+          if (this.focusTree) {
+            this.$store.dispatch({
+              type: TYPES.NODE_CLICK,
+              data: {
+                target: this.selectedNode
+              }
+            })
+          } else if (this.isFocusPlayer) {
+          } else if (!this.loading) {
+            this.$store.dispatch({
+              type: TYPES.SELECT_MATERIAL,
+              data: this.signIndex - 1
             })
           }
         }

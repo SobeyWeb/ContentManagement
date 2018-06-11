@@ -1,0 +1,6 @@
+export default {
+  SEARCH_RESULT: 1,
+  TRASHCAN: 0,
+  FAVORITE: -1,
+  SEARCH_TEMPLATE: 2
+}
