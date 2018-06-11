@@ -2,6 +2,7 @@ import TYPES from '../dicts/mutationTypes.js'
 import API_CONFIG from '../config/apiConfig.js'
 import NODETYPES from '../dicts/guidMaps.js'
 import axios from 'axios'
+import util from '../lib/util.js'
 let md5 = require('../lib/md5.min.js').md5
 export default {
   // Intercept request
@@ -180,6 +181,66 @@ export default {
               data: []
             })
           })
+    }
+  },
+  // delete materialas
+  [TYPES.DELETE_MATERIALS] (context, payload) {
+    let arr = payload.target.slice()
+    if (arr.every(item => item.operations.indexOf('Delete') > -1)) {
+      util.Model.confirm(
+        'Delete',
+        'Are you sure to delete ' + arr.length + ' Materials',
+        () => {
+          context.dispatch({
+            type: TYPES.RECYCLE,
+            target: arr
+          })
+        },
+        () => {},
+        {
+          large: true,
+          cancelButton: {
+            show: true,
+            type: '',
+            text: 'Cancel'
+          },
+          confirmButton: {
+            show: true,
+            type: 'primary',
+            text: 'Confirm'
+          }
+        }
+      )
+    } else if (arr.every(item => item.operations.indexOf('Delete') === -1)) {
+      util.Notice.warning('Selected materials can not be deleted', '', 3000)
+    } else {
+      arr = arr.filter(item => item.operations.indexOf('Delete') > -1)
+      util.Model.confirm(
+        'Delete',
+        'Some materials can not be deleted, are you sure to delete other ' +
+          arr.length +
+          ' Materials',
+        () => {
+          context.dispatch({
+            type: TYPES.RECYCLE,
+            target: arr
+          })
+        },
+        () => {},
+        {
+          large: true,
+          cancelButton: {
+            show: true,
+            type: '',
+            text: 'Cancel'
+          },
+          confirmButton: {
+            show: true,
+            type: 'primary',
+            text: 'Confirm'
+          }
+        }
+      )
     }
   }
 }

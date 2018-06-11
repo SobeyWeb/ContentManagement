@@ -3,5 +3,6 @@ export default {
   userInfo: null,
   showSearch: false,
   player: null,
-  property: null
+  property: null,
+  focusIndex: 0
 }

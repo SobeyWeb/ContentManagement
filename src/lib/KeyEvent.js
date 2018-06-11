@@ -2,7 +2,11 @@ export function KeyEvent (code, opt = {}) {
   if (!(this instanceof KeyEvent)) {
     return new KeyEvent(code, opt)
   }
-  this.keycode = code
+  if (code instanceof Array) {
+    this.keycodes = code
+  } else {
+    this.keycodes = [code]
+  }
   this.ctrlKey = !!opt.ctrlKey
   this.altKey = !!opt.altKey
   this.shiftKey = !!opt.shiftKey
