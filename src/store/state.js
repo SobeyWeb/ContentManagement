@@ -4,5 +4,7 @@ export default {
   showSearch: false,
   player: null,
   property: null,
-  focusIndex: 0
+  focusIndex: 0,
+  searchNode: {},
+  searchType: 1
 }

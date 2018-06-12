@@ -1,5 +1,5 @@
 <template>
-  <div class="hello">
+  <div :class="{plug_style: isPremiere}" @click.capture="hideMenu" @contextmenu="hideMenu" @mousedown="hideMenu" @selectstart.stop.prevent @mouseup="dragEnd" @mousewheel.ctrl="scaleThumb" @mousemove="resizing">
   </div>
 </template>
 
@@ -11,17 +11,39 @@ import KEYCODES from '../dicts/keycodes.js'
 import KeyEvent from '../lib/KeyEvent.js'
 import MATERIALTYPES from '../dicts/materialTypes.js'
 import APPSETTING from '../config/appSetting.js'
+import URLCONFIG from '../config/urlConfig.js'
+import NODETYPES from '../dicts/guidMaps.js'
+import ModalWindow from '../lib/ModalWindow.js'
+import $ from '../lib/jquery-3.2.0.min.js'
+import { defaultQuery, defaultFulltextSearchCondtion, defaultAdvanceSearchCondtion } from '../data/basicData.js'
 export default {
   name: 'Index',
   data () {
     return {
       tempIndex: 0,
-      previewSymbol: false
+      sortByStatus: false,
+      userOperationStatus: false,
+      previewSymbol: false,
+      resizeSymbol: false,
+      dragSymbol: false,
+      folderBlockStatus: true,
+      leftTreeWidth: 200,
+      resizeX: 0,
+      dragData: {
+        left: 0,
+        top: 0,
+        width: 0,
+        height: 0
+      },
+      mousePosition: {
+        x: 0,
+        y: 0
+      }
     }
   },
   computed: {
-    ...mapState(['userInfo', 'player', 'showSearch', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'focusIndex']),
-    ...mapGetters(['selectedNode', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
+    ...mapState(['userInfo', 'isAdvanceConfig', 'searchType', 'isMarker', 'linkNodes', 'player', 'showSearch', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'focusIndex', 'trashcan']),
+    ...mapGetters(['selectedNode', 'searchResult', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
     scaleTime: {
       get () {
         return this.$store.state.scaleTime
@@ -29,6 +51,25 @@ export default {
       set (val) {
         this.$store.state.scaleTime = val
       }
+    },
+    isPremiere () {
+      return this.$store.state.system === 'PREMIEREPLUGIN'
+    },
+    searchNode: {
+      get () {
+        return this.$store.state.searchNode
+      },
+      set (val) {
+        this.$store.state.searchNode = val
+      }
+    },
+    currentCtrl () {
+      if (this.isMarker) {
+        return 'marker-ctrl'
+      } else if (this.listSymbol) {
+        return 'list-material-ctrl'
+      }
+      return 'material-ctrl'
     },
     materials () {
       return this.$store.getters.displayMaterials
@@ -44,11 +85,77 @@ export default {
     }
   },
   watch: {
+    isMarker (val) {
+      if (val) {
+        this.listSymbol = false
+      }
+    },
     displayMaterials (val) {
       this.store.getters.currentNode.children = val // make it reactive
     }
   },
   methods: {
+    resizeMousedown (event) {
+      this.resizeSymbol = true
+      this.resizeX = event.x
+    },
+    resizing: util.throttle(50, event => {
+      if (this.resizeSymbol) {
+        let width = this.leftTreeWidth + event.x - this.resizeX
+        this.resizeX += Math.min(500, Math.max(100, width)) - this.leftTreeWidth
+        this.leftTreeWidth = Math.min(500, Math.max(100, width))
+        if (!this.leftTreeWidth) {
+          this.folderBlockStatus = false
+        } else {
+          this.folderBlockStatus = true
+        }
+        this.$nextTick(() => {
+          this.$store.commit({
+            type: TYPES.SET_THUMBPADDING
+          })
+        })
+      }
+    }, true),
+    scaleThumb () {
+      event.preventDefault()
+      if (this.currentCtrl === 'material-ctrl') {
+        if (event.deltaY < 0) {
+          this.scaleTime = Math.min(this.scaleTime + 0.05, 2.4)
+        } else {
+          this.scaleTime = Math.max(this.scaleTime - 0.05, 1)
+        }
+        util.setCookie('scale_time' + this.userInfo.usercode, this.scaleTime)
+        this.$nextTick(() => {
+          this.$store.commit({
+            type: TYPES.SET_THUMBPADDING
+          })
+        })
+      }
+    },
+    dragEnd () {
+      this.dragSymbol = false
+      this.resizeSymbol = false
+      util.setCookie('leftWidth' + this.$store.state.userInfo.usercode, this.leftTreeWidth)
+      this.mousePosition = {
+        x: 0,
+        y: 0
+      }
+      this.dragData = {
+        left: 0,
+        top: 0,
+        width: 0,
+        height: 0
+      }
+    },
+    hideMenu () {
+      this.userOperationStatus = this.sortByStatus = false
+      this.$store.commit({
+        type: TYPES.SET_MENUSTATUS,
+        data: {
+          status: false
+        }
+      })
+    },
     registerKeydown () {
       let keyEvents = []
       // f11
@@ -520,7 +627,7 @@ export default {
       })
     },
     registerKeyup (code, func) {
-      this.$keydown.on('keydown-' + code, func)
+      this.$keydown.on('keyup-' + code, func)
     },
     isMLEnable () {
       return this.isFocusML && !this.loading
@@ -535,6 +642,121 @@ export default {
         rowCount = Math.floor((rect.width) / 462) // 462 为marker 的宽度
       }
       return rowCount
+    },
+    locateFolder (lastVisit) {
+      return new Promise((resolve, reject) => {
+        switch (lastVisit.guid) {
+          case NODETYPES.SEARCH_RESULT:
+            if (lastVisit.condition) {
+              this.searchResult.condition = lastVisit.condition
+              this.searchResult.bakCondition = JSON.parse(JSON.stringify(lastVisit.condition))
+              this.searchNode = this.currentNode
+              this.searchType = lastVisit.condition.type
+              this.$store.dispatch({
+                type: TYPES.GET_SEARCHRESULT,
+                source: this.searchResult
+              }).then(() => {
+                this.$store.commit({
+                  type: TYPES.GET_NAVPATH,
+                  target: this.searchResult,
+                  data: []
+                })
+                resolve()
+              }).catch(err => reject(err))
+            }
+            break
+          case NODETYPES.SEARCH_TEMPLATE:
+            // get search templates
+            this.$store.dispatch({
+              type: TYPES.GET_SEARCHMODEL,
+              source: this.searchResult
+            }).then(() => {
+              this.$store.commit({
+                type: TYPES.TOGGLE_FOLDER,
+                target: this.searchResult
+              })
+              var node = this.searchResult.searchModel.find(item => item.templateId === lastVisit.templateId)
+              if (node) {
+                // get search result
+                this.$store.dispatch({
+                  type: TYPES.GET_SEARCHRESULT,
+                  source: node
+                }).then(() => {
+                  this.$store.commit({
+                    type: TYPES.GET_NAVPATH,
+                    target: node,
+                    data: []
+                  })
+                  resolve()
+                }).catch(err => reject(err))
+              } else {
+                this.$store.commit({
+                  type: TYPES.GET_NAVPATH,
+                  target: this.searchResult,
+                  data: []
+                })
+                reject(new Error('search template doesn`t exist'))
+              }
+            }).catch(err => reject(err))
+            break
+          case NODETYPES.FAVORITE:
+            //
+            break
+          case NODETYPES.TRASHCAN:
+            this.$store.dispatch({
+              type: TYPES.GET_MATERIALS,
+              source: this.nodes[0]
+            }).then(() => {
+              this.$store.commit({
+                type: TYPES.EXPAND_FOLDER,
+                target: this.nodes[0],
+                data: []
+              })
+              this.$store.dispatch({
+                type: TYPES.GET_TRASHCAN_OBJECTS,
+                source: this.trashcan
+              }).then(() => {
+                this.$store.commit({
+                  type: TYPES.GET_NAVPATH,
+                  target: this.trashcan,
+                  data: []
+                })
+                resolve()
+              })
+            }).catch(err => reject(err))
+            break
+          default:
+            if (APPSETTING.USEROOTPATH) {
+              util.locateFolder(
+                this.$store,
+                lastVisit.path.split('/'),
+                {
+                  children: this.folderTree
+                },
+                {
+                  alwaysGet: true,
+                  isShowWaiting: true
+                }
+              ).then(() => {
+                resolve()
+              }).catch(err => reject(err))
+            } else {
+              util.locateFolder(
+                this.$store,
+                lastVisit.path.split('/').slice(1),
+                {
+                  children: this.folderTree
+                },
+                {
+                  alwaysGet: true,
+                  isShowWaiting: true
+                }
+              ).then(() => {
+                resolve()
+              }).catch(err => reject(err))
+            }
+        }
+      })
     },
     initNativeEvents () {
       window.addEventListener('unload', this.setCookie)
@@ -572,7 +794,456 @@ export default {
             type: TYPES.SET_APPDATA,
             data: lastVisit
           })
-        } else { }
+          this.locateFolder(lastVisit).then(res => {
+            if (lastVisit.selectedMaterial.length) {
+              // check in material
+              this.$nextTick(() => {
+                var children = this.displayMaterials
+                children.forEach(item => {
+                  if (lastVisit.selectedMaterial.indexOf(item.guid) > -1) {
+                    item.selected = true
+                    this.store.commit({
+                      type: TYPES.ADD_SELECTEDITEM,
+                      data: item
+                    })
+                    this.$store.commit({
+                      type: TYPES.SET_SIGNMATERIAL,
+                      data: children.indexOf(item)
+                    })
+                  }
+                })
+              })
+            }
+          })
+        } else {
+          this.$store.dispatch({
+            type: TYPES.GET_MATERIALS,
+            source: this.nodes[0]
+          }).then(() => {
+            this.$store.commit({
+              type: TYPES.EXPAND_FOLDER,
+              target: this.nodes[0],
+              data: []
+            })
+            this.$store.commit({
+              type: TYPES.GET_NAVPATH,
+              target: this.nodes[0],
+              data: []
+            })
+          })
+        }
+      })
+      // get s3 upload path
+      this.$store.dispatch({
+        type: TYPES.GET_S3PATH
+      })
+      // get nas upload path
+      this.$store.dispatch({
+        type: TYPES.GET_NASPATH
+      })
+      this.$store.commit({
+        type: TYPES.SET_DVPADDING
+      })
+      let headerArr = JSON.parse(util.getCookie('item_headers' + this.userInfo.usercode))
+      if (util.isArray(headerArr)) {
+        this.$store.commit({
+          type: TYPES.SET_HEADERS,
+          data: headerArr
+        })
+      }
+
+      let scaleTime = util.getCookie('scale_time' + this.userInfo.usercode)
+      if (scaleTime) {
+        this.$store.state.scaleTime = Number(scaleTime) * 1
+      }
+
+      let leftWidth = util.getCookie('leftWidth' + this.userInfo.usercode)
+      if (leftWidth || leftWidth === '0') {
+        this.leftTreeWidth = parseInt(leftWidth)
+      }
+      this.$store.dispatch({
+        type: TYPES.GET_DING
+      }).then(res => {
+        let dingRoot = this.linkNodes[0]
+        let linkNodes = util.parseData(res.data.ext, dingRoot)
+        linkNodes.forEach(item => {
+          item.isDing = true
+          item.operations = ['Open', 'Remove']
+        })
+        this.$store.commit({
+          type: TYPES.SET_FOLDERS,
+          target: dingRoot,
+          data: linkNodes.sort(util.sortLikeWin)
+        })
+      })
+    },
+    initModalWindow () {
+      this.taskMonitorWindow = new ModalWindow({
+        content: $('.taskmonitorifm')[0],
+        title: this.dict.taskmonitor,
+        onshow: this.resizeTaskMonitor
+      })
+      this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
+      this.$store.state.saveClipWindow = new ModalWindow({
+        content: this.$refs.saveClip.$el,
+        title: 'Save As'
+      })
+      this.$store.state.exportWindow = new ModalWindow({
+        content: this.$refs.export.$el,
+        title: 'Export'
+      })
+      this.$store.dispatch({
+        type: TYPES.GET_SEARCH_QUERY
+      }).then(res => {
+        let temp = res.find(item => item.templateName === ('default' + this.$store.state.userInfo.usercode))
+        if (temp) {
+          this.$store.state.templateID = temp.templateId
+          if (temp.condition.keywords) {
+            this.$store.state.fulltextSearchCondition.keywords = temp.condition.keywords
+          }
+          if (temp.condition.timeFilter) {
+            this.$store.state.fulltextSearchCondition.timeFilter = temp.condition.timeFilter
+          }
+          if (temp.condition.typeFilter) {
+            this.$store.state.fulltextSearchCondition.typeFilter = temp.condition.typeFilter
+          }
+          if (temp.condition.booleanCondition) {
+            this.$store.state.fulltextSearchCondition.booleanCondition = temp.condition.booleanCondition
+          }
+          temp.condition.headers.forEach(item => {
+            util.packegeCustomSearchData(item.keyValues)
+            util.packegeCustomSearchData(item.hideKeyValues)
+          })
+          this.$store.state.advanceSearchHeaders = temp.condition.headers
+          res.remove(temp)
+        }
+        // 获取所有的自定义元数据字段，存在的更新  不存在的remove  新增的加到后面
+        this.$store.dispatch({
+          type: TYPES.GET_CUSTOM_SEARCH_CONDTION
+        }).then(res => {
+          let flag = false
+          console.log(flag)
+          this.$store.state.advanceSearchHeaders.forEach(item => {
+            let kvs = item.keyValues
+            let hkvs = item.hideKeyValues
+            let query = defaultQuery[item.name]
+            if (query) {
+              let customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && item.fieldvisable && item.tabvisable && query.some(i => i.value === item.entitytype)))
+              if (item.name === 'Clip') {
+                let ckvsGroup = customKvs.groupBy('id')
+                let distinctArr = []
+                ckvsGroup.forEach(item => {
+                  if (item.length > 1) {
+                    distinctArr.push(item.sort((i1, i2) => {
+                      return query.indexOf(i1.entitytype) - query.indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
+                    })[0])
+                  } else {
+                    distinctArr.push(item[0])
+                  }
+                })
+                customKvs = distinctArr
+              }
+              let tempKvs = []
+              let tempHkvs = []
+              kvs.forEach((k, index) => {
+                let same = customKvs.find(i => i.id === k.id) // 在显示的项中找相同的
+                if (k.isCustom && !same) { // 如果该项是自定义字段且没有在获取的所有自定义字段里面，就remove
+                  tempKvs.push(k)
+                } else if (k.isCustom) { // 如果找到same 就在所有的自定义字段中remove掉这项避免重复
+                  // if (k.name !== same.name || k.ctrl !== same.ctrl) {
+                  flag = true
+                  if (k.ctrl === same.ctrl) {
+                    if (k.ctrl === 'rd-select') {
+                      if (same.multiple) {
+                        same.options.filter(item => k.value.some(i => i.value === item.value)).forEach(item => (item.selected = true))
+                      } else {
+                        same.options.forEach(item => ((item.value === k.value.value && (item.selected = true)) || (item.selected = false)))
+                      }
+                    } else {
+                      same.value = k.value
+                    }
+                    if (same.isRange) {
+                      same.from.value = k.from.value
+                      same.to.value = k.to.value
+                    }
+                  }
+                  this.$set(kvs, index, same)
+                  //  }
+                  customKvs.remove(same)
+                }
+              })
+              hkvs.forEach((k, index) => {
+                var same = customKvs.find(i => i.id === k.id)
+                if (k.isCustom && !same) {
+                  tempHkvs.push(k)
+                } else if (k.isCustom) {
+                  // if (k.name !== same.name || k.ctrl !== same.ctrl) {
+                  flag = true
+                  if (k.ctrl === same.ctrl) {
+                    if (k.ctrl === 'rd-select') {
+                      if (same.multiple) {
+                        same.options.filter(item => k.value.some(i => i.value === item.value)).forEach(item => (item.selected = true))
+                      } else {
+                        same.options.forEach(item => ((item.value === k.value.value && (item.selected = true)) || (item.selected = false)))
+                      }
+                    } else {
+                      same.value = k.value
+                    }
+                    if (same.isRange) {
+                      same.from.value = k.from.value
+                      same.to.value = k.to.value
+                    }
+                  }
+                  this.$set(hkvs, index, same)
+                  // }
+                  customKvs.remove(same)
+                }
+              })
+              kvs.remove(...tempKvs)
+              hkvs.remove(...tempHkvs)
+              hkvs.push(...customKvs)
+            }
+            // flag && this.$store.dispatch({
+            //   type: types.MODIFY_SEARCH_QUERY,
+            //   data: {
+            //     templateID: this.$store.state.templateID,
+            //     json: {
+            //       templateName: 'default' + this.$store.state.userInfo.usercode,
+            //       condition: this.$store.getters.currentSearchCondition
+            //     }
+            //   }
+            // }) //有变化需要同步， 不同步好像也没问题。。。节约一次请求吧
+          })
+        })
+        res.forEach(item => {
+          item.condition.headers.forEach(item => {
+            util.packegeCustomSearchData(item.keyValues)
+            util.packegeCustomSearchData(item.hideKeyValues)
+          })
+          item.name = item.templateName
+        })
+        this.$store.commit({
+          type: TYPES.GET_SEARCHMODEL,
+          target: this.$store.getters.searchResult,
+          data: res
+        })
+      })
+      var headers = defaultAdvanceSearchCondtion
+
+      headers.forEach(item => {
+        util.packegeCustomSearchData(item.keyValues)
+        util.packegeCustomSearchData(item.hideKeyValues)
+      })
+      this.$store.state.advanceSearchHeaders = headers
+      this.$store.state.fulltextSearchCondition = defaultFulltextSearchCondtion
+      this.$store.state.advanceSearchWindow = new ModalWindow({
+        content: this.$refs.advanceSearch.$el,
+        title: 'Advance Search',
+        onhide: () => {
+          if (this.$store.state.isModifyCondtion) {
+            this.$store.state.isModifyCondtion = false // 暂时不处理被编辑了的高级搜索条件
+            !this.$store.state.isSearched && this.$store.state.advanceSearchHeaders.forEach(h => {
+              h.selected = h.bakSelected
+              var kvs = h.keyValues.concat(h.hideKeyValues)
+              kvs.forEach && kvs.forEach(k => {
+                if (k.isRange) {
+                  k.from.value = k.from.bakValue
+                  k.to.value = k.to.bakValue
+                } else if (k.ctrl === 'rd-select') {
+                  k.options = k.bakOptions
+                } else {
+                  k.value = k.bakValue
+                  if (k.username) {
+                    k.username = ''
+                    k.userdata.checked = false
+                    k.userdata = null
+                  }
+                  if (k.bakUserdata) {
+                    k.bakUserdata.checked = true
+                    k.userdata = k.bakUserdata
+                    k.username = k.bakUserdata.nickname || k.bakUserdata.loginname.replace(/.*\\(.*)/g, '$1')
+                  }
+                  if (k.checkedValue) {
+                    k.checkedValue.forEach(item => (item.checked = false))
+                    k.bakCheckedValue.forEach(item => (item.checked = true))
+                    k.checkedValue = k.bakCheckedValue
+                  }
+                }
+              })
+            })
+            this.$store.state.advanceSearchHeaders = this.$store.state.bakAdvanceSearchHeaders // huanyuan
+          } else {
+            if (this.$store.state.isSearched && this.$store.state.isRemember.checked) {
+
+            } else {
+              // restore
+              this.$store.state.advanceSearchHeaders.forEach(h => {
+                h.selected = h.bakSelected
+                var kvs = h.keyValues.concat(h.hideKeyValues)
+                kvs.forEach && kvs.forEach(k => {
+                  if (k.isRange) {
+                    k.from.value = k.from.bakValue
+                    k.to.value = k.to.bakValue
+                  } else if (k.ctrl === 'rd-select') {
+                    k.options = k.bakOptions
+                  } else {
+                    k.value = k.bakValue
+                    if (k.username) {
+                      k.username = ''
+                      k.userdata.checked = false
+                      k.userdata = null
+                    }
+                    if (k.bakUserdata) {
+                      k.bakUserdata.checked = true
+                      k.userdata = k.bakUserdata
+                      k.username = k.bakUserdata.nickname || k.bakUserdata.loginname.replace(/.*\\(.*)/g, '$1')
+                    }
+                    if (k.checkedValue) {
+                      k.checkedValue.forEach(item => (item.checked = false))
+                      k.bakCheckedValue.forEach(item => (item.checked = true))
+                      k.checkedValue = k.bakCheckedValue
+                    }
+                  }
+                })
+              })
+            }
+          }
+          this.$store.state.isSearched = false
+        },
+        onshow: () => {
+          // bak data
+          if (this.$store.state.isModifyCondtion) {
+            this.isAdvanceConfig = false // 取消config模式
+            var headers = this.currentNode.bakCondition.headers
+            this.$store.dispatch({
+              type: TYPES.GET_CUSTOM_SEARCH_CONDTION
+            }).then(res => {
+              headers.forEach(item => {
+                var kvs = item.keyValues
+                var hkvs = item.hideKeyValues
+                var query = defaultQuery[item.name]
+                if (query) {
+                  var customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && query.some(i => i.value === item.entitytype)))
+                  if (item.name === 'Clip') {
+                    var ckvsGroup = customKvs.groupBy('id')
+                    var distinctArr = []
+                    ckvsGroup.forEach(item => {
+                      if (item.length > 1) {
+                        distinctArr.push(item.sort((i1, i2) => {
+                          return query.indexOf(i1.entitytype) - query.indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
+                        })[0])
+                      } else {
+                        distinctArr.push(item[0])
+                      }
+                    })
+                    customKvs = distinctArr
+                  }
+                  let tempKvs = []
+                  let tempHkvs = []
+                  kvs.forEach((k, index) => {
+                    var same = customKvs.find(i => i.id === k.id) // 在显示的项中找相同的
+                    if (k.isCustom && !same) { // 如果该项是自定义字段且没有在获取的所有自定义字段里面，就remove
+                      tempKvs.push(k)
+                    } else if (k.isCustom) { // 如果找到same 就在所有的自定义字段中remove掉这项避免重复
+                      // if (k.name !== same.name || k.ctrl !== same.ctrl) {
+                      if (k.ctrl === same.ctrl) {
+                        if (k.ctrl === 'rd-select') {
+                          if (same.multiple) {
+                            same.options.filter(item => k.value.some(i => i.value === item.value)).forEach(item => (item.selected = true))
+                          } else {
+                            same.options.forEach(item => (item.value === k.value.value && (item.selected = true)) || (item.selected = false))
+                          }
+                        } else {
+                          same.value = k.value
+                        }
+                        if (same.isRange) {
+                          same.from.value = k.from.value
+                          same.to.value = k.to.value
+                        }
+                      }
+                      this.$set(kvs, index, same)
+                      // }
+                      customKvs.remove(same)
+                    }
+                  })
+                  hkvs.forEach((k, index) => {
+                    var same = customKvs.find(i => i.id === k.id)
+                    if (k.isCustom && !same) {
+                      tempHkvs.push(k)
+                    } else if (k.isCustom) {
+                      // if (k.name !== same.name || k.ctrl !== same.ctrl) {
+                      if (k.ctrl === same.ctrl) {
+                        if (k.ctrl === 'rd-select') {
+                          if (same.multiple) {
+                            same.options.filter(item => k.value.some(i => i.value === item.value)).forEach(item => (item.selected = true))
+                          } else {
+                            same.options.forEach(item => (item.value === k.value.value && (item.selected = true)) || (item.selected = false))
+                          }
+                        } else {
+                          same.value = k.value
+                        }
+                        if (same.isRange) {
+                          same.from.value = k.from.value
+                          same.to.value = k.to.value
+                        }
+                      }
+                      this.$set(hkvs, index, same)
+                      // }
+                      customKvs.remove(same)
+                    }
+                  })
+                  kvs.remove(...tempKvs)
+                  hkvs.remove(...tempHkvs)
+                  hkvs.push(...customKvs)
+                }
+              })
+              // 此处组织条件，丢掉没有的，引入新增的。
+              headers.forEach(item => {
+                util.packegeCustomSearchData(item.keyValues)
+                util.packegeCustomSearchData(item.hideKeyValues)
+              })
+              this.$store.state.bakAdvanceSearchHeaders = this.$store.state.advanceSearchHeaders // 备份
+              headers.forEach(h => {
+                h.bakSelected = h.selected
+                var kvs = h.keyValues.concat(h.hideKeyValues)
+                kvs.forEach && kvs.forEach(k => {
+                  if (k.isRange) {
+                    k.from.bakValue = k.from.value
+                    k.to.bakValue = k.to.value
+                  } else if (k.ctrl === 'rd-select') {
+                    k.bakOptions = JSON.parse(JSON.stringify(k.options))
+                  } else {
+                    k.bakValue = k.value
+                    k.bakUserdata = k.userdata
+                    if (k.checkedValue) {
+                      k.bakCheckedValue = k.checkedValue.slice()
+                    }
+                  }
+                })
+              }) // 备份
+            })
+            this.$store.state.advanceSearchHeaders = headers
+          } else {
+            this.$store.state.advanceSearchHeaders.forEach(h => {
+              h.bakSelected = h.selected
+              var kvs = h.keyValues.concat(h.hideKeyValues)
+              kvs.forEach && kvs.forEach(k => {
+                if (k.isRange) {
+                  k.from.bakValue = k.from.value
+                  k.to.bakValue = k.to.value
+                } else if (k.ctrl === 'rd-select') {
+                  k.bakOptions = JSON.parse(JSON.stringify(k.options))
+                } else {
+                  k.bakValue = k.value
+                  k.bakUserdata = k.userdata
+                  if (k.checkedValue) {
+                    k.bakCheckedValue = k.checkedValue.slice()
+                  }
+                }
+              })
+            })
+          }
+        }
       })
     },
     setCookie () {
@@ -598,9 +1269,11 @@ export default {
       }))
     }
   },
-  created () {
+  created () { },
+  mounted () {
     this.initNativeEvents()
     this.initAppData()
+    this.initModalWindow()
   }
 }
 </script>

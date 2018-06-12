@@ -1,4 +1,4 @@
-export function KeyEvent (code, opt = {}) {
+export function KeyEvent(code, opt = {}) {
   if (!(this instanceof KeyEvent)) {
     return new KeyEvent(code, opt)
   }

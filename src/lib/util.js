@@ -25,5 +25,15 @@ export default {
       url = url + q
     }
     return url
+  },
+  getValue () {
+    let val
+    for (let i = 0, l = arguments.length; i < l; i++) {
+      if (arguments[i] !== undefined) {
+        val = arguments[i]
+        break
+      }
+    }
+    return val
   }
 }
