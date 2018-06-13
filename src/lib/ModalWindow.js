@@ -1,6 +1,6 @@
-import $ from './jquery-3.2.0.min.js'
 import util from './util.js'
-export function ModalWindow (options) {
+let $ = require('./jquery-3.2.0.min.js')
+export default function ModalWindow (options) {
   let layout = `<div  class="h5 window animated2 zoomIn">
                   <div class="window-caption">
                       <span class="window-caption-icon">

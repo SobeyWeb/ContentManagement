@@ -1,4 +1,5 @@
-/*!
+ /* eslint-disable */
+ /*!
  * jquery.base64.js 0.0.3 - https://github.com/yckart/jquery.base64.js
  * Makes Base64 en & -decoding simpler as it is.
  *

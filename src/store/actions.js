@@ -242,5 +242,74 @@ export default {
         }
       )
     }
+  },
+  // get user tree
+  [TYPES.GET_USERTREE] (context, payload) {
+    return new Promise((resolve, reject) => {
+      Promise.all([
+        context.dispatch({
+          type: TYPES.GET_ALLUSER
+        }),
+        context.dispatch({
+          type: TYPES.GET_ALLDEPT
+        })
+      ])
+        .then(res => {
+          var deptArr = res[1].data.ext
+          var userArr = res[0].data.ext
+          context.state.userInfo.depts = util.getcurrentDepts(
+            context.state.userInfo.usercode,
+            userArr,
+            deptArr
+          )
+          var curUser = userArr.find(
+            item => item.usercode === context.state.userInfo.usercode
+          )
+          if (curUser) {
+            context.state.userInfo.nickname =
+              curUser.nickname || curUser.loginname.replace(/.*\\(.*)/g, '$1')
+          }
+          context.state.userDept = util.getDptUserTree(
+            deptArr,
+            userArr,
+            payload.data
+          )
+          resolve(res)
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  // get all user
+  [TYPES.GET_ALLDEPT] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_ALLDEPT]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          context.state.deptArr = res.data.ext
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_ALLUSER] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_ALLUSER]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          context.state.userArr = res.data.ext
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
   }
 }

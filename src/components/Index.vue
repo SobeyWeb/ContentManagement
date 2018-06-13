@@ -14,8 +14,8 @@ import APPSETTING from '../config/appSetting.js'
 import URLCONFIG from '../config/urlConfig.js'
 import NODETYPES from '../dicts/guidMaps.js'
 import ModalWindow from '../lib/ModalWindow.js'
-import $ from '../lib/jquery-3.2.0.min.js'
 import { defaultQuery, defaultFulltextSearchCondtion, defaultAdvanceSearchCondtion } from '../data/basicData.js'
+let $ = require('../lib/jquery-3.2.0.min.js')
 export default {
   name: 'Index',
   data () {

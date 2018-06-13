@@ -17,9 +17,20 @@ export default {
     )
   },
   [TYPES.GET_USERPERMISSION] (para) {
-    console.log(util)
     return util.getUrl(
       URLCONFIG.CMAPI + '/CMApi/api/basic/account/testfunctionpopedom',
+      para
+    )
+  },
+  [TYPES.GET_ALLUSER] (para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/account/getalluser',
+      para
+    )
+  },
+  [TYPES.GET_ALLDEPT] (para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/account/getalldeptinfo',
       para
     )
   }
