@@ -33,5 +33,27 @@ export default {
       URLCONFIG.CMAPI + '/CMApi/api/basic/account/getalldeptinfo',
       para
     )
+  },
+  [TYPES.GET_NASPATH] (para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI +
+        '/CMApi/api/basic/user/getcurrentusercanwritepathbycondition',
+      para
+    )
+  },
+  [TYPES.GET_S3PATH] (para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/user/getcurrentuserpath',
+      para
+    )
+  },
+  [TYPES.GET_DING] (para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/v1/entity/ding/getdinginfo',
+      para
+    )
+  },
+  [TYPES.GET_SEARCH_QUERY] (para) {
+    return URLCONFIG.HIVE + '/solar-api/material-list-ext/user/search-templates'
   }
 }

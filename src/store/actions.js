@@ -311,5 +311,70 @@ export default {
         }
       })
     })
+  },
+  [TYPES.GET_S3PATH] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_S3PATH]({
+      storagetype: 'oss',
+      storagemark: 'bucket-z'
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          if (res.data.ext.oss) {
+            context.state.s3Path = res.data.ext.oss[0].path
+          }
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_NASPATH] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_NASPATH]({
+      storagetype: 'nas',
+      storagemark: 'bucket-z'
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          context.state.uploadPath = res.data.ext.path
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_DING] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_DING]({
+      usercode: context.state.userInfo.usercode
+    })
+    return new Promise((resolve, reject) => {
+      axios
+        .get(url)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.GET_SEARCH_QUERY] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_SEARCH_QUERY]()
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data && !res.data.code) {
+          resolve(res.data)
+        } else {
+          resolve([])
+        }
+      })
+    })
   }
 }

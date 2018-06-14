@@ -15,7 +15,6 @@ import URLCONFIG from '../config/urlConfig.js'
 import NODETYPES from '../dicts/guidMaps.js'
 import ModalWindow from '../lib/ModalWindow.js'
 import { defaultQuery, defaultFulltextSearchCondtion, defaultAdvanceSearchCondtion } from '../data/basicData.js'
-let $ = require('../lib/jquery-3.2.0.min.js')
 export default {
   name: 'Index',
   data () {
@@ -102,8 +101,8 @@ export default {
     resizing: util.throttle(50, event => {
       if (this.resizeSymbol) {
         let width = this.leftTreeWidth + event.x - this.resizeX
-        this.resizeX += Math.min(500, Math.max(100, width)) - this.leftTreeWidth
-        this.leftTreeWidth = Math.min(500, Math.max(100, width))
+        this.resizeX += Math.min(APPSETTING.MAXTREEWIDTH || 500, Math.max(APPSETTING.MINTREEWIDTH || 100, width)) - this.leftTreeWidth
+        this.leftTreeWidth = Math.min(APPSETTING.MAXTREEWIDTH || 500, Math.max(APPSETTING.MINTREEWIDTH || 100, width))
         if (!this.leftTreeWidth) {
           this.folderBlockStatus = false
         } else {
@@ -845,7 +844,7 @@ export default {
         type: TYPES.SET_DVPADDING
       })
       let headerArr = JSON.parse(util.getCookie('item_headers' + this.userInfo.usercode))
-      if (util.isArray(headerArr)) {
+      if (Array.isArray(headerArr)) {
         this.$store.commit({
           type: TYPES.SET_HEADERS,
           data: headerArr
@@ -878,20 +877,20 @@ export default {
       })
     },
     initModalWindow () {
-      this.taskMonitorWindow = new ModalWindow({
-        content: $('.taskmonitorifm')[0],
-        title: this.dict.taskmonitor,
-        onshow: this.resizeTaskMonitor
-      })
+      // this.taskMonitorWindow = new ModalWindow({
+      //   content: this.$refs.taskmonitor || document.querySelector('.taskmonitorifm'),
+      //   title: 'Task Monitor',
+      //   onshow: this.resizeTaskMonitor
+      // })
       this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
-      this.$store.state.saveClipWindow = new ModalWindow({
-        content: this.$refs.saveClip.$el,
-        title: 'Save As'
-      })
-      this.$store.state.exportWindow = new ModalWindow({
-        content: this.$refs.export.$el,
-        title: 'Export'
-      })
+      // this.$store.state.saveClipWindow = new ModalWindow({
+      //   content: this.$refs.saveClip.$el,
+      //   title: 'Save As'
+      // })
+      // this.$store.state.exportWindow = new ModalWindow({
+      //   content: this.$refs.export.$el,
+      //   title: 'Export'
+      // })
       this.$store.dispatch({
         type: TYPES.GET_SEARCH_QUERY
       }).then(res => {
