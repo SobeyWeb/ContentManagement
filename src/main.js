@@ -14,7 +14,8 @@ import vuexI18n from 'vuex-i18n'
 import translationsEn from './dicts/translationsEn.js'
 
 import eventPlugin from './plugins/eventPlugin.js'
-import EVENT from './dicts/eventTypes.js'
+import EVENT from './dicts/EventTypes.js'
+import './lib/prototype.js'
 
 Vue.use(Vuex)
 Vue.use(eventPlugin)

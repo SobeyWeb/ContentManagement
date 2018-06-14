@@ -20,8 +20,7 @@
 <script>
 import PERMISSION from '../dicts/permission.js'
 import TYPES from '../dicts/mutationTypes.js'
-import EVENT from '../dicts/eventTypes.js'
-import UserSpace from './UserSpace'
+import EVENT from '../dicts/EventTypes.js'
 export default {
   name: 'Login',
   data () {
@@ -32,9 +31,6 @@ export default {
       errorMsg: '',
       loading: false
     }
-  },
-  components: {
-    'user-sapce': UserSpace
   },
   computed: {
     msg () {

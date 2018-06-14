@@ -45,10 +45,23 @@ export default {
           // this.resizeTaskMonitor()
         }, true))
       }
+    },
+    getUserInfo () {
+      let userInfo = util.getCookie('userInfo')
+      if (userInfo) {
+        userInfo = JSON.parse(userInfo)
+        this.$store.commit({
+          type: TYPES.SET_USERINFO,
+          data: userInfo
+        })
+      } else {
+        // this.$router.push('/login')
+      }
     }
   },
   created () {
     this.initNativeEvents()
+    this.getUserInfo()
   }
 }
 </script>
