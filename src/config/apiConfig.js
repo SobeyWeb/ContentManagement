@@ -55,5 +55,12 @@ export default {
   },
   [TYPES.GET_SEARCH_QUERY] (para) {
     return URLCONFIG.HIVE + '/solar-api/material-list-ext/user/search-templates'
+  },
+  [TYPES.GET_USERSPACE] (para) {
+    console.log(util)
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/account/getuserstoragebyname',
+      para
+    )
   }
 }
