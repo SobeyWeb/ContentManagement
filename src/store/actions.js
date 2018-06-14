@@ -181,5 +181,20 @@ export default {
             })
           })
     }
+  },
+  [TYPES.GET_USERSPACE] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_USERSPACE]({
+      usertoken: context.state.userInfo.usertoken,
+      loginName: context.state.userInfo.loginname
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res.data)
+        } else {
+          reject(res.data)
+        }
+      })
+    })
   }
 }

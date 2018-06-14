@@ -13,13 +13,15 @@
 
       <div class="msg-text" style="color: rgb(248, 155, 57);">{{$t(msg||errorMsg)}}</div>
     </form>
+    <user-sapce></user-sapce>
   </div>
 </template>
 
 <script>
 import PERMISSION from '../dicts/permission.js'
 import TYPES from '../dicts/mutationTypes.js'
-import EVENT from './dicts/EventTypes.js'
+import EVENT from '../dicts/eventTypes.js'
+import UserSpace from './UserSpace'
 export default {
   name: 'Login',
   data () {
@@ -30,6 +32,9 @@ export default {
       errorMsg: '',
       loading: false
     }
+  },
+  components: {
+    'user-sapce': UserSpace
   },
   computed: {
     msg () {
@@ -82,7 +87,7 @@ export default {
           }).then(res => {
             if (res.ext) {
               this.$app.emit(EVENT.LOGINED, [this]) // dispatch login event
-              this.$router.push('/index')
+              // this.$router.push('/index')
               this.loading = false
               localStorage.setItem('loginName', this.username)
               // get user info

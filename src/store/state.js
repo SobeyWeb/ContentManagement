@@ -3,5 +3,7 @@ export default {
   userInfo: null,
   showSearch: false,
   player: null,
-  property: null
+  property: null,
+  sumSpace: 0,
+  useSpace: 10
 }
