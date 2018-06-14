@@ -183,12 +183,6 @@ export default {
           })
     }
   },
-<<<<<<< HEAD
-  [TYPES.GET_USERSPACE] (context, payload) {
-    let url = API_CONFIG[TYPES.GET_USERSPACE]({
-      usertoken: context.state.userInfo.usertoken,
-      loginName: context.state.userInfo.loginname
-=======
   // delete materialas
   [TYPES.DELETE_MATERIALS] (context, payload) {
     let arr = payload.target.slice()
@@ -340,16 +334,10 @@ export default {
     let url = API_CONFIG[TYPES.GET_NASPATH]({
       storagetype: 'nas',
       storagemark: 'bucket-z'
->>>>>>> 4c6ada69c48f80ac8698697aa933560093c0381b
     })
     return new Promise((resolve, reject) => {
       axios.get(url).then(res => {
         if (res.data.code === '0') {
-<<<<<<< HEAD
-          resolve(res.data)
-        } else {
-          reject(res.data)
-=======
           context.state.uploadPath = res.data.ext.path
           resolve(res)
         } else {
@@ -385,7 +373,21 @@ export default {
           resolve(res.data)
         } else {
           resolve([])
->>>>>>> 4c6ada69c48f80ac8698697aa933560093c0381b
+        }
+      })
+    })
+  },
+  [TYPES.GET_USERSPACE] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_USERSPACE]({
+      usertoken: context.state.userInfo.usertoken,
+      loginName: context.state.userInfo.loginname
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res.data)
+        } else {
+          resolve(res)
         }
       })
     })
