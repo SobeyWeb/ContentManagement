@@ -949,7 +949,10 @@ export default {
 
       this.$store.dispatch({
         type: TYPES.GETSYSPARAM,
-        target: '{\'tool\':\'DEFAULT\',\'paramname\':\'SNSPublishQuality\'}'
+        target: {
+          tool: 'DEFAULT',
+          paramname: 'SNSPublishQuality'
+        }
       }).then((res) => {
         if (res.paramvalue) {
           //  _this.$store.state.SNSPublishQuality = res.paramvalue;
