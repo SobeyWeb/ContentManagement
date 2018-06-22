@@ -111,6 +111,7 @@ export default {
   isplayerRegister: false,
   // highFileLength: 0,
   ispublish: false,
+  publishWindow: {},
   SNSPublishQuality: 'high',
   materialSpace: 0,
   isSaveAs: false,

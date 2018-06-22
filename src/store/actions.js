@@ -3,6 +3,7 @@ import API_CONFIG from '../config/apiConfig.js'
 import NODETYPES from '../dicts/guidMaps.js'
 import axios from 'axios'
 import util from '../lib/util.js'
+import URLCONFIG from './urlConfig.js'
 let md5 = require('../lib/md5.min.js').md5
 export default {
   // Intercept request
@@ -386,6 +387,145 @@ export default {
       axios.get(url).then(res => {
         if (res.data.code === '0') {
           resolve(res.data)
+        } else {
+          resolve(res)
+        }
+      })
+    })
+  },
+  [TYPES.GETSYSPARAM] (context, payload) {
+    let url = API_CONFIG[TYPES.GETSYSPARAM]({
+      usertoken: context.state.userInfo.usertoken,
+      poolownertype: 'user',
+      storagetype: 'oss'
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.target).then(res => {
+        if (res.data.code === '0') {
+          resolve(res.data.ext)
+        } else {
+          resolve(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_SNSCONFIG] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_SNSCONFIG]({
+      userid: context.state.userInfo.userid
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res.data.ext)
+        } else {
+          resolve(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_OBJECT_INFO] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_OBJECT_INFO]({
+      usertoken: context.state.userInfo.usertoken,
+      contentid: payload.data.contentid,
+      pathtype: payload.data.pathtype || 'http',
+      objecttype: payload.data.type,
+      siteCode: context.state.userInfo.sitecode
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0' && res.data.ext) {
+          resolve(res)
+        } else {
+          resolve(res)
+        }
+      })
+    })
+  },
+  [TYPES.OPEN_PUBLISHTOSNS] (context, payload) {
+    if (payload.target && payload.target.length) {
+      // if (context.state.userInfo.isPublishToSNS) { //具有发布权限
+      // } else { //没有发布权限
+      //   util.Notice.warning("您没有发布权限！", '', 3000);
+      //   return;
+      // }
+      context
+        .dispatch({
+          type: TYPES.GET_SNSCONFIG,
+          data: {}
+        })
+        .then(result => {
+          if (result) {
+            context.state.configSNSid = result
+          } else {
+            context.state.configSNSid = []
+          }
+        })
+      // 显示发布窗口
+      // context.state.ispublish = true;
+      context.state.publishWindow.show()
+      context
+        .dispatch({
+          type: TYPES.GET_OBJECT_INFO,
+          data: {
+            contentid: payload.target[0].guid,
+            pathtype: 'http',
+            type: payload.target[0].typeid
+          }
+        })
+        .then(result => {
+          let datajson = result.data.ext
+          let streammedia = datajson.streammedia && datajson.streammedia[0]
+          let filPath =
+            (streammedia && (streammedia.filepath || streammedia.filename)) ||
+            ''
+          if (datajson.entity.subtype === 32) {
+            // 图片
+            context.state.snsviewPath = filPath || datajson.entity.iconfilename
+            context.state.materialSpace =
+              datajson.entity.item.clipfile[0].filesize || 0
+          } else {
+            context.state.snsviewPath = filPath
+
+            let highsize = 0
+            let lowsize = 0
+            datajson.entity.item.clipfile.forEach(item => {
+              if (item.qualitytype === 0 && item.clipclass === 1) {
+                highsize += item.filesize
+              } else if (item.qualitytype === 1 && item.clipclass === 1) {
+                lowsize += item.filesize
+              }
+            })
+            context.state.materialSpace =
+              context.state.SNSPublishQuality === 'high'
+                ? highsize || lowsize
+                : lowsize
+          }
+        })
+    }
+  },
+  [TYPES.GET_TWITTER_ACOUNTS] (context, payload) {
+    let url = API_CONFIG[TYPES.GET_TWITTER_ACOUNTS]({})
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0' && res.data.ext) {
+          resolve(res)
+        } else {
+          resolve(res)
+        }
+      })
+    })
+  },
+  [TYPES.PUBLISH_TO_SNS] (context, payload) {
+    let url = API_CONFIG[TYPES.PUBLISH_TO_SNS]({})
+    let data = payload.data
+    data.usercode = context.state.userInfo.usercode
+    data.username = context.state.userInfo.username
+    data.replyto = URLCONFIG.TMSERVICE + '/sobey/plat/cmd'
+    data = JSON.stringify(data)
+    return new Promise((resolve, reject) => {
+      axios.post(url, data).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
         } else {
           resolve(res)
         }
