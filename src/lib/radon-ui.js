@@ -1,3 +1,4 @@
+/* eslint-disable */
 !function(e, t) {
     "object" == typeof exports && "object" == typeof module ? module.exports = t() : "function" == typeof define && define.amd ? define("radon-ui", [], t) : "object" == typeof exports ? exports["radon-ui"] = t() : e["radon-ui"] = t()
 }(this, function() {
@@ -6020,8 +6021,7 @@
             });
             return i
         })
-    }
-    , function(e, t, n) {
+    }, function(e, t, n) {
         !function(e, t) {
             t(n(1))
         }(this, function(e) {

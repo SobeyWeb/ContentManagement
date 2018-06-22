@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <h1 style="margin-bottom:50px;">
-      <div style="text-aligin:center;"><img src="../assets/login_logo.png" /></div>
+      <div style="text-aligin:center;"><img src="../assets/images/login_logo.png" /></div>
     </h1>
 
     <form class="form">

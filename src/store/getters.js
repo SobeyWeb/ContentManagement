@@ -1,21 +1,21 @@
-import util from '../lib/util.js'
+import * as util from '../lib/util.js'
 import APPSETTING from '../config/appSetting.js'
 import { getRepository, setRepository } from '../data/repository'
 
 export default {
-  isFocusTree (state) {
+  isFocusTree(state) {
     return state.focusIndex % 3 === 0
   },
-  isFocusML (state) {
+  isFocusML(state) {
     return state.focusIndex % 3 === 1
   },
-  isFocusPlayer (state) {
+  isFocusPlayer(state) {
     return state.focusIndex % 3 === 2
   },
-  folderTree (state) {
+  folderTree(state) {
     return state.nodes
   },
-  currentNode (state, getters) {
+  currentNode(state, getters) {
     let cnode
     if (state.navPath.length > 0) {
       cnode = state.navPath[state.navPath.length - 1]
@@ -67,22 +67,22 @@ export default {
     }
     return cnode
   },
-  copingBoard (state, getters) {
+  copingBoard(state, getters) {
     return getters.displayMaterials.filter(item => item.coping)
   },
-  searchResult (state) {
+  searchResult(state) {
     return state.nodes[1]
   },
-  orderList (state) {
+  orderList(state) {
     return state.nodes[2]
   },
-  selectedNode (state, getters) {
+  selectedNode(state, getters) {
     return state.selectedNode || getters.currentNode
   },
-  selectedMaterial (state, getters) {
+  selectedMaterial(state, getters) {
     return getters.displayMaterials[state.signIndex] || null
   },
-  displayMaterials (state, getters) {
+  displayMaterials(state, getters) {
     let index = state.updateId
     console.log(index)
     // return repository[getters.currentNode.guid].filter(item => 'folder' === item.type || state.archiveFiters[item.onlinstatus])
@@ -95,10 +95,10 @@ export default {
           !item.folderpath.startsWith(APPSETTING.OAPATH))
     )
   },
-  orderedSelectedMaterials (state, getters) {
+  orderedSelectedMaterials(state, getters) {
     return getters.displayMaterials.filter(item => item.selected)
   },
-  selectedMaterialsInfo (state, getters) {
+  selectedMaterialsInfo(state, getters) {
     return state.selectedMaterials.map(item => {
       return {
         name: item.name,
@@ -110,24 +110,24 @@ export default {
       }
     })
   },
-  thumbnailStyle (state, getters) {
+  thumbnailStyle(state, getters) {
     return {
       margin: '7px ' + state.thumbPadding + 'px',
       width: state.thumbnailStyle.width * state.scaleTime + 'px',
       height: state.thumbnailStyle.height * state.scaleTime + 45 + 'px'
     }
   },
-  previewStatus (state, getters) {
+  previewStatus(state, getters) {
     return state.detailviewSymbol || state.previewSymbol
   },
-  itemWidth (state, getters) {
+  itemWidth(state, getters) {
     return state.listSymbol
       ? 1
       : state.isMarker
         ? 462
         : state.thumbnailStyle.width * state.scaleTime + 2 * state.thumbPadding
   },
-  itemHeight (state, getters) {
+  itemHeight(state, getters) {
     return state.listSymbol
       ? state.system
         ? 40
@@ -136,7 +136,7 @@ export default {
         ? 102
         : 14 + state.thumbnailStyle.height * state.scaleTime + 45
   },
-  thumbDisplay (state, getters) {
+  thumbDisplay(state, getters) {
     let containerUpdate = state.containerUpdate // add for resize  auto update
     console.log(containerUpdate)
     let box = state.materialBox || {}
@@ -166,9 +166,7 @@ export default {
     } else {
       let rowCount = state.isMarker
         ? Math.floor(box.clientWidth / getters.itemWidth)
-        : Math.round(
-          (box.clientWidth - 2 * state.thumbPadding) / getters.itemWidth
-        )
+        : Math.round((box.clientWidth - 2 * state.thumbPadding) / getters.itemWidth)
       let totalHeight = Math.ceil(length / rowCount) * itemHeight
       let screenRows = Math.ceil(box.clientHeight / itemHeight) + 1
       let cellPercent = (itemHeight * 100) / totalHeight
@@ -191,7 +189,7 @@ export default {
       }
     }
   },
-  currentSearchCondition (state, getters) {
+  currentSearchCondition(state, getters) {
     return {
       node: {
         path: state.searchNode.path,
@@ -205,7 +203,7 @@ export default {
       type: state.searchType
     }
   },
-  regExp (state, getters) {
+  regExp(state, getters) {
     let cond = state.condition.trim()
     if (cond) {
       let regStr = '^'

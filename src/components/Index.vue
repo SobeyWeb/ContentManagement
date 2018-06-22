@@ -1,10 +1,35 @@
 <template>
   <div :class="{plug_style: isPremiere}" @click.capture="hideMenu" @contextmenu="hideMenu" @mousedown="hideMenu" @selectstart.stop.prevent @mouseup="dragEnd" @mousewheel.ctrl="scaleThumb" @mousemove="resizing">
+    <div class="fullScreen_container" v-show="fullscreenSymbol">
+      <div class="auto_center"></div>
+    </div>
+    <input class="upload_input" type="file" @change="upload" multiple="multiple" />
+    <input class="copy_input" type="text" />
+    <advance-search ref="advanceSearch"></advance-search>
+    <rd-modal></rd-modal>
+    <rd-notification></rd-notification>
+    <rd-loadingbar></rd-loadingbar>
+    <rd-preview></rd-preview>
+    <!--left block-->
+    <div class="left_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?0:- leftTreeWidth)+'px', width: leftTreeWidth + 'px'}">
+      <div class="resize_handle" @mousedown.stop.prevent.capture="resizeMousedown"></div>
+      <div class="logo_box">
+        <span>Content Management</span>
+      </div>
+      <!--div class="folder_box"-->
+      <vue-nice-scrollbar class="folder_box" id="folder_box" :class="{focused: isFocusTree}" :speed="150">
+        <div class='folder_base fl' style="position: relative;" @mousedown.capture="focusIndex = 0">
+          <quick-link :data="node" v-for="node in linkNodes" :key="node.name"></quick-link>
+          <folder-tree :data="node" v-for="node in folderTree" :key="node.guid"></folder-tree>
+        </div>
+      </vue-nice-scrollbar>
+      <!--/div-->
+    </div>
   </div>
 </template>
 
 <script>
-import util from '../lib/util.js'
+import * as util from '../lib/util.js'
 import TYPES from '../dicts/mutationTypes.js'
 import { mapState, mapGetters } from 'vuex'
 import KEYCODES from '../dicts/keycodes.js'
@@ -15,8 +40,18 @@ import URLCONFIG from '../config/urlConfig.js'
 import NODETYPES from '../dicts/guidMaps.js'
 import ModalWindow from '../lib/ModalWindow.js'
 import { defaultQuery, defaultFulltextSearchCondtion, defaultAdvanceSearchCondtion } from '../data/basicData.js'
+import { SortLikeWin } from '../lib/sort.js'
+
+import AdvanceSearch from './AdvanceSearch/Index'
+import FolderTree from './FolderTree'
+import QuickLink from './QuickLink'
 export default {
   name: 'Index',
+  components: {
+    'advance-search': AdvanceSearch,
+    'folder-tree': FolderTree,
+    'quick-link': QuickLink
+  },
   data () {
     return {
       tempIndex: 0,
@@ -41,7 +76,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['userInfo', 'isAdvanceConfig', 'searchType', 'isMarker', 'linkNodes', 'player', 'showSearch', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'focusIndex', 'trashcan']),
+    ...mapState(['userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'searchType', 'isMarker', 'linkNodes', 'player', 'showSearch', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
     ...mapGetters(['selectedNode', 'searchResult', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
     scaleTime: {
       get () {
@@ -49,6 +84,14 @@ export default {
       },
       set (val) {
         this.$store.state.scaleTime = val
+      }
+    },
+    focusIndex: {
+      get () {
+        return this.$store.state.focusIndex
+      },
+      set (val) {
+        this.$store.state.focusIndex = val
       }
     },
     isPremiere () {
@@ -94,6 +137,34 @@ export default {
     }
   },
   methods: {
+    upload (event) {
+      var files = event.target.files
+      if (files && files.length) {
+        if (files.length > 300) {
+          util.Notice.warning('The upload number exceeds the restriction of 300', '', 3000)
+          event.target.value = ''
+          return
+        }
+        if ([].every.call(files, item => this.blackList.indexOf(item.name.substring(item.name.lastIndexOf('.') + 1).toLowerCase()) > -1)) {
+          util.Notice.warning('This format dose not support upload', '', 3000)
+          event.target.value = ''
+          return
+        } else {
+          var fiterFiles = [].filter.call(files, item => this.blackList.indexOf(item.name.substring(item.name.lastIndexOf('.') + 1).toLowerCase()) === -1)
+          if (fiterFiles.length !== files.length) {
+            util.Notice.warning('Some object(s) is failed to upload', '', 3000)
+            files = fiterFiles
+          }
+        }
+        this.$store.dispatch({
+          type: TYPES.UPLOAD_FILES,
+          data: {
+            files: files
+          }
+        })
+        event.target.value = ''
+      }
+    },
     resizeMousedown (event) {
       this.resizeSymbol = true
       this.resizeX = event.x
@@ -872,7 +943,7 @@ export default {
         this.$store.commit({
           type: TYPES.SET_FOLDERS,
           target: dingRoot,
-          data: linkNodes.sort(util.sortLikeWin)
+          data: linkNodes.sort(SortLikeWin)
         })
       })
     },
@@ -1279,4 +1350,34 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.left_container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 200px;
+  background: #222;
+}
+.left_container .logo_box {
+  overflow: hidden;
+  height: 49px;
+  line-height: 50px;
+  background-color: #1b1b1b;
+  color: rgb(115, 115, 115);
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid #000;
+  font-size: 16px;
+  font-family: Arial;
+}
+.left_container .folder_box {
+  border-right: 1px solid #000;
+  height: calc(100% - 100px);
+  background: #222222;
+  border-top: 1px #1b1b1b solid;
+  font-size: 15px;
+  line-height: 30px;
+  /* padding: 10px 0; */
+}
 </style>

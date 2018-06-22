@@ -1,4 +1,4 @@
-import util from '../lib/util'
+import { throttle } from '../lib/util'
 import treeNode from '../data/treeNode'
 import { emptyMaterial } from '../data/basicData'
 
@@ -16,7 +16,7 @@ export default {
   scrollingV: 0,
   playerHistory: [],
   ws_materials: [],
-  refreshFunc: util.throttle(3000, () => this.property.refresh(), true),
+  refreshFunc: throttle(3000, () => this.property.refresh(), true),
   lmLanguage: 1,
   defaultLanguage: 1,
   thumbnailStyle: {

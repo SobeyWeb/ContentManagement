@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import util from './lib/util.js'
+import * as util from './lib/util.js'
 import TYPES from './dicts/mutationTypes.js'
 import { mapState } from 'vuex'
 export default {

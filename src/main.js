@@ -17,9 +17,30 @@ import eventPlugin from './plugins/eventPlugin.js'
 import EVENT from './dicts/EventTypes.js'
 import './lib/prototype.js'
 
+import './assets/css/rest.css'
+import './assets/css/radon-ui.css'
+import './assets/css/main.css'
+import './assets/css/animate.css'
+
+import ScrollBar from './lib/scrollbar.js'
+const RadonUI = require('./lib/radon-ui.js')['radon-ui']
+
+Vue.use(Vue => {
+  for (let key in RadonUI) {
+    if (key.startsWith('rd')) {
+      Vue.component(key, RadonUI[key])
+    }
+  }
+})
 Vue.use(Vuex)
 Vue.use(eventPlugin)
-
+Vue.use(RadonUI.RadonInstall, {
+  Modal: true,
+  Notification: true,
+  LoadingBar: true,
+  Preview: true
+})
+Vue.component('vue-nice-scrollbar', ScrollBar)
 let store = new Vuex.Store({
   state,
   getters,
@@ -28,7 +49,7 @@ let store = new Vuex.Store({
 })
 Vue.use(vuexI18n.plugin, store, {
   moduleName: 'i18n',
-  onTranslationNotFound (locale, key) {
+  onTranslationNotFound(locale, key) {
     console.warn(`i18n :: Key '${key}' not found for locale '${locale}'`) // async translate support
   }
 })
@@ -61,7 +82,7 @@ Vue.config.keyCodes = {
 }
 
 Vue.directive('focus', {
-  inserted: function (el) {
+  inserted: function(el) {
     el.value = el.getAttribute('val')
     el.focus()
     el.select()
@@ -69,7 +90,7 @@ Vue.directive('focus', {
 })
 
 Vue.directive('dispose', {
-  unbind: function (el) {
+  unbind: function(el) {
     el.src = 'http://'
   }
 })
@@ -82,10 +103,10 @@ new Vue({
   router,
   components: { App },
   template: '<App/>',
-  created () {
+  created() {
     this.$app.emit(EVENT.CREATED, [this])
   },
-  mounted () {
+  mounted() {
     this.$app.emit(EVENT.MOUNTED, [this])
   }
 })

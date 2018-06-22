@@ -1,7 +1,7 @@
-import util from './util.js'
+import * as util from './util.js'
 import $ from 'jquery'
 
-export default function ModalWindow (options) {
+export default function ModalWindow(options) {
   let layout = `<div  class="h5 window animated2 zoomIn">
                   <div class="window-caption">
                       <span class="window-caption-icon">
@@ -60,12 +60,12 @@ export default function ModalWindow (options) {
   if (_options.captionCss) {
     _captionElement.classList.add(_options.captionCss)
   }
-  _this.updateContent = function (newContent) {
+  _this.updateContent = function(newContent) {
     _contentElement = ''
     _contentElement = _element.querySelector('.window-content')
     _contentElement.appendChild(newContent)
   }
-  let resizeCallback = util.throttle(100, function (e) {
+  let resizeCallback = util.throttle(100, function(e) {
     let w = $(_element).width()
     let h = $(_element).height()
     let bw = $(window).width()
@@ -79,7 +79,7 @@ export default function ModalWindow (options) {
     _element.style['transform'] =
       'translate(' + _translate[0] + 'px, ' + _translate[1] + 'px)'
   })
-  _this.show = function (title) {
+  _this.show = function(title) {
     if (title) {
       _titleElement.querySelector('span').innerText = title
     }
@@ -105,7 +105,7 @@ export default function ModalWindow (options) {
     window.addEventListener('resize', resizeCallback)
   }
 
-  _this.hide = function () {
+  _this.hide = function() {
     _this.visible = false
     document.body.removeChild(_element)
     document.body.removeChild(_modalDiv)
@@ -116,18 +116,18 @@ export default function ModalWindow (options) {
     _titleElement.querySelector('span').innerText = _options.title
   }
 
-  _closeElement.addEventListener('click', function (e) {
+  _closeElement.addEventListener('click', function(e) {
     e.stopPropagation()
     _this.hide()
   })
 
   _captionElement.addEventListener('mousedown', onCaptionMouseDown)
 
-  function onSelectStart (e) {
+  function onSelectStart(e) {
     return false
   }
 
-  function onCaptionMouseDown (e) {
+  function onCaptionMouseDown(e) {
     _mousedown = true
     _downposition = [e.pageX, e.pageY]
     _lastDiff = [0, 0]
@@ -138,7 +138,7 @@ export default function ModalWindow (options) {
     document.onselectstart = onSelectStart
   }
 
-  function onCaptionMouseMove (e) {
+  function onCaptionMouseMove(e) {
     _lastDiff = [e.pageX - _downposition[0], e.pageY - _downposition[1]]
 
     var offsetX = parseInt(_translate[0] + _lastDiff[0])
@@ -164,7 +164,7 @@ export default function ModalWindow (options) {
       'translate(' + offsetX + 'px, ' + offsetY + 'px)'
   }
 
-  function onCaptionMouseup (e) {
+  function onCaptionMouseup(e) {
     _mousedown = false
     _translate[0] = _translate[0] + _lastDiff[0]
     _translate[1] = _translate[1] + _lastDiff[1]
