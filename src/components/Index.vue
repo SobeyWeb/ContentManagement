@@ -946,6 +946,17 @@ export default {
           data: linkNodes.sort(SortLikeWin)
         })
       })
+
+      this.$store.dispatch({
+        type: TYPES.GETSYSPARAM,
+        target: '{\'tool\':\'DEFAULT\',\'paramname\':\'SNSPublishQuality\'}'
+      }).then((res) => {
+        if (res.paramvalue) {
+          //  _this.$store.state.SNSPublishQuality = res.paramvalue;
+        }
+      }).catch((res) => {
+
+      })
     },
     initModalWindow () {
       // this.taskMonitorWindow = new ModalWindow({

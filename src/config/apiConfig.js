@@ -73,5 +73,36 @@ export default {
       URLCONFIG.CMAPI + '/CMApi/api/entity/folder/getsimplefolderinfo',
       para
     )
+  },
+  [TYPES.GET_USERSPACE](para) {
+    console.log(util)
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/account/getuserstoragebyname',
+      para
+    )
+  },
+  [TYPES.GETSYSPARAM](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/config/getsysparam',
+      para
+    )
+  },
+  [TYPES.GET_SNSCONFIG](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI +
+        '/CMApi/api/basic/account/getuserextendattributes/' +
+        para.userid
+    )
+  },
+  [TYPES.GET_OBJECT_INFO](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/v2/entity/object/getobjectinfo' + para.user
+    )
+  },
+  [TYPES.GET_TWITTER_ACOUNTS](para) {
+    return util.getUrl(URLCONFIG.CMAPI + '/CMApi/api/sns/getsnsaccounts')
+  },
+  [TYPES.PUBLISH_TO_SNS](para) {
+    return util.getUrl(URLCONFIG.CMAPI + '/CMApi/api/sns/publishtosns')
   }
 }

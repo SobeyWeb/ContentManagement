@@ -13,6 +13,7 @@
 
       <div class="msg-text" style="color: rgb(248, 155, 57);">{{$t(msg||errorMsg)}}</div>
     </form>
+    <user-sapce></user-sapce>
   </div>
 </template>
 
@@ -82,7 +83,7 @@ export default {
           }).then(res => {
             if (res.ext) {
               this.$app.emit(EVENT.LOGINED, [this]) // dispatch login event
-              this.$router.push('/index')
+              // this.$router.push('/index')
               this.loading = false
               localStorage.setItem('loginName', this.username)
               // get user info

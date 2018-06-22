@@ -6,5 +6,6 @@ export default {
   HIVE: 'http://localhost:3130/HIVE',
   LOGGINGSERVICE:
     'http://hive.sobey.com:9029/LoggingSysInternal_ObjectsInterface.asmx',
-  PREVIEWMARKPATH: ''
+  PREVIEWMARKPATH: '',
+  TMSERVICE: 'http://hive.sobey.com:9047'
 }

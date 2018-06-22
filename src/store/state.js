@@ -37,8 +37,8 @@ export default {
     trimout: '',
     material: {}
   },
-  useSpace: '', // 使用空间
-  sumSpace: '', // 总空间
+  useSpace: 0, // 使用空间
+  sumSpace: 10, // 总空间
   fullscreenSymbol: false,
   listSymbol: false, //
   previewMaterials: [],
@@ -111,6 +111,7 @@ export default {
   isplayerRegister: false,
   // highFileLength: 0,
   ispublish: false,
+  publishWindow: {},
   SNSPublishQuality: 'high',
   materialSpace: 0,
   isSaveAs: false,
