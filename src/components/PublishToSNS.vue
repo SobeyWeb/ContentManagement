@@ -74,6 +74,16 @@
 <script>
 import TYPES from '../dicts/mutationTypes.js'
 import APPSETTING from '../config/appSetting'
+let defaultRequestType = [{
+  checked: true,
+  value: 'Publish Now'
+}, {
+  checked: false,
+  value: 'Draft'
+}, {
+  checked: false,
+  value: 'Schedule'
+}]
 export default {
   name: 'publishToSNS',
   data () {
@@ -86,16 +96,7 @@ export default {
         comments: '',
         urlText: '',
         maxSpace: '1G',
-        requestType: [{
-          checked: true,
-          value: 'Publish Now'
-        }, {
-          checked: false,
-          value: 'Draft'
-        }, {
-          checked: false,
-          value: 'Schedule'
-        }],
+        requestType: defaultRequestType,
         requestDate: {
           value: '',
           options: {
@@ -152,16 +153,7 @@ export default {
           urlText: '',
           headline: '',
           maxSpace: this.getMaxSpace(item.apptype),
-          requestType: item.apptype === 2 ? [{
-            checked: true,
-            value: 'Publish Now'
-          }, {
-            checked: false,
-            value: 'Draft'
-          }, {
-            checked: false,
-            value: 'Schedule'
-          }] : [],
+          requestType: item.apptype === 2 ? defaultRequestType : [],
           requestDate: {
             value: ''
           },
@@ -286,16 +278,16 @@ export default {
       if (this.textArae.requestDate.value) {
         this.textArae.requestDate.value = ''
       }
-      this.textArae.pageid = ''
-      this.textArae.acount = ''
-      this.textArae.maxLength = '65535'
-      this.textArae.acountType = ''
-      this.textArae.comments = ''
-      this.textArae.urlText = ''
-      this.textArae.headline = ''
-      this.textArae.requestType = 'Publish Now'
-      this.textArae.checkAcount = false
-      this.textArae.checked = false
+      // this.textArae.pageid = ''
+      // this.textArae.acount = ''
+      // this.textArae.maxLength = '65535'
+      // this.textArae.acountType = ''
+      // this.textArae.comments = ''
+      // this.textArae.urlText = ''
+      // this.textArae.headline = ''
+      // this.textArae.requestType = 'Publish Now'
+      // this.textArae.checkAcount = false
+      // this.textArae.checked = false
       this.then = false
       this.isPublishNow = true
     },
