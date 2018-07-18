@@ -24,6 +24,143 @@
         </div>
       </vue-nice-scrollbar>
       <!--/div-->
+      <user-space></user-space>
+    </div>
+    <div id="stage_wrapper" class="right_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?leftTreeWidth:0)+'px'}">
+      <div class="top_box">
+        <span class="tree_icon mt15" :class="{tree_icon_disabled:!folderBlockStatus}" v-on:click="toggleFolderBlock" :title="'Toggle Folder Page'"></span>
+        <div id="div_fullTextSearch">
+          <fulltext-search></fulltext-search>
+        </div>
+        <input type="button" class="advance_search" v-on:click="openAdvanceSearch" :value="'Advance Search'" />
+        <input type="button" class="task_monitor" :value="'Task Monitor'" v-on:click="taskMonitor" />
+        <input type="button" class="task_monitor" :value="'Web Quick Editing'" v-on:click="gotoJove" v-show="!isPremiere" />
+        <input type="button" v-if="false" class="task_monitor" value="Order List" v-on:click="oderList" @drop.prevent="add2OderList" @dragenter.prevent @dragover.prevent="dragover" @dragleave.prevent/>
+        <div class="fr">
+          <div class="hidden_bar">
+            <span class="xx_icon fr" v-show="false" @click="localTaskStatus = !localTaskStatus">
+              <transition name="fade">
+                <div v-show="localTaskStatus" @click.stop class="local_task_container">
+                  <div class="triangle_top local_task"></div>
+                  <!--task-monitor-ctrl></task-monitor-ctrl-->
+                  <!--local-task-ctrl></local-task-ctrl-->
+                </div>
+              </transition>
+            </span>
+            <span class="xx_icon fr" v-on:click="userOperationStatus = !userOperationStatus">
+              <transition name="fade">
+                <div v-show="userOperationStatus" style="display: none;">
+                  <div class="triangle_top user_operation"></div>
+                  <ul class="operation_box user_operation">
+                    <li class="operation_item" v-on:mousedown.stop="logout">Logout</li>
+                    <!--li class="operation_item">{{dict.help}}</li-->
+                  </ul>
+                </div>
+              </transition>
+            </span>
+            <span class="username_show">{{userInfo.nickname}}</span>
+            <!-- <span class="tree_icon mt15" :class="{tree_icon_disabled:!folderBlockStatus}" v-on:click="toggleFolderBlock" :title="dict.toggleFolder"></span> -->
+          </div>
+        </div>
+      </div>
+      <div id="resourceList" ref="resource" class="materials_container" :style="{right: previewSymbol? '640px':'0',bottom: workspaceSymbol?'300px':0}" @contextmenu.prevent.stop="contextMenu" @drop.prevent="onDrop" @dragenter.prevent @dragover.prevent="dragover" @dragleave.prevent @mousedown.capture="focusMaterialList">
+        <div class="toolbar_box" @contextmenu.prevent.stop @drop.stop.prevent @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent @mousedown.stop @mouseup.prevent>
+          <nav-path></nav-path>
+          <div class="materials_count fr">
+            <span class="text_nomarl">Items</span>
+            <span class="text_strong">{{materialsCount}}</span>
+            <div v-if="currentCtrl!=='marker-ctrl'" class="fr" style="display:inline-block;">
+              <span class="list_icon" :class="{list_icon_active:listSymbol}" v-on:click="switchListThumb(true)" :title="'List Model'"></span>
+              <span class="thumbnail_icon" :class="{thumbnail_icon_active:!listSymbol}" v-on:click="switchListThumb(false)" :title="'Thumbnail Mode'"></span>
+              <span class="sortby_icon" v-show="!listSymbol" v-on:click="sortByStatus = !sortByStatus" :title="'Sort'">
+                <transition name="fade">
+                  <div class="menu_box" v-show="sortByStatus" style="display: none;">
+                    <div class="triangle_top sort_by"></div>
+                    <ul class="operation_box sort_by">
+                      <li class="operation_item" v-on:click.stop="orderBy('title', true)">{{'Title' + ' ↑'}}</li>
+                      <li class="operation_item" v-on:click.stop="orderBy('title', false)">{{'Title' + ' ↓'}}</li>
+                      <li class="operation_item" v-on:click.stop="orderBy('createTime', true)">{{'Create Time' + ' ↑'}}</li>
+                      <li class="operation_item" v-on:click.stop="orderBy('createTime', false)">{{'Create Time' + ' ↓'}}</li>
+                      <li class="operation_item" v-on:click.stop="orderBy('type')">{{'Type'}}</li>
+                    </ul>
+                  </div>
+                </transition>
+              </span>
+            </div>
+            <div v-else-if="languageOption.options.length" class="fr" style="display:inline-block;margin: 0px 10px 0px 10px;height: 39px">
+              <rd-select :select="languageOption" @change="changeAction"></rd-select>
+            </div>
+            <span class="refresh_icon" v-on:click="refreshMaterial" :title="'Refresh'"></span>
+            <span class="search_panel_icon fr" v-on:click="isShowSearchReuslt=!isShowSearchReuslt" :class={search_panel_icon_active:isShowSearchReuslt} v-show="currentNode.bakCondition" title="Toggle Search Conditon Panel"></span>
+            <!-- <span style="width:30px;height:20px;display:inline-block;outline: 1px solid red;float:right;cursor:pointer;" @click="openSearchResul"></span> -->
+          </div>
+        </div>
+        <transition name="fade">
+          <div class="condition_display_container clearfix animated2" v-if="currentNode.bakCondition&&isShowSearchReuslt" :class="{slideInDown:currentNode.bakCondition&&isShowSearchReuslt,slideOutUp:!(currentNode.bakCondition&&isShowSearchReuslt)}" @contextmenu.prevent.stop @drop.stop.prevent @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent @mousedown.stop @mouseup.prevent>
+            <div class="display_condition_box" v-if="searchType===1">
+              <div class="content_filter_container">
+                <span class="display_keyword_span display_advance_span">Search Type</span>
+                <input class="display_keyword_input boolean_input" readonly type="text" v-model="advanceHeader.name" :title="advanceHeader.name" />
+              </div>
+              <div class="content_filter_container">
+                <span class="display_keyword_span display_advance_span">Search Condition</span>
+                <input class="display_keyword_input boolean_input" readonly type="text" v-model="advanceCondition" style="width: calc(100% - 220px);" />
+              </div>
+            </div>
+            <div class="display_condition_box clearfix" v-else>
+              <div class="content_filter_container" v-if="searchType===2">
+                <span class="display_keyword_span">Keywords</span>
+                <input class="display_keyword_input boolean_input" type="text" v-model="currentNode.bakCondition.keywords" @keydown.enter="reSearch" />
+              </div>
+              <div class="content_filter_container clearfix">
+                <div class="display_filter_text">Time</div>
+                <div class="display_filter_items clearfix" :style="{left: condtionLeft, paddingRight:condtionLeft}">
+                  <span class="check_span fl" :class="{checked_span: time.checked}" @click.stop="timeFilter(time)" v-for="time in currentNode.bakCondition.timeFilter" :key="time.name">{{time.name}}</span>
+                </div>
+              </div>
+              <div class="content_filter_container clearfix">
+                <div class="display_filter_text">Content</div>
+                <div class="display_filter_items clearfix" :style="{left: condtionLeft, paddingRight:condtionLeft}">
+                  <span class="check_span fl" :class="{checked_span: type.checked}" @click.stop="typeFilter(type)" v-for="type in currentNode.bakCondition.typeFilter" :key="type.name">{{type.name}}</span>
+                </div>
+              </div>
+              <div class="display_boolean_item fl" v-for="c in currentNode.bakCondition.booleanCondition" :key="c.name" v-if="searchType===3">
+                <span class="boolean_span">{{c.name}}</span>
+                <input class="boolean_input" type="text" v-model="c.value" @keydown.enter="reSearch" />
+              </div>
+            </div>
+            <div class="dispplay_btn_box">
+              <span class="display_excute_btn display_btn" v-show="searchType!==1" title="Research" @click.prevent="reSearch"></span>
+              <span class="display_modify_btn display_btn" v-show="searchType===1" title="Modify search condition" @click.prevent="modifySeachCondition"></span>
+              <span class="display_save_btn display_btn" title="Save search template" @click.prevent="saveSeachCondition"></span>
+            </div>
+          </div>
+        </transition>
+        <div class="list_headers_box">
+          <list-material-header v-show="listSymbol"></list-material-header>
+        </div>
+        <vue-nice-scrollbar class="scrollbar_container" :class="{focused: !isFocusTree, blur: loading}" :speed="150" @click="focusMaterialList">
+          <div ref="materialBox" class="material_box clearfix" :class="{list_material_box:listSymbol, marker_material_box: currentCtrl=='marker-ctrl'}" :style="{marginLeft: thumbPadding + 'px', marginRight: thumbPadding + 'px'}" @click="focusMaterialList" @mousedown="dragStart">
+            <div class="searchBox animated2" v-show="showSearch" :class="[showSearch?'zoomIn':'zoomOut']">
+              <local-search :data="materials" :callback="searchCallback" @close="showSearch = false" />
+              <span class="search_icon close fr" @click="showSearch = false"></span>
+            </div>
+            <div class="stand fl top_stand" :style="{height: stand.height + 'px', width:'100%', position: 'relative'}"></div>
+            <component :is="currentCtrl" :data="m" :index="index" v-for="(m, index) in displayMaterials" :key="m.guid">
+            </component>
+            <div class="stand fl" :style="{height: stand.leftHeight + 'px', width:'100%', position: 'relative'}"></div>
+            <div class="select_circle" :style="dragData" v-show="dragSymbol"></div>
+            <div class="drag_bed" ref="dragBed" v-show="dragSymbol" @mousemove="dragging"></div>
+          </div>
+        </vue-nice-scrollbar>
+        <loading-ctrl :name="'Loading...'" v-show="loading"></loading-ctrl>
+        <div class="preview_switcher" :class="{arrow_left :previewSymbol}" @click="switchPreview" @dragenter.stop.prevent="openPreview" @dragover.stop.prevent @dragleave.stop.prevent @contextmenu.prevent.stop></div>
+      </div>
+      <div id="proppreviewDiv" :class="{dv_model_view: isDvModel}" :style="{right: previewSymbol? '0':'-640px'}" @mousedown.capture="focusePlayer">
+        <player ref="player"></player>
+        <div class="preview_drop_div" @drop="preview" @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent v-show="previewDragSymbol">
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -41,16 +178,30 @@ import NODETYPES from '../dicts/guidMaps.js'
 import ModalWindow from '../lib/ModalWindow.js'
 import { defaultQuery, defaultFulltextSearchCondtion, defaultAdvanceSearchCondtion } from '../data/basicData.js'
 import { SortLikeWin } from '../lib/sort.js'
+import $ from 'jquery'
 
 import AdvanceSearch from './AdvanceSearch/Index'
 import FolderTree from './FolderTree'
+import UserSpace from './UserSpace'
 import QuickLink from './QuickLink'
+import FulltextSearch from './FulltextSearch'
+import NavPath from './NavPath'
+import ListMaterialHeader from './ListMaterialHeader'
+import LocalSearch from './LocalSearch'
+import Player from './Player/Index'
+
 export default {
   name: 'Index',
   components: {
     'advance-search': AdvanceSearch,
     'folder-tree': FolderTree,
-    'quick-link': QuickLink
+    'quick-link': QuickLink,
+    'user-space': UserSpace,
+    'fulltext-search': FulltextSearch,
+    'nav-path': NavPath,
+    'list-material-header': ListMaterialHeader,
+    'local-search': LocalSearch,
+    'palyer': Player
   },
   data () {
     return {
@@ -61,6 +212,10 @@ export default {
       resizeSymbol: false,
       dragSymbol: false,
       folderBlockStatus: true,
+      localTaskStatus: false,
+      isShowSearchReuslt: true,
+      workspaceSymbol: false,
+      listSymbol: false,
       leftTreeWidth: 200,
       resizeX: 0,
       dragData: {
@@ -72,12 +227,16 @@ export default {
       mousePosition: {
         x: 0,
         y: 0
+      },
+      languageOption: {
+        value: {},
+        options: []
       }
     }
   },
   computed: {
-    ...mapState(['userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'searchType', 'isMarker', 'linkNodes', 'player', 'showSearch', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
-    ...mapGetters(['selectedNode', 'searchResult', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
+    ...mapState(['isDvModel', 'previewDragSymbol', 'bakCondition', 'userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'searchType', 'isMarker', 'linkNodes', 'player', 'showSearch', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
+    ...mapGetters(['currentNode', 'selectedNode', 'searchResult', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
     scaleTime: {
       get () {
         return this.$store.state.scaleTime
@@ -137,6 +296,311 @@ export default {
     }
   },
   methods: {
+    dragging: util.throttle(50, function (event) {
+      if (this.dragSymbol && event.target === this.$refs.dragBed) {
+        if (this.listSymbol) {
+          return
+        }
+        // var leftPadding = this.folderBlockStatus ? this.leftTreeWidth : 0 //右侧还未处理
+        var x = Math.max(0, event.offsetX)
+        var y = Math.max(0, event.offsetY)
+        if (y > this.mousePosition.y) {
+          this.$store.state.dragDirection = true
+        } else {
+          this.$store.state.dragDirection = false
+        }
+        var left,
+          top,
+          width,
+          height
+        left = Math.max(Math.min(this.mousePosition.x, x), 0)
+        top = Math.max(Math.min(this.mousePosition.y, y), 0)
+        width = Math.abs(Math.max(x, 0) - this.mousePosition.x)
+        height = Math.abs(Math.max(y, 0) - this.mousePosition.y)
+        this.dragData = {
+          left: left + 'px',
+          top: top + 'px',
+          width: width + 'px',
+          height: height + 'px'
+        }
+        var rect = (this.$refs.materialBox || document.querySelector('.material_box')).getBoundingClientRect()
+        util.getCanSelectedItems(this.$store, {
+          left: left,
+          top: top,
+          width: width,
+          height: height
+        }, rect.width, rect.height, event, this.mousePosition.scrollOffsetY, this.currentCtrl === 'marker-ctrl')
+      }
+    }),
+    searchCallback (data) {
+      if (data) {
+        var index = this.materials.indexOf(data)
+        this.$store.dispatch({
+          type: TYPES.SELECT_MATERIAL,
+          data: index
+        })
+      } else {
+        this.$store.commit({
+          type: TYPES.CLEAR_SELECTEEDITEMS
+        })
+      }
+    },
+    dragStart (event) {
+      if (event.which === 1) {
+        this.mousePosition.x = event.offsetX
+        this.mousePosition.y = event.offsetY
+        this.mousePosition.scrollOffsetY = event.offsetY - event.y + 91 < 0 ? 0 : event.offsetY - event.y + 91
+        this.dragSymbol = true
+        if (!(event.ctrlKey || event.shiftKey)) {
+          this.$store.commit({
+            type: TYPES.CLEAR_SELECTEEDITEMS
+          })
+          this.$store.commit({
+            type: TYPES.SET_MENUSTATUS,
+            data: {
+              status: false
+            }
+          })
+        }
+      }
+    },
+    focusMaterialList (event) {
+      this.focusIndex = 1
+    },
+    preview (event) {
+      this.$store.dispatch({
+        type: TYPES.PROPERTIES,
+        target: this.$store.state.selectedMaterials
+      })
+    },
+    switchPreview () {
+      this.previewSymbol = !this.previewSymbol
+      this.$nextTick(() => {
+        this.$store.commit({
+          type: TYPES.SET_THUMBPADDING
+        })
+      })
+    },
+    refreshMaterial () {
+      this.$store.dispatch({
+        type: TYPES.REFRESH_MATERIAL,
+        source: this.$store.getters.currentNode
+      }).then(() => {
+
+      })
+    },
+    changeAction (select, value) {
+      this.$store.state.lmLanguage = value.id
+    },
+    orderBy (type, symbol) {
+      this.sortType = type
+      if (symbol !== undefined) {
+        this.sortSymbol = symbol
+      } else {
+        this.typeSymbol = !this.typeSymbol
+      }
+      this.$store.commit({
+        type: TYPES.SET_SIGNMATERIAL,
+        data: 0
+      })
+      this.setCookie()
+    },
+    switchListThumb (symbol) {
+      if (this.materials.length > 0 && this.materials[0].type === 'marker') {
+      } else {
+        this.listSymbol = symbol
+      }
+    },
+    onDrop (event) {
+      var files = event.dataTransfer.files
+      var arr = []
+      // var fileTree = [];
+      // var data = JSON.parse(event.dataTransfer.getData('test'))
+      // var material = util.initData(data)
+      // material.name = data.name
+      // material.iconfilename = data.iconfilename
+      // this.$store.getters.currentNode.children.push(material)
+      // util.addFilesFromItems(event.dataTransfer.items, fileTree)
+      // [].forEach.call(event.dataTransfer.items, i => util.scanFiles(i, fileTree))
+      if (files && files.length) {
+        this.$store.state.file = files[0]
+        if (this.$store.getters.currentNode.operations.indexOf('Upload') === -1) {
+          util.Notice.warning('can not upload in current folder', '', 3000)
+          return
+        }
+        if (files.length > 300) {
+          util.Notice.warning('The upload number exceeds the restriction of 300', '', 3000)
+          return
+        }
+        if ([].every.call(files, item => this.blackList.indexOf(item.name.substring(item.name.lastIndexOf('.') + 1).toLowerCase()) > -1)) {
+          util.Notice.warning('This format dose not support upload', '', 3000)
+          return
+        } else {
+          var fiterFiles = [].filter.call(files, item => this.blackList.indexOf(item.name.substring(item.name.lastIndexOf('.') + 1).toLowerCase()) === -1)
+          if (fiterFiles.length !== files.length) {
+            util.Notice.warning('Some object(s) is failed to upload', '', 3000)
+            files = fiterFiles
+          }
+        }
+        this.$store.dispatch({
+          type: TYPES.UPLOAD_FILES,
+          data: {
+            files: files
+          }
+        })
+      } else {
+        if (this.$store.getters.currentNode.operations.indexOf('Paste') === -1) {
+          util.Notice.warning('can not paste in current folder', '', 3000)
+          return
+        }
+        if (event.ctrlKey) {
+          arr = this.$store.state.selectedMaterials
+          util.Model.confirm('Copy', 'Are You Sure to Copy ' + arr.length + ' Materials',
+            () => {
+              this.$store.dispatch({
+                type: TYPES.COPY_MATERIALS,
+                data: arr,
+                target: this.$store.getters.currentNode
+              })
+            }, () => {
+            }, {
+              large: true, // Boolean
+              cancelButton: {
+                show: true, // Boolean
+                type: '', // String 请参考 Button
+                text: 'Cancel' // String
+              },
+              confirmButton: {
+                show: true,
+                type: 'primary',
+                text: 'Confirm'
+              }
+            })
+        } else {
+          arr = this.$store.state.selectedMaterials
+          if (arr.some(item => item.father === this.$store.getters.currentNode)) {
+          } else {
+            util.Model.confirm('Move', 'Are You Sure to Move ' + arr.length + ' Materials',
+              () => {
+                this.$store.dispatch({
+                  type: TYPES.MOVE_MATERIALS,
+                  data: arr,
+                  target: this.$store.getters.currentNode
+                })
+              }, () => {
+              }, {
+                large: true, // Boolean
+                cancelButton: {
+                  show: true, // Boolean
+                  type: '', // String 请参考 Button
+                  text: 'Cancel' // String
+                },
+                confirmButton: {
+                  show: true,
+                  type: 'primary',
+                  text: 'Confirm'
+                }
+              })
+          }
+        }
+      }
+    },
+    dragover (event) {
+      if (event.ctrlKey) {
+        event.dataTransfer.effectAllowed = 'copy'
+      } else {
+        event.dataTransfer.effectAllowed = 'move'
+      }
+    },
+    contextMenu (event) {
+      this.$store.commit({
+        type: TYPES.CLEAR_SELECTEEDITEMS
+      })
+      this.$store.commit({
+        type: TYPES.SET_MENUSTATUS,
+        data: {
+          event: event,
+          status: true
+        }
+      })
+    },
+    logout () {
+      var lo = () => {
+        this.userOperationStatus = false
+        this.$store.dispatch({
+          type: TYPES.LOGOUT,
+          data: {}
+        }).then((re) => {
+          window.location.href = '../../login.aspx'
+        })
+        this.$store.state.system && window.parent.postMessage({
+          type: 'logout',
+          data: null,
+          auth: null
+        }, '*')
+      }
+      if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0) {
+        util.Model.confirm('Some Tasks Are Executing', 'Are You Sure to Logout', lo,
+          () => {
+          }, {
+            large: true, // Boolean
+            confirmButton: {
+              show: true,
+              type: 'primary',
+              text: 'Confirm'
+            },
+            cancelButton: {
+              show: true, // Boolean
+              type: '', // String 请参考 Button
+              text: 'Cancel' // String
+            }
+          })
+      } else {
+        lo()
+      }
+    },
+    oderList () {
+      if (APPSETTING.USEROOTPATH) {
+        util.locateFolder(
+          this.$store, this.$store.getters.orderList.path.split('/'), {
+            children: this.$store.getters.folderTree
+          }, {
+            alwaysGet: this.$store.state.alwaysGet,
+            isShowWaiting: true
+          })
+      } else {
+        util.locateFolder(
+          this.$store, this.$store.getters.orderList.path.split('/').slice(1), {
+            children: this.$store.getters.folderTree
+          }, {
+            alwaysGet: this.$store.state.alwaysGet,
+            isShowWaiting: true
+          })
+      }
+    },
+    gotoJove () {
+      var url = util.getUrl(URLCONFIG.JOVE, {
+        token: this.userInfo.usertoken,
+        userCode: $.base64.encode(this.userInfo.usercode),
+        FolderPath: $.base64.encode(this.$store.getters.currentNode.path),
+        userid: $.base64.encode(this.userInfo.userid)
+      })
+      window.open(url, '_blank')
+    },
+    taskMonitor () {
+      this.taskMonitorWindow.show()
+    },
+    openAdvanceSearch () {
+      this.$store.state.advanceSearchWindow.show()
+    },
+    toggleFolderBlock () {
+      this.folderBlockStatus = !this.folderBlockStatus
+      this.$nextTick(() => {
+        this.$store.commit({
+          type: TYPES.SET_THUMBPADDING
+        })
+      })
+    },
     upload (event) {
       var files = event.target.files
       if (files && files.length) {
@@ -960,6 +1424,8 @@ export default {
       }).catch((res) => {
 
       })
+
+      this.$store.state.materialBox = document.querySelector('.scrollbar_container')
     },
     initModalWindow () {
       // this.taskMonitorWindow = new ModalWindow({
@@ -1393,5 +1859,179 @@ export default {
   font-size: 15px;
   line-height: 30px;
   /* padding: 10px 0; */
+}
+.right_container {
+  position: absolute;
+  left: 200px;
+  background-color: #1b1b1b;
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+.right_container .top_box {
+  height: 49px;
+  line-height: 50px;
+  border-bottom: 1px #000 solid;
+  background: #141414;
+}
+.tree_icon {
+  background-image: url(../assets/images/tree_se.png);
+  background-size: 100%;
+  width: 30px;
+  height: 30px;
+  float: left;
+  margin: 10px 5px 0 15px;
+  cursor: pointer;
+}
+.top_box #div_fullTextSearch {
+  width: 378px;
+  height: 30px;
+  top: 5px;
+  position: relative;
+  float: left;
+  margin: 6px 5px 0 5px;
+  border-radius: 5px;
+  color: #999999;
+  font-family: 'proximanova', 'pro_text', 'micorsoft yahei', 'sans-serif';
+  font-weight: lighter;
+}
+.advance_search {
+  background: #272727;
+  height: 30px;
+  font-size: 13px;
+  color: #999;
+  margin: 0px 5px;
+  border-radius: 3px;
+  padding: 0px 10px;
+  border: 1px #272727 solid;
+}
+.task_monitor {
+  background: #272727;
+  height: 30px;
+  font-size: 13px;
+  color: #999;
+  border-radius: 3px;
+  padding: 0px 10px;
+  border: 1px #272727 solid;
+  margin: 0px 5px 0 0;
+}
+.advance_search:hover {
+  border: 1px #ff9400 solid;
+}
+.task_monitor:hover {
+  border: 1px #ff9400 solid;
+}
+.materials_container {
+  position: absolute;
+  bottom: 0;
+  top: 50px;
+  left: 0;
+  transition: all 0.2s;
+  transition-delay: 0.1s;
+  right: 0;
+  background: #1b1b1b;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+.right_container .toolbar_box {
+  height: 39px;
+  line-height: 39px;
+  background: #1f1f1f;
+  border-bottom: 1px #000 solid;
+  border-top: 1px #1a1a1a solid;
+}
+.materials_count {
+  background: #1f1f1f;
+  height: 39px;
+  position: relative;
+}
+.text_nomarl {
+  font-size: 15px;
+  color: #5c5a5a;
+  margin: 0px 15px 0px 0px;
+  float: right;
+}
+.text_strong {
+  font-size: 18px;
+  font-weight: normal;
+  color: #c0c0c0;
+  margin: 0px 10px 0px 10px;
+  float: right;
+}
+.list_icon {
+  display: inline-block;
+  border: none;
+  outline: none;
+  width: 39px;
+  height: 39px;
+  cursor: pointer;
+  background: url(../assets/images/list_normal.jpg) no-repeat;
+}
+.thumbnail_icon {
+  display: inline-block;
+  border: none;
+  outline: none;
+  width: 39px;
+  height: 39px;
+  cursor: pointer;
+  background: url(../assets/images/thumbnail_normal.jpg) no-repeat;
+}
+.thumbnail_icon_active {
+  background: url(../assets/images/thumbnail_over.jpg) no-repeat;
+}
+.sortby_icon {
+  display: inline-block;
+  border: none;
+  outline: none;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  background: url(../assets/images/sortby_normal.jpg) no-repeat;
+}
+.menu_box {
+  position: relative;
+  z-index: 3;
+  font-size: 16px;
+}
+.triangle_top {
+  border: 8px solid transparent;
+  border-bottom: 8px solid #fff;
+  position: absolute;
+}
+.triangle_top.sort_by {
+  top: 30px;
+  right: 12px;
+}
+.operation_box {
+  position: absolute;
+  top: 45px;
+  background-color: #fff;
+  z-index: 23333;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 27px;
+  padding: 3px 0;
+}
+.operation_box.sort_by {
+  width: 120px;
+  right: -42px;
+}
+.operation_item {
+  list-style: none;
+  line-height: 27px;
+  padding: 0 7px;
+  color: #1b1b1b;
+  font-weight: 600;
+  text-align: center;
+}
+.list_icon_active {
+  background: url(../assets/images/list_over.jpg) no-repeat;
+}
+.list_icon:hover {
+  background: url(../assets/images/list_over.jpg) no-repeat;
+}
+.thumbnail_icon:hover {
+  background: url(../assets/images/thumbnail_over.jpg) no-repeat;
 }
 </style>

@@ -1,5 +1,6 @@
 /* eslint-disable */
 import * as util from './util.js'
+import $ from 'jquery'
 ;(function(modules) {
   // webpackBootstrap
   /******/ // The module cache
@@ -546,7 +547,7 @@ import * as util from './util.js'
                 val != old &&
                 this.container.height == folder_box.clientHeight
               ) {
-                Vue.nextTick(() => {
+                this.$nextTick(() => {
                   this.parentCalc()
                   var top = $('.folder_selected').position().top
                   var offsetTop = $('.folder_selected').offset().top
@@ -642,7 +643,7 @@ import * as util from './util.js'
             deep: false
           },
           dragOverCount: function() {
-            Vue.nextTick(() => {
+            this.$nextTick(() => {
               this.parentCalc()
               if (this.container.height == folder_box.clientHeight) {
                 var top = $('.folder_hover').position().top

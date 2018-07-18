@@ -9,17 +9,25 @@ import {
   GetFrameNumByHundredNS,
   VideoStandardGetHSClass,
   GetClipStatus,
+  GetSecondByEachFrame,
+  GetMillSecondsByFrameNum,
   ETGetFrameRate
-} from '../dicts/format.js'
+} from '../lib/format.js'
 import { frameToTime } from './transform.js'
 import state from '../store/state.js'
+import store from '../store'
 import URLCONFIG from '../config/urlConfig.js'
 import PERMISSION from '../dicts/permission.js'
 import Vue from 'vue'
 import appSetting from '../config/appSetting.js'
 import TYPES from '../dicts/mutationTypes'
-import { getRepository } from '../data/repository'
+import {
+  getRepository,
+  setRepository,
+  pureGetRepository
+} from '../data/repository'
 import { defaultQuery } from '../data/basicData'
+import Guid from './Guid'
 export function getUrl(url, para, ifNotEnc) {
   if (para) {
     let q = ''
@@ -1809,8 +1817,46 @@ export function getListHeader(left, arr, attr) {
   }
   return arr[l - 1]
 }
-export const Notice = {}
-export const Model = {}
+export function ignoreZHFunc(func, context) {
+  return function(a, b, c) {
+    if (/^[\u2E80-\u9FFF]+$/g.test(a) || /^[\u2E80-\u9FFF]+$/g.test(b)) {
+      console.log(a + b)
+    } else {
+      func.call(context, a, b, c)
+    }
+  }
+}
+export const Notice = {
+  success() {
+    this.success = ignoreZHFunc(
+      window.CM.$Notification.success,
+      window.CM.$Notification
+    )
+    this.success(...arguments)
+  },
+  warning() {
+    this.warning = ignoreZHFunc(
+      window.CM.$Notification.warning,
+      window.CM.$Notification
+    )
+    this.warning(...arguments)
+  },
+  failed() {
+    this.failed = ignoreZHFunc(
+      window.CM.$Notification.failed,
+      window.CM.$Notification
+    )
+    this.failed(...arguments)
+  }
+}
+export const Model = {
+  confirmWithHTML() {
+    window.CM.$modal.confirmWithHTML(...arguments)
+  },
+  confirm() {
+    window.CM.$modal.confirm(...arguments)
+  }
+}
 export function getAdvanceSearchCondition(tab, node) {
   var json = {
     conditiongroup: {
@@ -2017,4 +2063,556 @@ export function exitFullscreen() {
     //   wscript.SendKeys('{F11}')
     // }
   }
+}
+export const dispatchUpdate = throttle(300, () => state.updateId++, true) // 避免调用太频繁
+export function forceUpdate(guid) {
+  try {
+    if (guid === store.getters.currentNode.guid) {
+      dispatchUpdate()
+    }
+  } catch (e) {}
+}
+export function getPadding(width, itemWidth, l) {
+  var padding = 7
+  var maxCount = Math.floor(width / itemWidth)
+  var diff = width % itemWidth
+  if (diff < padding * 2 * (maxCount + 1)) {
+    maxCount--
+    diff += itemWidth
+  }
+  if (l < maxCount) {
+    return padding
+  }
+  padding = diff / (2 * (maxCount + 1))
+  return padding
+}
+export function getHistories(node, arr) {
+  arr.unshift(node)
+  if (node.father) {
+    getHistories(node.father, arr)
+  }
+}
+export function getFulltextSearchCondtion(cond, node, type) {
+  var json = {
+    kvs: [],
+    usercode: state.userInfo.usercode
+  }
+  ;([292, 293, 294].indexOf(node.subtype) > -1 &&
+    ((json.subtype = node.subtype), 1)) ||
+    json.kvs.push({
+      key: 'tree_path_',
+      value: node.path
+    })
+  cond.timeFilter.filter(item => item.checked).forEach(item =>
+    json.kvs.push({
+      key: 'createDate_',
+      value:
+        '[' +
+        new Date(+new Date() - 86400000 * item.key).format('yyyy-MM-dd') +
+        ' 00:00:00 TO ' +
+        new Date().format('yyyy-MM-dd') +
+        ' 23:59:59]'
+    })
+  )
+  cond.typeFilter.filter(item => item.checked).forEach(item =>
+    json.kvs.push({
+      key: 'type_',
+      value: item.key
+    })
+  )
+  if (type) {
+    json.searchtext = cond.keywords.trim() || ''
+  } else {
+    json.condition = {}
+    cond.booleanCondition.forEach(
+      item => (json.condition[item.key] = item.value.trim())
+    )
+  }
+  return json
+}
+export function getCanSelectedItems(
+  context,
+  dragData,
+  width,
+  height,
+  event,
+  scrollY,
+  isMarkerList
+) {
+  if (dragData.width < 5 && dragData.height < 5) {
+    // 防止误操作
+    return
+  }
+  var children = context.getters.displayMaterials
+  var itemWidth = isMarkerList
+    ? 462
+    : context.state.thumbnailStyle.width * context.state.scaleTime +
+      2 * context.state.thumbPadding
+  var itemHeight = isMarkerList
+    ? 102
+    : 14 + context.state.thumbnailStyle.height * context.state.scaleTime + 45
+  var length = children.length
+  var rowCount = isMarkerList
+    ? Math.floor(width / itemWidth)
+    : Math.round((width - 2 * context.state.thumbPadding) / itemWidth)
+  let x1
+  let x2
+  let y1
+  let y2
+  let arr = []
+  x1 = Math.max(Math.floor(dragData.left / itemWidth), 0)
+  x2 = Math.min(
+    Math.floor((dragData.left + dragData.width) / itemWidth),
+    rowCount - 1
+  )
+  y1 = Math.floor(dragData.top / itemHeight)
+  y2 = Math.floor((dragData.top + dragData.height) / itemHeight)
+  for (var i = y1; i <= y2; i++) {
+    for (var j = x1; j <= x2; j++) {
+      var idx = i * rowCount + j
+      if (idx < length) {
+        arr.push(i * rowCount + j)
+      }
+    }
+  }
+  if (!(event.ctrlKey || event.shiftKey)) {
+    // 是否多选
+    context.commit({
+      type: TYPES.CLEAR_SELECTEEDITEMS
+    })
+  }
+
+  arr.forEach(i => {
+    children[i].selected = true
+    context.commit({
+      type: TYPES.ADD_SELECTEDITEM,
+      data: children[i]
+    })
+    context.commit({
+      type: TYPES.SET_SIGNMATERIAL,
+      data: i
+    })
+  })
+  return arr
+}
+export function videoShot(video, quality) {
+  if (video && video.setAttribute) {
+    video.setAttribute('crossOrigin', 'anonymous')
+    var canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    var ct = canvas.getContext('2d')
+    ct.drawImage(video, 0, 0)
+    var icon = canvas.toDataURL('image/jpeg', quality || 0.5)
+    canvas = null
+    ct = null
+    return icon
+  }
+}
+export function convertPath4Mac(path) {
+  var domain
+  var end
+
+  if (path.indexOf(':') > -1) {
+    // disk symbol
+    var symbol = path[0]
+    end = path.indexOf(':') + 1
+    domain = path.substring(0, end)
+    return path.replace(domain, '/Volumes/' + symbol).replace(/\\/gm, '/')
+  } else {
+    // UNC
+    path = path.replace('\\\\', '')
+    end = path.indexOf('\\')
+    domain = path.substring(0, end)
+    return path.replace(domain, '/Volumes').replace(/\\/gm, '/')
+  }
+}
+export function updateMarkerList(
+  markers,
+  framerate,
+  ntsctcmode,
+  videostandard,
+  vtrin,
+  totalFrames,
+  httpMarkList = {}
+) {
+  markers.forEach((item, index) => {
+    if (item.color) {
+      var RedColor = item.color & 0x0000ff
+      var Gcolor = (item.color & 0x00ff00) >> 8
+      var Bcolor = (item.color & 0xff0000) >> 16
+      item.bgcolor = {
+        background: 'rgb(' + RedColor + ',' + Gcolor + ',' + Bcolor + ')'
+      }
+    } else {
+    }
+    if (item.keyframe === undefined) {
+      item.keyframe = item.inpoint
+    }
+    if (!item.markguid) {
+      item.markguid = item.guid_
+    }
+    var frameSec = GetSecondByEachFrame(videostandard).round(6)
+    var intime = GetTimeStringByFrameNum(
+      item.keyframe +
+        GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
+      ntsctcmode,
+      videostandard
+    )
+    var outtime = GetTimeStringByFrameNum(
+      item.endkeyframe +
+        GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
+      ntsctcmode,
+      videostandard
+    )
+    var inPoint = GetMillSecondsByFrameNum(
+      item.keyframe,
+      videostandard
+    ).roundByFrame(frameSec)
+    var outPoint = GetMillSecondsByFrameNum(
+      item.endkeyframe,
+      videostandard
+    ).roundByFrame(frameSec)
+    if (item.type === '4' || item.type === 'scenemark') {
+      item.typeName = 'Scene Mark'
+      item.tag = 'scMarker'
+      item.flag = 'smarker'
+      item.isSMarker = true
+      item.inPoint = intime
+      item.outPoint = outtime
+      item.type = 4
+      item.time = inPoint
+      item.guid = '' + (new Date().getTime() + index)
+      item.text = item.note
+      item.intime = inPoint
+      item.outtime = outPoint
+    } else if (item.type === '8' || item.type === 'essencemark') {
+      item.typeName = 'Essence Mark'
+      item.tag = 'esMarker'
+      item.flag = 'emarker'
+      item.pos = intime
+      item.type = 8
+      item.time = inPoint
+      item.guid = '' + (new Date().getTime() + index)
+      item.text = item.note
+    } else if (item.type === '65536' || item.type === 'loggingmark') {
+      item.correctSF =
+        item.keyframe < item.startframe ? item.keyframe : item.startframe
+      item.correctEF =
+        totalFrames && item.keyframe + item.endkeyframe > totalFrames
+          ? Math.max(totalFrames - item.keyframe, 0)
+          : item.endkeyframe
+      item.typeName = 'Logging Mark'
+      item.tag = 'loMarker'
+      item.flag = 'lmarker'
+      item.pos = intime
+      item.type = 65536
+      item.isLMarker = true
+      item.duration = GetTimeStringByFrameNum(
+        !totalFrames ? item.correctSF : item.correctEF + item.correctSF,
+        ntsctcmode,
+        videostandard
+      )
+      item.time = inPoint
+      item.guid = '' + (new Date().getTime() + index)
+      item.text = item.note
+      item.creatorName = getUserNameByUserCode(item.creator)
+      item.extendinfo = item.extendinfo || []
+      item._extendinfo = item.extendinfo.groupBy('itemtype')
+      if (!item._extendinfo || item._extendinfo.length < 3) {
+        ;[
+          {
+            itemtype: 0,
+            itemname: 'Title',
+            itemvalue: []
+          },
+          {
+            itemtype: 1,
+            itemname: 'People',
+            itemvalue: []
+          },
+          {
+            itemtype: 2,
+            itemname: 'Action',
+            itemvalue: []
+          }
+        ].forEach(u => {
+          if (!item.extendinfo.some(i => i.itemtype === u.itemtype)) {
+            item._extendinfo.push([u])
+          }
+        })
+      }
+      item._extendinfo.sort((i1, i2) => {
+        return i1[0].itemtype - i2[0].itemtype
+      })
+    } else if (item.type === '131072' || item.type === 'changemark') {
+      item.typeName = 'Change Mark'
+      item.flag = 'cmarker'
+      item.tag = 'chMarker'
+      item.pos = intime
+      item.type = 131072
+      item.bgcolor = {
+        background: 'rgb(159,0,11)'
+      }
+      item.time = inPoint
+      item.guid = '' + (new Date().getTime() + index)
+      item.text = item.note
+    }
+    if (item.iconfilename) {
+      var httpItem = httpMarkList[index] || {} // 未查找
+      item.icon = getIconFilename(httpItem.iconfilename || item.iconfilename)
+    }
+    item.operations = ['Marks to Clip']
+    item.selected = false
+    item.family = 'mark'
+  })
+  return markers
+}
+export function getMarkerList(entity, vtrin, httpEntity) {
+  var httpMarkList = (httpEntity && httpEntity.item.markpoints) || []
+  var marklist = entity.item.markpoints || []
+  var framerate = 25.0
+  if (marklist && entity.item && entity.item.videostandard !== undefined) {
+    var ntsctcmode = entity.item.ntsctcmode || 0
+    var videostandard = entity.item.videostandard || 0
+    framerate = ETGetFrameRate(videostandard) || 30
+    var totalFrames = GetFrameNumByHundredNS(
+      Math.round(entity.item.length),
+      videostandard,
+      ntsctcmode
+    )
+    marklist = updateMarkerList(
+      marklist,
+      framerate,
+      ntsctcmode,
+      videostandard,
+      vtrin,
+      totalFrames,
+      httpMarkList
+    )
+  }
+  return marklist
+}
+export function isArray(arr) {
+  return Object.prototype.toString.call(arr) === '[object Array]'
+}
+export function updateMaterial(arr, data, store) {
+  if (
+    store.state.isMarker &&
+    data.type.startsWith('METADATA.model_sobey_object_markmeta') &&
+    (store.getters.currentNode.guid === 1 ||
+      store.getters.currentNode.guid === 2)
+  ) {
+    // 更新marker搜索结果
+    // var item = util.getRepository(store.getters.currentNode.guid).find(i => i.objectguid === data.guid);
+    var all = getRepository(store.getters.currentNode.guid).filter(
+      i => i.objectguid === data.guid
+    )
+    all &&
+      store
+        .dispatch({
+          type: TYPES.GET_OBJECT_INFO,
+          data: {
+            contentid: data.guid,
+            type: '32',
+            pathtype: 'http'
+          }
+        })
+        .then(res => {
+          all.forEach(item => {
+            var same = res.data.ext.entity.item.markpoints.find(
+              i => i.markguid === item.markguid
+            )
+            if (same) {
+              item = Object.assign(
+                item,
+                parseData([same], item.father, 'marker')[0]
+              )
+            } else {
+              getRepository(store.getters.currentNode.guid).remove(item)
+              forceUpdate(store.getters.currentNode.guid)
+            }
+          })
+        })
+    return
+  }
+  arr.forEach(item => {
+    if ((item._guid || item.guid) === data.guid) {
+      store
+        .dispatch({
+          type: TYPES.GET_OBJECT_INFO,
+          data: {
+            contentid: data.guid,
+            type: item.type === 'folder' ? '16' : '32',
+            pathtype: 'http'
+          }
+        })
+        .then(res => {
+          var iconfilename = item.iconfilename
+          var renaming = item.renaming
+          var selected = item.selected
+          var previewicon = item.previewicon
+          var properties = item.properties
+          var LTCItem = item.LTCItem
+          var VITCItem = item.VITCItem
+          var markers = item.markers
+          var name = item.name
+          var guid = item.guid
+          if (
+            item.folderpath &&
+            item.folderpath !== res.data.ext.entity.folderpath
+          ) {
+            moveMaterial(
+              store.state.nodes,
+              {
+                folderPath: res.data.ext.entity.folderpath
+              },
+              item
+            )
+          }
+          item = Object.assign(item, parseData([res.data.ext], item.father)[0])
+          if (item._guid) {
+            item.guid = guid // 暂时不要更新guid
+          }
+          if (LTCItem && LTCItem.length) item.LTCItem = LTCItem
+          if (VITCItem && VITCItem.length) item.VITCItem = VITCItem
+          if (iconfilename && !item.iconfilename) {
+            item.iconfilename = iconfilename
+          }
+          if (previewicon && !item.previewicon) {
+            item.previewicon = previewicon
+          }
+          if (markers && markers.values.length) {
+            item.markers = markers
+          }
+          if (properties && properties.length) {
+            item.properties = properties
+          } // 后续优化为为所有素材添加properties且自动更新且不用每次重新获取
+          // if (store.state.previewOptions.materials.some(i => i.guid === item.guid)) {
+          //   property.refresh()
+          // }
+          item.renaming = renaming
+          item.selected = selected
+          if (
+            name !== item.name &&
+            (getRepository(item.guid).length || item.folders.length)
+          ) {
+            mergeChildrenPath(
+              item.hasGetChild ? getRepository(item.guid) : item.folders,
+              item.path
+            )
+          }
+          var previewSame = store.state.previewOptions.materials.find(
+            i => i.guid === item.guid
+          )
+          if (previewSame) {
+            item.markers = previewSame.markers
+            item.properties = previewSame.properties
+            item.fileList = previewSame.fileList
+            Object.assign(previewSame, item)
+          }
+        })
+    } else if (
+      item.type === 'folder' &&
+      data.folderPath === item.path &&
+      !(
+        getRepository(item.guid).some(
+          item => (item._guid || item.guid) === data.guid
+        ) || item.folders.some(item => (item._guid || item.guid) === data.guid)
+      )
+    ) {
+      // move 适配move只有update的消息
+      var node = initData(data, item)
+      node.type = data.type.split('.')[0] === 'TREE' ? 'folder' : 'other'
+      node.bgtype = node.type
+      node.guid = data.guid
+      getRepository(item.guid).push(node)
+      forceUpdate(item.guid)
+      node.type === 'folder' && item.folders.push(node)
+      updateMaterial(getRepository(item.guid), data, store)
+    }
+    if (pureGetRepository(item.guid).length || item.folders.length) {
+      updateMaterial(
+        item.hasGetChild ? getRepository(item.guid) : item.folders,
+        data,
+        store
+      )
+    }
+  })
+}
+export function moveMaterial(arr, data, item) {
+  getRepository(item.father.guid).remove(item)
+  forceUpdate(item.father.guid)
+  item.type === 'folder' && item.father.folders.remove(item)
+  getMaterialFoder(arr, data).then(res => {
+    item.father = res
+    !getRepository(res.guid).some(i => i.guid === item.guid) &&
+      getRepository(res.guid).add(item) // 解决从search result cut 时出现两个的问题
+    forceUpdate(res.guid)
+    item.type === 'folder' &&
+      !res.folders.some(i => i.guid === item.guid) &&
+      res.folders.add(item)
+  })
+}
+export function getMaterialFoder(arr, data) {
+  return new Promise((resolve, reject) => {
+    for (let i = 0, l = arr.length; i < l; i++) {
+      var item = arr[i]
+      if (
+        (data.fguid && item.guid === data.fguid) ||
+        (data.folderPath && data.folderPath === item.path)
+      ) {
+        resolve(item)
+        break
+      } else if (getRepository(item.guid).length || item.folders.length) {
+        getMaterialFoder(
+          item.hasGetChild ? getRepository(item.guid) : item.folders,
+          data
+        ).then(res => {
+          resolve(res)
+        })
+      }
+    }
+  })
+}
+export function mergeChildrenPath(arr, path) {
+  arr.forEach(item => {
+    item.folderpath = path
+    item.path = path + '/' + item.name
+    if (getRepository(item.guid).length || item.folders.length) {
+      mergeChildrenPath(
+        item.hasGetChild ? getRepository(item.guid) : item.folders,
+        item.path
+      )
+    }
+  })
+}
+export function initData(file, father) {
+  var node = {}
+  node.operations = []
+  node.guid = Guid.NewGuid().ToString('N')
+  node.folders = []
+  node.file = file
+  node.percent = 0
+  node.name = file.name
+  node.type = 'other'
+  node.bgtype = 'uploading'
+  node.selected = file.selected || false
+  node.father = father
+  node.floor = father.floor + 1
+  node.open = file.open || false
+  node.checked = file.checked || false
+  node.selecting = file.selecting || false
+  node.renaming = file.renaming || false
+  node.uploading = file.uploading || false
+  node.readyUpload = file.readyUpload || false
+  node.cutting = file.cutting || false
+  node.children = file.children || []
+  setRepository(node.guid, file.guid)
+  node.dragOvering = file.dragOvering || false
+  node.readonly = false
+  node.iconfilename = undefined
+  node.previewicon = undefined
+  node.HQ = node.LQ = node.WA = node.DB = node.clipping = node.onlinstatus = undefined
+  return node
 }

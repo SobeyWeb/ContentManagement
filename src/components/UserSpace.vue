@@ -16,7 +16,7 @@
 import TYPES from '../dicts/mutationTypes.js'
 import APPSETTING from '../config/appSetting'
 export default {
-  name: 'UserSpace',
+  name: 'user-sapce',
   data () {
     return {
       warningPercent: 0.9
@@ -24,7 +24,7 @@ export default {
   },
   created () {
     this.getUserStorage()
-    setInterval(this.getUserStorage, APPSETTING.USERSPACEINTERVAL || 60 * 1000)
+    setInterval(this.getUserStorage, (APPSETTING.USERSPACEINTERVAL || 60) * 1000)
   },
   computed: {
     sumSpace: {

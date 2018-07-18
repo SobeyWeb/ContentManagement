@@ -20,7 +20,7 @@ export default {
   props: {
     data: Object
   },
-  name: 'tree-ctrl',
+  name: 'folder-tree',
   data: function () {
     return {
       intervalId: -1,
