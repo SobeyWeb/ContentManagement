@@ -2668,7 +2668,7 @@ function ET_VideoStandardIsHD(vStandard) {
   }
 }
 
-const Format = {
+export const Format = {
   ETGetVideoFrameRate: function(videostandard) {
     return ETGetVideoFrameRate(videostandard)
   },
@@ -2938,4 +2938,222 @@ export function GetFrameNumByHundredNS(
   }
   _frame = _frame.toFixed(0)
   return parseInt(_frame)
+}
+
+export function GetSkipFrameByVideoStandard(videostandard) {
+  videostandard = Format.ET_GetOldStandard(videostandard)
+  if (GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_50) {
+    return 2
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_5994
+  ) {
+    return 2
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_25
+  ) {
+    return 1
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_2997
+  ) {
+    return 1
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_30
+  ) {
+    return 1
+  } else {
+    return 1
+  }
+}
+export function GetFrameNumBySecond(
+  sec,
+  lNtscTcMode,
+  videoStandard,
+  framerate
+) {
+  if (!sec) return 0
+  lNtscTcMode = lNtscTcMode || 0
+
+  try {
+    videoStandard = Format.ET_GetOldStandard(videoStandard)
+    var lHour = Math.floor(sec / 3600)
+    var lMinute = Math.floor((sec % 3600) / 60)
+    var lSecond = Math.floor(sec % 60)
+    var lFrame = GetFrameNumByHundredNS(
+      (sec % 1) * 10000000,
+      videoStandard,
+      lNtscTcMode
+    )
+
+    if (GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_50) {
+      return lHour * 3600 * 50 + lMinute * 60 * 50 + lSecond * 50 + lFrame * 2
+    } else if (
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_5994
+    ) {
+      if (lNtscTcMode === 1) {
+        return lHour * 3600 * 60 + lMinute * 60 * 60 + lSecond * 60 + lFrame * 2
+      } else {
+        if (lMinute % 10 !== 0) {
+          if (lSecond === 0 && (lFrame === 0 || lFrame === 1)) lFrame = 2
+        }
+        return parseInt(
+          parseInt(107892 * 2 * lHour) +
+            parseInt(17982 * 2 * parseInt(lMinute / 10)) +
+            parseInt(1798 * 2 * parseInt(lMinute % 10)) +
+            parseInt(lSecond * 30) +
+            lFrame
+        )
+      }
+    } else if (
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_25
+    ) {
+      return lHour * 3600 * 25 + lMinute * 60 * 25 + lSecond * 25 + lFrame
+    } else if (
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_2997 ||
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_30
+    ) {
+      if (lNtscTcMode === 1) {
+        return lHour * 3600 * 30 + lMinute * 60 * 30 + lSecond * 30 + lFrame
+      } else {
+        if (lMinute % 10 !== 0) {
+          if (lSecond === 0 && (lFrame === 0 || lFrame === 1)) lFrame = 2
+        }
+
+        return parseInt(
+          parseInt(107892 * lHour) +
+            parseInt(17982 * parseInt(lMinute / 10)) +
+            parseInt(1798 * parseInt(lMinute % 10)) +
+            parseInt(lSecond * 30) +
+            lFrame
+        )
+      }
+    } else {
+      return lHour * 3600 * 25 + lMinute * 60 * 25 + lSecond * 25 + lFrame
+    }
+  } catch (e) {
+    return 0
+  }
+}
+export function GetFrameNumByTimeString(
+  tc,
+  lNtscTcMode,
+  videoStandard,
+  framerate
+) {
+  if (!tc) return 0
+  lNtscTcMode = lNtscTcMode || 0
+  try {
+    videoStandard = Format.ET_GetOldStandard(videoStandard)
+    var lHour = parseInt(tc.substr(0, 2))
+    var lMinute = parseInt(tc.substr(3, 2))
+    var sgMin = parseInt(tc.substr(4, 2))
+    var lSecond = parseInt(tc.substr(6, 2))
+    var lFrame = parseInt(tc.substr(9, 2))
+
+    if (GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_50) {
+      return lHour * 3600 * 50 + lMinute * 60 * 50 + lSecond * 50 + lFrame * 2
+    } else if (
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_5994
+    ) {
+      if (lNtscTcMode === 1) {
+        return lHour * 3600 * 60 + lMinute * 60 * 60 + lSecond * 60 + lFrame * 2
+      } else {
+        if (lMinute % 10 !== 0) {
+          if (lSecond === 0 && (lFrame === 0 || lFrame === 1)) lFrame = 2
+        }
+        return parseInt(
+          parseInt(107892 * 2 * lHour) +
+            parseInt(17982 * 2 * parseInt(lMinute / 10)) +
+            parseInt(1798 * 2 * parseInt(lMinute % 10)) +
+            parseInt(lSecond * 60) +
+            2 * lFrame
+        )
+      }
+    } else if (
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_25
+    ) {
+      return lHour * 3600 * 25 + lMinute * 60 * 25 + lSecond * 25 + lFrame
+    } else if (
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_2997 ||
+      GetFrameRateByVideoStandard(videoStandard) === FrameRateEnum.FR_30
+    ) {
+      if (lNtscTcMode === 1) {
+        return lHour * 3600 * 30 + lMinute * 60 * 30 + lSecond * 30 + lFrame
+      } else {
+        if (lMinute % 10 !== 0) {
+          if (lSecond === 0 && (lFrame === 0 || lFrame === 1)) lFrame = 2
+        }
+
+        return parseInt(
+          parseInt(107892 * lHour) +
+            parseInt(17982 * parseInt(lMinute / 10)) +
+            parseInt(1798 * parseInt(lMinute % 10)) +
+            parseInt(lSecond * 30) +
+            lFrame
+        )
+      }
+    } else {
+      return lHour * 3600 * 25 + lMinute * 60 * 25 + lSecond * 25 + lFrame
+    }
+  } catch (e) {
+    return 0
+  }
+}
+
+export function GetSecondByEachFrame(videostandard) {
+  videostandard = Format.ET_GetOldStandard(videostandard)
+  var lFrameNumber = 1
+  var _time = 0.04
+  if (GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_50) {
+    _time = parseFloat(lFrameNumber / (25 * 2))
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_5994
+  ) {
+    _time = parseFloat((lFrameNumber * 1001) / 60000)
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_25
+  ) {
+    _time = parseFloat(lFrameNumber / 25)
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_2997
+  ) {
+    _time = parseFloat((lFrameNumber * 1001) / 30000)
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_30
+  ) {
+    _time = parseFloat(lFrameNumber / 30)
+  } else {
+    // 默认25帧率
+    _time = parseFloat(lFrameNumber / 25)
+  }
+
+  return _time // 四舍五入，保留两位小数。
+}
+export function GetMillSecondsByFrameNum(
+  lFrameNumber,
+  videostandard,
+  framerate
+) {
+  videostandard = Format.ET_GetOldStandard(videostandard)
+  if (GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_50) {
+    return parseFloat(lFrameNumber / (25 * 2))
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_5994
+  ) {
+    return parseFloat((lFrameNumber * 1001) / 60000)
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_25
+  ) {
+    return parseFloat(lFrameNumber / 25)
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_2997
+  ) {
+    return parseFloat((lFrameNumber * 1001) / 30000)
+  } else if (
+    GetFrameRateByVideoStandard(videostandard) === FrameRateEnum.FR_30
+  ) {
+    return parseFloat(lFrameNumber / 30)
+  } else {
+    // 默认25帧率
+    return parseFloat(lFrameNumber / 25)
+  }
 }

@@ -13,12 +13,11 @@
 
       <div class="msg-text" style="color: rgb(248, 155, 57);">{{$t(msg||errorMsg)}}</div>
     </form>
-    <user-sapce></user-sapce>
   </div>
 </template>
 
 <script>
-import PERMISSION from '../dicts/permission.js'
+// import PERMISSION from '../dicts/permission.js'
 import TYPES from '../dicts/mutationTypes.js'
 import EVENT from '../dicts/EventTypes.js'
 export default {
@@ -83,7 +82,7 @@ export default {
           }).then(res => {
             if (res.ext) {
               this.$app.emit(EVENT.LOGINED, [this]) // dispatch login event
-              // this.$router.push('/index')
+              this.$router.push('/index')
               this.loading = false
               localStorage.setItem('loginName', this.username)
               // get user info
@@ -91,7 +90,7 @@ export default {
                 type: TYPES.GET_USERINFOBYID
               }).then(res => {
                 this.$store.state.userInfo.isAdmin = res.ext.type === 1
-                this.$store.state.userInfo.permission = res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
+                this.$store.state.userInfo.permission = [] // res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
                 if (res.ext.templates && res.ext.templates.length) {
                   this.$store.state.userInfo.privilege = res.data.ext.templates[0].templatecode
                 } else {

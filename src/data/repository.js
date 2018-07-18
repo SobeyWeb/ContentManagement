@@ -23,15 +23,18 @@ const repository = {
     }
   ]
 }
-function getRepository (key) {
+function getRepository(key) {
   return repository[key] || ((repository[key] = []), repository[key])
 }
 
-function setRepository (key, val) {
+function setRepository(key, val) {
   if (Array.isArray(val)) {
     repository[key] = val.groupBy('guid').map(item => item[0]) // distinct
   } else {
     repository[key] = getRepository(val)
   }
 }
-export { getRepository, setRepository }
+function pureGetRepository(key) {
+  return repository[key] || []
+}
+export { getRepository, setRepository, pureGetRepository }

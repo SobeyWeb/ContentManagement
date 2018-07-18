@@ -4,11 +4,7 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 
-import Vuex from 'vuex'
-import state from './store/state.js'
-import getters from './store/getters.js'
-import mutations from './store/mutations.js'
-import actions from './store/actions.js'
+import store from './store'
 
 import vuexI18n from 'vuex-i18n'
 import translationsEn from './dicts/translationsEn.js'
@@ -32,7 +28,6 @@ Vue.use(Vue => {
     }
   }
 })
-Vue.use(Vuex)
 Vue.use(eventPlugin)
 Vue.use(RadonUI.RadonInstall, {
   Modal: true,
@@ -41,12 +36,17 @@ Vue.use(RadonUI.RadonInstall, {
   Preview: true
 })
 Vue.component('vue-nice-scrollbar', ScrollBar)
-let store = new Vuex.Store({
-  state,
-  getters,
-  mutations,
-  actions
+Vue.component('loading-ctrl', {
+  template: `<div class="loading_container" @contextmenu.stop.prevent @keydown.stop.prevent @keyup.stop.prevent @mousedown.stop.prevent  @mouseup.stop.prevent tabindex="-1">
+    <div class="loading_spinner" :class="customClass" style="width: 60px; height: 60px;"></div>
+    <div class="loading_name" style="margin-top:10px;font-size: 15px;font-weight: bold;">{{name}}</div>
+    </div>`,
+  props: {
+    name: String,
+    customClass: String
+  }
 })
+
 Vue.use(vuexI18n.plugin, store, {
   moduleName: 'i18n',
   onTranslationNotFound(locale, key) {
@@ -97,7 +97,7 @@ Vue.directive('dispose', {
 Vue.config.productionTip = false
 
 /* eslint-disable no-new */
-new Vue({
+window.CM = new Vue({
   el: '#app',
   store,
   router,

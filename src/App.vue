@@ -62,6 +62,9 @@ export default {
   created () {
     this.initNativeEvents()
     this.getUserInfo()
+  },
+  mounted () {
+
   }
 }
 </script>
