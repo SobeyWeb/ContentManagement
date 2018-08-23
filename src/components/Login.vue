@@ -90,11 +90,7 @@ export default {
                 type: TYPES.GET_USERINFOBYID
               }).then(res => {
                 this.$store.state.userInfo.isAdmin = res.ext.type === 1
-<<<<<<< HEAD
-                // this.$store.state.userInfo.permission = res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
-=======
                 this.$store.state.userInfo.permission = [] // res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
->>>>>>> 8fd208fd4b0bc39d6fc95820958559d2d00912b9
                 if (res.ext.templates && res.ext.templates.length) {
                   this.$store.state.userInfo.privilege = res.ext.templates[0].templatecode
                 } else {

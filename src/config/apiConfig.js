@@ -104,5 +104,29 @@ export default {
   },
   [TYPES.PUBLISH_TO_SNS](para) {
     return util.getUrl(URLCONFIG.CMAPI + '/CMApi/api/sns/publishtosns')
+  },
+  [TYPES.GET_STUDIO](para) {
+    return util.getUrl(URLCONFIG.PLAYOUT + '/api/Studio/GetStudioList')
+  },
+  [TYPES.GET_RUNDOWN_LIST](para) {
+    return util.getUrl(URLCONFIG.PLAYOUT + '/api/Studio/GetRundownList')
+  },
+  [TYPES.GET_EVENTS](para) {
+    return util.getUrl(URLCONFIG.PLAYOUT + '/api/Studio/GetEventList')
+  },
+  [TYPES.GET_PROGRAMEINFO_LIST](para) {
+    return util.getUrl(URLCONFIG.PLAYOUT + '/api/Studio/GetStoryList')
+  },
+  [TYPES.GET_NOTIFYPLAYOUT](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/entity/object/notifyplayout',
+      para
+    )
+  },
+  [TYPES.REGISTER_TO_EVENT](para) {
+    return util.getUrl(URLCONFIG.PLAYOUT + '/api/Studio/RegisterOAMaterial')
+  },
+  [TYPES.ISONLY_TRANSNOTCODES](para) {
+    return util.getUrl(URLCONFIG.PLAYOUT + '/api/Studio/IsOnlyTransNotCodec')
   }
 }

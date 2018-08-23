@@ -5,6 +5,18 @@ import NODETYPES from '../dicts/guidMaps.js'
 import axios from 'axios'
 import * as util from '../lib/util.js'
 import { getRepository } from '../data/repository.js'
+import Guid from '../lib/Guid.js'
+import {
+  getEnumKeyByValue,
+  FilterGroupTypeOperator,
+  ConditionType,
+  StoryTypeEnum,
+  strDateTime1,
+  EventStatusType,
+  SetStudioSystemStandard,
+  getTimeStringByFrameNum2,
+  GetStudioSystemStandard
+} from '../dicts/StudioFormat.js'
 let md5 = require('../lib/md5.min.js').md5
 
 export default {
@@ -785,6 +797,348 @@ export default {
           resolve(res)
         } else {
           resolve(res)
+        }
+      })
+    })
+  },
+  // [TYPES.REGISTER_OA](context, payload) {
+  //   let url = API_CONFIG[TYPES.PUBLISH_TO_SNS]({})
+  //   let data = payload.data
+  //   data.usercode = context.state.userInfo.usercode
+  //   data.username = context.state.userInfo.username
+  //   data.replyto = URLCONFIG.TMSERVICE + '/sobey/plat/cmd'
+  //   data = JSON.stringify(data)
+  //   return new Promise((resolve, reject) => {
+  //     axios.post(url, data).then(res => {
+  //       if (res.data.code === '0') {
+  //         resolve(res)
+  //       } else {
+  //         resolve(res)
+  //       }
+  //     })
+  //   })
+  // },
+  [TYPES.GET_STUDIO](context, payload) {
+    var data = {
+      FilterGroup: {
+        ObjType: 'AttributeConditionType',
+        Items: [
+          {
+            Attribute: {
+              Name: 'StudioName',
+              Value: Guid.NewGuid().ToString('N')
+            },
+            Condition: ConditionType.NOT_EQUALS
+          }
+        ],
+        Operator: FilterGroupTypeOperator.AND
+      }
+    }
+    let URL = API_CONFIG[TYPES.GET_STUDIO]({})
+    return new Promise((resolve, reject) => {
+      axios.post(URL, JSON.stringify(data)).then(res => {
+        if (
+          res.data.Results &&
+          res.data.Results.length > 0 &&
+          !res.data.Errors
+        ) {
+          let studios = res.data.Results
+          let studioArr = []
+          if (studios && studios.length > 0) {
+            let defultJson = {
+              name: 'Please select studio',
+              studioid: '',
+              studiomosid: ''
+            }
+            studioArr.push(defultJson)
+            studios.forEach(item => {
+              SetStudioSystemStandard(item.StudioID, item.SystemStandard)
+              let json = {
+                name: item.Name,
+                studioid: item.StudioID,
+                studiomosid: item.StudioMosID
+              }
+              studioArr.push(json)
+            })
+          }
+          resolve(studioArr)
+        } else {
+          if (res.data.Errors) {
+            reject(res.data.Errors)
+          } else {
+            res.data.E = 'Studio list can not be found'
+            reject(res.data)
+          }
+        }
+      })
+    })
+  },
+  [TYPES.GET_RUNDOWN_LIST](context, payload) {
+    var StudioID = payload.data
+    var data = {
+      StudioID: payload.data,
+      FilterGroup: {
+        ObjType: 'AttributeConditionType',
+        Items: [
+          {
+            Attribute: {
+              Name: 'RundownName',
+              Value: Guid.NewGuid().ToString('N')
+            },
+            Condition: ConditionType.NOT_EQUALS
+          },
+          {
+            Attribute: {
+              Name: 'PlaylistType',
+              Value: '0'
+            },
+            Condition: ConditionType.EQUALS
+          }
+        ],
+        Operator: FilterGroupTypeOperator.AND
+      }
+    }
+    let URL = API_CONFIG[TYPES.GET_RUNDOWN_LIST]({})
+    return new Promise((resolve, reject) => {
+      axios.post(URL, JSON.stringify(data)).then(res => {
+        if (
+          res.data.Results &&
+          res.data.Results.length > 0 &&
+          !res.data.Errors
+        ) {
+          var rundownArr = []
+          var rundownlist = res.data.Results
+          rundownlist.forEach(item => {
+            item.FirstPlayDate = item.FirstPlayDate.slice(
+              0,
+              item.FirstPlayDate.indexOf('T')
+            )
+            if (!strDateTime1(item.FirstPlayDate)) {
+              item.FirstPlayDate = ''
+            }
+            // item.FirstPlayDate = new Date(item.FirstPlayDate).format('yyyy-MM-dd');
+            if (item.FirstPlayDate) {
+              var json = {
+                studioid: StudioID,
+                name: item.Name,
+                FirstPlayDate: item.FirstPlayDate,
+                Rundownid: item.RundownID
+              }
+              rundownArr.push(json)
+            }
+          })
+          resolve(rundownArr)
+        } else {
+          resolve(res.data.Errors)
+        }
+      })
+    })
+  },
+  [TYPES.GET_EVENTS](context, payload) {
+    var URL = API_CONFIG[TYPES.GET_EVENTS]({})
+    var data = { StoryID: payload.data.storyID }
+    return new Promise((resolve, reject) => {
+      axios.post(URL, JSON.stringify(data)).then(res => {
+        if (
+          res.data.Results &&
+          res.data.Results.length > 0 &&
+          !res.data.Errors
+        ) {
+          resolve(res.data.Results)
+        } else {
+          resolve(null)
+        }
+      })
+    })
+  },
+  [TYPES.GET_PROGRAMEINFO_LIST](context, payload) {
+    let studioid = payload.data.studioid
+    let data = {
+      RundownID: payload.data.rundownid,
+      FilterGroup: {
+        ObjType: 'AttributeConditionType',
+        Items: [
+          {
+            Attribute: {
+              Name: 'StoryName',
+              Value: Guid.NewGuid().ToString('N')
+            },
+            Condition: ConditionType.NOT_EQUALS
+          }
+        ],
+        Operator: FilterGroupTypeOperator.AND
+      }
+    }
+    let URL = API_CONFIG[TYPES.GET_PROGRAMEINFO_LIST]({})
+    return new Promise((resolve, reject) => {
+      axios.post(URL, JSON.stringify(data)).then(res => {
+        if (
+          res.data.Results &&
+          res.data.Results.length > 0 &&
+          !res.data.Errors
+        ) {
+          let Resulteventlist = res.data.Results
+          let eventlist = []
+          let programeinfo = []
+          let Standard = null
+          if (!res.data.Errors) {
+            Standard = GetStudioSystemStandard(studioid)
+          }
+          eventlist = Resulteventlist.filter(item => {
+            return item.Type === StoryTypeEnum.Main
+          })
+          let promiseArr = []
+          eventlist.forEach(item => {
+            promiseArr.push(() =>
+              context
+                .dispatch({
+                  type: TYPES.GET_EVENTS,
+                  data: {
+                    storyID: item.StoryID
+                  }
+                })
+                .then(res => {
+                  let json = {
+                    StoryID: item.StoryID,
+                    Name: item.Name,
+                    Comment: item.Comment,
+                    CreateDate: item.CreateDate,
+                    RundownID: item.RundownID,
+                    RundownName: item.RundownName,
+                    Type: item.Type,
+                    Events: res
+                  }
+                  programeinfo.push(json)
+                  resolve(programeinfo)
+                })
+                .catch(res => {})
+            )
+          })
+          util.sync(promiseArr).then(res => {
+            let newProgramArr = []
+            let cdata = programeinfo
+            let ndf = Standard || 0
+            if (cdata.length > 0) {
+              cdata.forEach(function(i, d) {
+                if (cdata[d].Events) {
+                  i.Events.forEach(function(p, j) {
+                    let Duration =
+                      i.Events[j].Type === 2
+                        ? ''
+                        : getTimeStringByFrameNum2(
+                          i.Events[j].Duration,
+                          ndf
+                        ).substr(0, 8)
+                    let Version =
+                      i.Events[j].Type === 2 ? '' : i.Events[j].Version
+                    let SOM =
+                      i.Events[j].Type === 2
+                        ? ''
+                        : getTimeStringByFrameNum2(
+                          i.Events[j].InPoint,
+                          ndf
+                        ).substr(0, 8)
+                    let EOM =
+                      i.Events[j].Type === 2
+                        ? ''
+                        : getTimeStringByFrameNum2(
+                          i.Events[j].OutPoint,
+                          ndf
+                        ).substr(0, 8)
+                    let eventStatus = getEnumKeyByValue(
+                      i.Events[j].Status,
+                      EventStatusType
+                    )
+                    if (i.Events[j].Type !== 0 && i.Events[j].Type !== 2) {
+                      let infoJson = {
+                        storyTitle: i.Name,
+                        eventTitle: i.Events[j].Name,
+                        duration: Duration,
+                        version: Version,
+                        som: SOM,
+                        eom: EOM,
+                        channel: i.Events[j].Channel,
+                        eventStatus: eventStatus,
+                        eventId: i.Events[j].EventID,
+                        MaterialID: i.Events[j].MaterialID,
+                        selected: false
+                      }
+                      newProgramArr.push(infoJson)
+                    }
+                  })
+                }
+              })
+            }
+            resolve(newProgramArr)
+          })
+        } else {
+          resolve(res.data.Errors)
+        }
+      })
+    })
+  },
+  [TYPES.GET_NOTIFYPLAYOUT](context, payload) {
+    let URL = API_CONFIG[TYPES.GET_NOTIFYPLAYOUT]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    let data = JSON.stringify(payload.data.xmlproc)
+    return new Promise((resolve, reject) => {
+      axios.post(URL, data).then(res => {
+        if (res.data.code === '0') {
+          resolve(res.data)
+        } else {
+          resolve(res.data)
+        }
+      })
+    })
+  },
+  [TYPES.REGISTER_TO_EVENT](context, payload) {
+    let URL = API_CONFIG[TYPES.REGISTER_TO_EVENT]({})
+    var data = {
+      eventId: payload.data.eventId,
+      objectGuid: payload.data.objectGuid,
+      token: context.state.userInfo.usertoken
+    }
+    return new Promise((resolve, reject) => {
+      axios
+        .post(URL, JSON.stringify(data))
+        .then(res => {
+          let result
+          if (res.data.Results) {
+            result = JSON.stringify(res.data)
+            resolve(result)
+          } else {
+            if (res.data.Errors) {
+              result = JSON.stringify(res.data.Errors)
+            } else {
+              result = JSON.stringify(res.data)
+            }
+          }
+          resolve(result)
+        })
+        .catch(res => {
+          if (typeof res === 'object') {
+            res = 'register to event fail!'
+          }
+          var result = {
+            ErrDetail: res
+          }
+          result = JSON.stringify(result)
+          resolve(result)
+        })
+    })
+  },
+  [TYPES.ISONLY_TRANSNOTCODES](context, payload) {
+    var data = {
+      FileName: payload.data.FileName
+    }
+    let URL = API_CONFIG[TYPES.ISONLY_TRANSNOTCODES]({})
+    return new Promise((resolve, reject) => {
+      axios.post(URL, JSON.stringify(data)).then(res => {
+        if (res.data) {
+          resolve(res.data)
+        } else {
+          resolve(res.data)
         }
       })
     })

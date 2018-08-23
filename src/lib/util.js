@@ -2616,3 +2616,29 @@ export function initData(file, father) {
   node.HQ = node.LQ = node.WA = node.DB = node.clipping = node.onlinstatus = undefined
   return node
 }
+export function sync(promArr) {
+  return new Promise((resolve, reject) => {
+    var i = 0
+    function loop() {
+      if (i < promArr.length) {
+        var func = promArr[i]
+        if (func instanceof Function) {
+          func().then(res => {
+            i++
+            loop()
+          }).catch(res => {
+            console.log(res)
+            i++
+            loop()
+          })
+        } else {
+          i++
+          loop()
+        }
+      } else {
+        resolve()
+      }
+    }
+    loop()
+  })
+}

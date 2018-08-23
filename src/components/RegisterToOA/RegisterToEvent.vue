@@ -31,7 +31,7 @@
         </tbody>
       </table>
       <div id="parentListDiv">
-        <vue-nice-scrollbar class="folder_box" :speed="150" style="height: 100%;">
+        <vue-nice-scrollbar class="folder_box" :speed="150" style="height: 100%">
           <table id="tblRundownList" cellspacing="0">
             <thead>
               <tr>
@@ -65,8 +65,175 @@
   </div>
 </template>
 <script>
+import * as util from '../../lib/util.js'
+import TYPES from '../../dicts/mutationTypes.js'
+export default {
+  name: 'registertoevent',
+  props: {
+    data: Object
+  },
+  methods: {
+    selectStudio (event) {
+      var studioId = event.target.selectedOptions[0].getAttribute('studioId')
+      this.data.studiodata.forEach((item) => {
+        if (item.name === event.target.value && item.studioid === studioId) {
+          item.ischeckedStudio = true
+        } else {
+          item.ischeckedStudio = false
+        }
+      })
+      if (event.target.value !== 'Please select studio') {
+        this.data.rundowntimedata = []
+        this.data.rundowndata = []
+        this.data.programInfo = []
+        var checkedStudio = this.data.studiodata.filter(function (item) {
+          return item.name === event.target.value
+        })
+        var mosid = checkedStudio[0].studiomosid
+        var studioid = checkedStudio[0].studioid
+        this.data.selectedStudioid = studioid
+        this.data.selectedStudioMosid = mosid
+        if (studioid) {
+          this.$store.dispatch({
+            type: TYPES.GET_RUNDOWN_LIST,
+            data: studioid
+          }).then((result) => {
+            var datas = result
+            if (datas && datas.length > 0) {
+              this.data.rundowntimedata = datas
+              var arr = []
+              var newArr = []
+              datas.map(item => item.FirstPlayDate).forEach(item => {
+                if (arr.indexOf(item) < 0) arr.push(item)
+              })
+              arr.sort()
+              this.data.tempTimedata = arr
+              this.data.tempRundowndata = []
+              this.data.tempProgramInfodata = []
+              var defaultArr = [{
+                name: 'Please select time',
+                selected: true
+              }]
+              if (arr.length > 0) {
+                arr.forEach(item => {
+                  var obj = {
+                    name: item,
+                    selected: false
+                  }
+                  newArr.push(obj)
+                })
+              }
+              this.data.timedata = [...defaultArr, ...newArr]
+            }
+          }).catch((re) => {
+            util.Notice.warning('Rundown list can not be found', '', 3000)
+          })
+        }
+      } else {
+        this.data.rundowntimedata = []
+        this.data.rundowndata = []
+        this.data.programInfo = []
+        this.data.timedata = []
+        this.data.tempTimedata = []
+        this.data.tempRundowndata = []
+        this.data.tempProgramInfodata = []
+      }
+    },
+    checkedTime (event) {
+      this.data.rundowndata = []
+      this.data.programInfo = []
+      var currentTime = event.target.value
+      this.data.timedata.forEach((item, index) => {
+        if (item.name === currentTime && event.target.selectedIndex === index) {
+          item.selected = true
+        } else {
+          item.selected = false
+        }
+      })
 
+      this.data.selectTime = currentTime
+      var Arr = []
+      this.data.rundowntimedata.forEach((item) => {
+        if (currentTime === item.FirstPlayDate) {
+          Arr.push(item)
+        }
+      })
+      this.data.tempRundowndata = Arr
+      this.data.tempProgramInfodata = []
+      var defaultDate = [{
+        studioid: '',
+        name: 'Please select rundown list',
+        FirstPlayDate: '',
+        Rundownid: '',
+        selected: true
+      }]
+      Arr.forEach((item) => {
+        item.selected = false
+      })
+      if (Arr && Arr.length > 0) {
+        this.data.rundowndata = [...defaultDate, ...Arr]
+      } else {
+        this.data.rundowndata = []
+      }
+    },
+    checkedRundown () {
+      this.data.programInfo = []
+      this.data.tempProgramInfodata = []
+      var currentRundown = event.target.value
+      var studioID = ''
+      var rundowID = ''
+      var SelectRundownid = event.target.selectedOptions[0].getAttribute('Rundownid')
+      this.data.rundowntimedata.forEach(function (item) {
+        if (currentRundown === item.name && SelectRundownid === item.Rundownid) {
+          studioID = item.studioid
+          rundowID = item.Rundownid
+        }
+      })
+      this.data.rundowndata.forEach((item) => {
+        if (item.name === currentRundown && SelectRundownid === item.Rundownid) {
+          item.selected = true
+        } else {
+          item.selected = false
+        }
+      })
+      this.data.selectedStudioid = studioID
+      this.data.selectRundownid = rundowID
+      var tempProgramInfo = []
+      if (studioID && rundowID) {
+        this.$store.dispatch({
+          type: TYPES.GET_PROGRAMEINFO_LIST,
+          data: {
+            studioid: studioID,
+            rundownid: rundowID
+          }
+        }).then((result) => {
+          var datas = result
+          if (datas.length > 0) {
+            tempProgramInfo = datas
+            var strData = JSON.stringify(tempProgramInfo)
+            if (rundowID === this.data.selectRundownid) {
+              this.data.programInfo = []
+              this.data.tempProgramInfodata = JSON.parse(strData)
+              this.data.programInfo = JSON.parse(strData)
+            } else {
+            }
+          }
+        }).catch((re) => {
+          util.Notice.warning('Program list can not be found', '', 3000)
+        })
+      }
+    },
+    selectRow (studioinfo) {
+      this.data.programInfo.forEach(function (item) {
+        item.selected = false
+      })
+      studioinfo.selected = true
+    }
+  },
+  computed: {},
+  components: {}
+}
 </script>
 
-<style>
+<style scoped>
 </style>

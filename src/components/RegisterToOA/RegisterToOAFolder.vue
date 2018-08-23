@@ -11,46 +11,40 @@
     </ul>
   </div>
 </template>
-  <template id="registertoOa_ctrl">
-  <div id="registerOAfolderParentDiv">
-    <div id="divRegisterWindow" class="windowDiv animated2 zoomIn">
-      <div class="divTitle" @mousedown.stop.capture="mousedown($event)">
-        <span class="textTitle">Register To</span>
-        <button class="closeIcon" @click="cancelRegisterWindow">
-          <div class="icon"></div>
-        </button>
-      </div>
-      <p class="PortionTitle">Which Portion</p>
-      <div class="selectPortion">
-        <input type="radio" name="Portion" checked="">
-        <span>Register Whole material</span>
-      </div>
-      <div class="selectPortion">
-        <input class="Laser" type="radio" name="Portion">
-        <span class="Laser">Register Mark in and out portion</span>
-      </div>
-      <p class="TargetTitle">Target</p>
-      <ul id="registerNav">
-        <li v-for="registertype in registertypes" @click="changeregistertype(registertype)" class="registerLi" :class="{selecter:registertype.ischecked}">{{registertype.text}}</li>
-        <!--  <li class="registerLi">Select Event</li>
-                   <li class="registerLi selecter">Select Folder</li> -->
-      </ul>
-      <div id="selectParentDiv">
-        <keep-alive>
-          <component :is="currentRegisterView" :data="props"></component>
-        </keep-alive>
-      </div>
-      <div class="footer cmfooter">
-        <input id="btnRegisterToOA" @click="register" class="cmSave" type="button" value="Comfirm">
-        <input id="btnRegisterToOACancel" @click="cancelRegisterWindow" class="cmCancel" type="button" value="Cancel">
-      </div>
-    </div>
-  </div>
-</template>
 
 <script>
-
+import * as util from '../../lib/util.js'
+export default {
+  name: 'regiterOaFolder',
+  props: {
+    data: Object
+  },
+  methods: {
+    callback (data) {
+      let path = [data].concat(util.getAllFather(data)).filter(item => item.subtype === 64).map(item => item.name).reverse().join('/')
+      this.data.registerViewPath = data.path.slice(data.path.indexOf('OA Material')).replace(/\//g, ' / ')
+      this.data.registerPath = path
+      this.data.oaFolderMosid = data.mosid
+      function getMosid (data) {
+        if (data.father.mosid) {
+          this.data.oaFolderMosid = data.father.mosid
+        } else {
+          getMosid(data.father)
+        }
+      }
+      if (!this.data.oaFolderMosid) {
+        getMosid(data)
+      }
+    }
+  },
+  computed: {
+    nodes () {
+      return this.$store.state.oaFolder
+    }
+  },
+  components: {}
+}
 </script>
 
-<style>
+<style scoped>
 </style>
