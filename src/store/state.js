@@ -1,4 +1,4 @@
-import { throttle } from '../lib/util'
+import { throttle, debounce } from '../lib/util'
 import treeNode from '../data/treeNode'
 import { emptyMaterial } from '../data/basicData'
 
@@ -17,6 +17,32 @@ export default {
   playerHistory: [],
   ws_materials: [],
   refreshFunc: throttle(3000, () => this.property.refresh(), true),
+  materialSelectionChangeFunc: debounce(
+    300,
+    () => {
+      window.parent.postMessage(
+        {
+          type: 'selectionChanged',
+          data: this.selectedMaterials.map(item => {
+            return {
+              name: item.name,
+              guid: item.guid,
+              type: item.type,
+              path: item.path,
+              subtype: item.subtype,
+              typeid: item.typeid,
+              objectguid: item.objectguid,
+              markguid: item.markguid,
+              marktype: item.flag
+            }
+          }),
+          auth: this.userInfo
+        },
+        '*'
+      )
+    },
+    false
+  ),
   lmLanguage: 1,
   defaultLanguage: 1,
   thumbnailStyle: {
@@ -25,7 +51,7 @@ export default {
   },
   loading: false,
   scaleTime: 1,
-  linkNodes: treeNode.linkNodes,
+  linkNodes: treeNode.quickLinks,
   tempSearchModel: null,
   dragOverCount: 0, // for auto scroll
   currentSearchModel: null,

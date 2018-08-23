@@ -8,6 +8,80 @@ import { getRepository } from '../data/repository.js'
 let md5 = require('../lib/md5.min.js').md5
 
 export default {
+  [TYPES.MULTI_SELECTITEMS](context, payload) {
+    let start = Math.max(Math.min(context.state.signIndex, payload.data), 0)
+    let end = Math.min(
+      Math.max(context.state.signIndex, payload.data),
+      context.getters.displayMaterials.length - 1
+    )
+    context.state.isFocusTree = false // 切换焦点
+    if (context.state.signIndex === start || !context.state.signIndex) {
+      for (let i = start; i <= end; i++) {
+        let material = context.getters.displayMaterials[i]
+        material.selected = true
+        context.commit({
+          type: TYPES.ADD_SELECTEDITEM,
+          data: material
+        })
+      }
+    } else {
+      for (let i = end; i >= start; i--) {
+        let material = context.getters.displayMaterials[i]
+        material.selected = true
+        context.commit({
+          type: TYPES.ADD_SELECTEDITEM,
+          data: material
+        })
+      }
+    }
+  },
+  [TYPES.REFRESH_MATERIAL](context, payload) {
+    payload.source = payload.source || context.getters.currentNode
+    if (payload.source.guid === 1 || payload.source.guid === 2) {
+      //
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.GET_SEARCHRESULT,
+            source: payload.source
+          })
+          .then(() => {
+            resolve()
+          })
+      })
+    } else if (payload.source.guid === -1) {
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.GET_FAVORITERESULT,
+            source: payload.source
+          })
+          .then(() => {
+            resolve()
+          })
+      })
+    } else if (payload.source.guid === 0) {
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.GET_TRASHCAN_OBJECTS,
+            source: payload.source,
+            option: {
+              hideLoading: payload.option && payload.option.hideLoading
+            }
+          })
+          .then(() => {
+            resolve()
+          })
+      })
+    } else {
+      return context.dispatch({
+        type: TYPES.GET_MATERIALS3,
+        source: payload.source,
+        alwaysGet: payload.alwaysGet
+      })
+    }
+  },
   // Intercept request
   [TYPES.INTERCEPT_AXIOS](context, payload) {
     axios.interceptors.request.use(

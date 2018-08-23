@@ -1,1 +1,2 @@
-export default new Worker('./worker.js?t=' + new Date().getTime())
+const MyWorker = require('./player.worker.js')
+export default new MyWorker()
