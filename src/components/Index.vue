@@ -191,6 +191,8 @@ import ListMaterialHeader from './ListMaterialHeader'
 import LocalSearch from './LocalSearch'
 import Player from './Player/Index'
 import Material from './Material'
+import ListMaterial from './ListMaterial'
+import Marker from './Marker'
 import Menu from './Menu'
 
 export default {
@@ -206,6 +208,8 @@ export default {
     'local-search': LocalSearch,
     'player': Player,
     'material': Material,
+    'list-material': ListMaterial,
+    'marker': Marker,
     'menu-ctrl': Menu
   },
   data () {
@@ -271,9 +275,9 @@ export default {
     },
     currentCtrl () {
       if (this.isMarker) {
-        return 'marker-ctrl'
+        return 'marker'
       } else if (this.listSymbol) {
-        return 'list-material-ctrl'
+        return 'list-material'
       }
       return 'material'
     },
