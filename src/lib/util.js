@@ -2642,3 +2642,130 @@ export function sync(promArr) {
     loop()
   })
 }
+export function mergeHeader(target, source) {
+  if (!target || !target.length) {
+    return source
+  } else {
+    var newAddHeaders = source.filter(
+      item => !item.id && !target.find(i => i.name === item.name)
+    )
+    var index = 0
+    target.forEach((item, i) => {
+      if (!item.id) {
+        let same = source.find(i => i.name === item.name)
+        item.attr = (same && same.attr) || item.attr
+        index = i + 1
+      }
+    })
+    target.splice(index, 0, ...newAddHeaders)
+    return target
+  }
+}
+export function getNextItem(node, isdeep) {
+  var closedFather = getClosedFather(node)
+  if (closedFather) {
+    return closedFather
+  }
+  var father = node.father
+  var index
+  var folders
+  if (node.guid === 1 && node.open && node.searchModel.length) {
+    return node.searchModel.sort(SortLikeWin)[0]
+  } else if (node.guid === 2) {
+    index = father.searchModel.indexOf(node)
+    if (index < father.searchModel.length - 1) {
+      return father.searchModel.sort(SortLikeWin)[index + 1]
+    } else {
+      return node
+    }
+  }
+
+  if (node.open && node.folders.sort(SortLikeWin).length && !isdeep) {
+    return sortByTitle(node.folders)[0]
+  } else if (node.father) {
+    folders = sortByTitle(node.father.folders)
+    index = folders.indexOf(node)
+    if (index < folders.length - 1) {
+      return folders[index + 1]
+    } else if (node.father.father) {
+      return getNextItem(node.father, true)
+    } else {
+      return null
+    }
+  }
+}
+export function sortByTitle(arr) {
+  return sortBy(arr.slice(), 'title', true)
+}
+export function getClosedFather(node) {
+  if (node.father) {
+    if (!node.father.open) {
+      return node.father
+    } else {
+      return getClosedFather(node.father)
+    }
+  } else {
+    return null
+  }
+}
+
+export function getPrevItem(node) {
+  var closedFather = getClosedFather(node)
+  var index
+  if (closedFather) {
+    return closedFather
+  }
+  if (node.father) {
+    if (node.guid === 2) {
+      index = node.father.searchModel.sort(SortLikeWin).indexOf(node)
+      if (index > 0) {
+        return node.father.searchModel.sort(SortLikeWin)[index - 1]
+      } else {
+        return node.father
+      }
+    }
+
+    var folders = sortByTitle(node.father.folders)
+    index = folders.indexOf(node)
+    if (index > 0) {
+      return getLastItem(folders[index - 1])
+    } else {
+      return node.father
+    }
+  } else {
+    return null
+  }
+}
+export function getTopFather(node) {
+  if (node.father) {
+    return getTopFather(node.father)
+  } else {
+    return node
+  }
+}
+export function getBottomChild(node) {
+  var folders = sortByTitle(node.folders)
+  if (node.open && folders.length > 0) {
+    return getBottomChild(folders[folders.length - 1])
+  } else {
+    return node
+  }
+}
+export function getLastItem(node) {
+  var folders = sortByTitle(node.folders)
+  if (node.open && folders.length) {
+    return getLastItem(folders[folders.length - 1])
+  } else {
+    return node
+  }
+}
+export function debounce(delay, action, immediately) {
+  var id = -1
+  return function() {
+    if (immediately && id === -1) {
+      action.apply(this, arguments)
+    }
+    clearTimeout(id)
+    id = setTimeout(() => action.apply(this, arguments), delay)
+  }
+}

@@ -3,12 +3,12 @@
     <div class="header_filter_container" v-show="filterSymbol" ref="header_filter_container">
       <div class="header_all_box">
         <input type="checkbox" id="checkAll" v-on:change="selectAll" :checked="selectedAllSymbol" />
-        <label for="checkAll">{{dict.all}}</label>
+        <label for="checkAll">全部</label>
       </div>
       <div class="header_filter_content clearfix">
         <div class="header_filter_item">
           <input type="checkbox" disabled="disabled" checked="true" />
-          <label>{{dict.stamp}}</label>
+          <label>Stamp</label>
         </div>
         <div class="header_filter_item" v-for="header in cheaders" :key="header.name">
           <input type="checkbox" :id="'check_'+header.attr" :disabled="header.name === 'Title'" v-model="header.checked" />
@@ -16,13 +16,13 @@
         </div>
       </div>
       <div class="mp-foot header_filter_foot">
-        <button class="mp-btn cancel" v-on:click="closeFilter">{{dict.cancel}}</button>
-        <button class="mp-btn ok" v-on:click="saveFilter">{{dict.confirm}}</button>
+        <button class="mp-btn cancel" v-on:click="closeFilter">Cancel</button>
+        <button class="mp-btn ok" v-on:click="saveFilter">confirm</button>
       </div>
     </div>
     <div class="list_header_item fl list_header_stamp">
-      <span class="list_header_filter fl" v-on:click="openFilterWindow" :title="dict.columnFilter"></span>
-      <span>{{dict.stamp}}</span>
+      <span class="list_header_filter fl" v-on:click="openFilterWindow" title="Column Filter"></span>
+      <span>Stamp</span>
     </div>
     <!--div class="list_header_item fl list_header_title" :style="{width: titleWidth + 'px'}">
           <span class="list_sort_btn btn_up" v-on:mousedown.stop="sortBy({attr: 'name'}, true)"></span>
@@ -96,7 +96,7 @@ export default {
         if (!this.filterWindow) {
           this.filterWindow = new ModalWindow({
             content: $('.header_filter_container')[0],
-            title: this.dict.columnFilter
+            title: 'Column Filter'
           })
         }
         this.filterWindow.show()
@@ -236,9 +236,6 @@ export default {
           width: item1.width + item2.width
         }
       }).width + 92
-    },
-    dict () {
-      return this.$store.state.dict
     }
   }
 }

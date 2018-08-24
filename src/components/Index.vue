@@ -10,6 +10,7 @@
     <rd-notification></rd-notification>
     <rd-loadingbar></rd-loadingbar>
     <rd-preview></rd-preview>
+    <menu-ctrl ref="menu"></menu-ctrl>
     <!--left block-->
     <div class="left_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?0:- leftTreeWidth)+'px', width: leftTreeWidth + 'px'}">
       <div class="resize_handle" @mousedown.stop.prevent.capture="resizeMousedown"></div>
@@ -189,9 +190,13 @@ import NavPath from './NavPath'
 import ListMaterialHeader from './ListMaterialHeader'
 import LocalSearch from './LocalSearch'
 import Player from './Player/Index'
+import Material from './Material'
+import ListMaterial from './ListMaterial'
+import Marker from './Marker'
+import Menu from './Menu'
 
 export default {
-  name: 'Index',
+  name: 'AppIndex',
   components: {
     'advance-search': AdvanceSearch,
     'folder-tree': FolderTree,
@@ -201,7 +206,11 @@ export default {
     'nav-path': NavPath,
     'list-material-header': ListMaterialHeader,
     'local-search': LocalSearch,
-    'palyer': Player
+    'player': Player,
+    'material': Material,
+    'list-material': ListMaterial,
+    'marker': Marker,
+    'menu-ctrl': Menu
   },
   data () {
     return {
@@ -266,11 +275,11 @@ export default {
     },
     currentCtrl () {
       if (this.isMarker) {
-        return 'marker-ctrl'
+        return 'marker'
       } else if (this.listSymbol) {
-        return 'list-material-ctrl'
+        return 'list-material'
       }
-      return 'material-ctrl'
+      return 'material'
     },
     materials () {
       return this.$store.getters.displayMaterials
@@ -292,7 +301,7 @@ export default {
       }
     },
     displayMaterials (val) {
-      this.store.getters.currentNode.children = val // make it reactive
+      this.$store.getters.currentNode.children = val // make it reactive
     }
   },
   methods: {
@@ -2033,5 +2042,47 @@ export default {
 }
 .thumbnail_icon:hover {
   background: url(../assets/images/thumbnail_over.jpg) no-repeat;
+}
+.scrollbar_container {
+  flex: 1;
+  width: 100%;
+}
+.material_box {
+  position: absolute;
+  min-height: 100%;
+  min-width: 100%;
+}
+.searchBox {
+  position: fixed;
+  top: 50px;
+  z-index: 2;
+  left: 50%;
+  transform: translate(-50%);
+  height: 38px;
+  line-height: 40px;
+  background: #333;
+  width: 300px;
+  padding: 0 5px;
+  border: 1px dimgrey solid;
+}
+.select_circle {
+  position: absolute;
+  border: 1px dotted rgb(224, 224, 224);
+  /*background: rgb(170, 204, 238);
+  border: 1px solid rgb(0, 120, 215);*/
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.drag_bed {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  opacity: 0.5;
+  cursor: default;
+  z-index: 1;
 }
 </style>
