@@ -651,4 +651,113 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.list_material_icon_container,
+.list_material_info,
+.list_material_attr {
+  width: 200px;
+  height: 51px;
+  position: relative;
+  line-height: 51px;
+  text-align: center;
+  text-overflow: ellipsis;
+  box-shadow: -1px 0px 0 0px #1b1b1b;
+  -webkit-box-shadow: -1px 0px 0 0px #1b1b1b;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.list_material_icon_container {
+  height: 51px;
+  line-height: 51px;
+  text-align: center;
+  background: #2e2e2e;
+  width: 90px;
+}
+
+.list_material_icon_container .node_icon {
+  background: url(../assets/images/node_icon.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .my_clip_icon {
+  background: url(../assets/images/myclip_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .this_week_icon {
+  background: url(../assets/images/week_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .transhcan_icon {
+  background: url(../assets/images/trashcan_icon.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .today_icon {
+  background: url(../assets/images/today_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.material_progress_container {
+  position: absolute;
+  width: 100%;
+}
+
+.list_material_icon_container .list_material_icon_img {
+  max-width: 90px;
+  max-height: 51px;
+  vertical-align: middle;
+}
+
+.list_material_icon_container .fullscreen {
+  /*width: 116px;*/
+  width: 100%;
+}
+
+.list_material_icon_container .imaxvideo {
+  height: 100%;
+}
+
+.list_material_icon_span {
+  width: 90px;
+  height: 51px;
+  vertical-align: middle;
+  display: inline-block;
+  background-size: contain !important;
+}
+
+.list_material_content {
+  white-space: nowrap;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  height: 51px;
+  background: #262626;
+  margin-bottom: 1px;
+  position: relative;
+}
+
+.list_material_bgcolor0 {
+  background: #2e2e2e;
+}
+
+.list_material_content:hover {
+  border: 1px solid #f89b39;
+}
+
+.list_material_content:hover .material_more_icon {
+  display: block;
+}
+
+.list_material_content.material_selected {
+  background: #ab916a;
+}
+
+.list_material_content.material_dragOver {
+  border: 1px solid rgba(149, 149, 149, 0.5);
+}
+
+.list_material_content .material_cutting {
+  opacity: 0.5;
+}
 </style>

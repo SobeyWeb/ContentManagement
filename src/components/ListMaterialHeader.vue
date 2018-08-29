@@ -244,4 +244,105 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.list_header_item {
+  line-height: 30px;
+  height: 30px;
+  display: inline-block;
+  text-align: center;
+  text-overflow: ellipsis;
+  /*overflow: hidden;*/
+  background: #464646;
+  border-left: #101010 solid 1px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  width: 200px;
+  position: relative;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list_header_container {
+  z-index: 1;
+  background: #464646;
+  height: 30px;
+  overflow: hidden;
+  border-right: 1px solid #464646;
+}
+
+.list_header_stamp {
+  width: 90px;
+  border-left: none;
+  padding-left: 20px;
+}
+
+.list_header_item_dragging {
+  /*background-color: #363636;*/
+  color: #464646;
+  /*隐藏文字，仿windows*/
+}
+
+.list_header_item_checked {
+  background: #363636;
+  box-shadow: 0 1px 4px #1b1b1b;
+}
+
+.list_sort_btn {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  cursor: pointer;
+  position: absolute;
+}
+
+.btn_up {
+  border-bottom: 5px solid #ffffff;
+  top: 0;
+  right: 8px;
+}
+
+.btn_down {
+  border-top: 5px solid #ffffff;
+  top: 15px;
+  right: 8px;
+}
+
+.list_header_item:hover .list_sort_btn {
+  opacity: 1;
+}
+
+.btn_up:hover {
+  border-bottom: 5px solid #f89b39;
+}
+
+.btn_down:hover {
+  border-top: 5px solid #f89b39;
+}
+
+.drag_area {
+  width: 6px;
+  height: 30px;
+  right: -3px;
+  position: relative;
+  z-index: 1;
+  cursor: w-resize;
+  display: inline-block;
+}
+
+.triangle_icon {
+  display: inline-block;
+  width: 12px;
+  height: 25px;
+  margin-right: 5px;
+}
+.list_header_filter {
+  display: inline-block;
+  width: 21px;
+  height: 30px;
+  left: 10px;
+  position: absolute;
+  cursor: pointer;
+  background: url(../assets/images/sort_icon.png) no-repeat center center;
+}
 </style>

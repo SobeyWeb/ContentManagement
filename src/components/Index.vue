@@ -2099,4 +2099,8 @@ export default {
   cursor: default;
   z-index: 1;
 }
+.list_headers_box {
+  overflow: hidden;
+  position: relative;
+}
 </style>
