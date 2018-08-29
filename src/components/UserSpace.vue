@@ -47,7 +47,7 @@ export default {
       return this.useSpace / this.sumSpace < 0 ? 0 : this.useSpace / this.sumSpace
     },
     displayStorageSize () {
-      return '/' + this.sumSpace === -1 ? 'Unlimited' : this.formatStorage(this.sumSpace) // -1 is Unlimited
+      return '/' + (this.sumSpace === -1 ? 'Unlimited' : this.formatStorage(this.sumSpace)) // -1 is Unlimited
     },
     displayStorageUsage () {
       return this.formatStorage(this.useSpace)

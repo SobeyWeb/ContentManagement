@@ -340,9 +340,6 @@ export default {
             } else {
               // 无素材id的情况   不需要传targetguid
               if (eventmosid) {
-                // if (clipping) {
-                //   registerdata.iscliping = true
-                // }
                 registerdata.iscliping = clipping
                 this.$store.dispatch({
                   type: TYPES.FRAGMENT_REGISTER,

@@ -133,13 +133,14 @@ export default {
   },
   created () { },
   mounted () {
-    this.taskname = this.$store.getters.selectedMaterial.name
+    this.taskname = (this.$store.getters.selectedMaterial && this.$store.getters.selectedMaterial.name) || ''
     this.tempTextArae = JSON.parse(JSON.stringify(this.textArae))
     this.$store.dispatch({
       type: TYPES.GET_TWITTER_ACOUNTS,
       data: {}
     }).then((re) => {
       // filesizelimit：空间（M） timelimit：时间（S）
+      re.sort(this.NumDescSort('apptype'))
       this.tempAcountArr = []
       let TypeObj = { 1: 'twitter', 2: 'facebook', 3: 'youtube' }
       re.forEach((item) => {
@@ -254,6 +255,13 @@ export default {
     }
   },
   methods: {
+    NumDescSort (property) {
+      return function (a, b) {
+        var value1 = a[property]
+        var value2 = b[property]
+        return value1 - value2
+      }
+    },
     formatStorage (v) {
       if (v === 0) return '0 B'
       let k = 1024
@@ -549,27 +557,15 @@ export default {
   list-style: none;
 }
 #snsParentDiv {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: rgba(0, 0, 0, 0.5);
-  filter: Alpha(Opacity=50);
+  width: 830px;
+  height: 563px;
   font-family: 'proximanova', 'pro_text', 'micorsoft yahei', 'sans-serif';
   font-weight: lighter;
   z-index: 999;
 }
 #publishToSnsWindow {
-  width: 830px;
-  height: 563px;
-  min-height: 0px;
-  max-height: none;
   background: #222222;
   padding: 0;
-  position: absolute;
-  left: 200px;
-  top: 100px;
   border-bottom: 1px solid #101010;
   color: #fff;
   z-index: 99999;
@@ -579,8 +575,8 @@ export default {
   font-family: 'proximanova', 'pro_text', 'micorsoft yahei', 'sans-serif';
   font-weight: lighter;
   font-size: 14px;
-  top: calc(50% - 282px);
-  left: calc(50% - 415px);
+  width: 100%;
+  height: 100%;
 }
 .ToSNSDiv table td {
   padding: 3px;
@@ -689,14 +685,14 @@ export default {
 }
 
 .ToSNSDiv #leftSnsAcounts ul li .facebook {
-  background: url('images/facebookIcon.png') no-repeat center;
+  background: url('../assets/images/facebookIcon.png') no-repeat center;
 }
 
 .ToSNSDiv #leftSnsAcounts ul li .twitter {
-  background: url('images/twitterIcon.png') no-repeat center;
+  background: url('../assets/images/twitterIcon.png') no-repeat center;
 }
 .ToSNSDiv #leftSnsAcounts ul li .youtube {
-  background: url('images/youtube.png') no-repeat center;
+  background: url('../assets/images/youtube.png') no-repeat center;
 }
 
 .ToSNSDiv #leftSnsAcounts ul .acountState {
@@ -726,7 +722,7 @@ export default {
   display: inline-block;
   width: 14px;
   height: 14px;
-  background: url('images/snscheckbox_nor.png') no-repeat center;
+  background: url('../assets/images/snscheckbox_nor.png') no-repeat center;
   cursor: pointer;
   margin-top: 9px;
 }
@@ -736,7 +732,8 @@ export default {
 }
 
 .ToSNSDiv #leftSnsAcounts ul li .checkSNSAcount.checkedSNSAcount {
-  background: url('images/snscheckbox_check.png') center center no-repeat;
+  background: url('../assets/images/snscheckbox_check.png') center center
+    no-repeat;
 }
 
 .ToSNSDiv .AccountDiv ul li span {
@@ -800,7 +797,7 @@ export default {
   bottom: 0;
   right: 0;
   margin: auto;
-  background: url('images/sns_play.png') no-repeat center;
+  background: url('../assets/images/sns_play.png') no-repeat center;
   display: none;
 }
 
@@ -809,7 +806,7 @@ export default {
 }
 
 #clipSnsPreview #previewDiv .snspaused {
-  background: url('images/sns_pause.png') no-repeat center;
+  background: url('../assets/images/sns_pause.png') no-repeat center;
 }
 
 #clipSnsPreview #previewDiv #previwVdeo:hover + .snsPlay {
@@ -852,8 +849,7 @@ export default {
 }
 
 .ToSNSDiv .publishOptions .sensnstype {
-  /* width: calc(100% - 10em);/*100% - 198px*/
-  margin-right: 2em;
+  width: calc(100% - 198px);
 }
 .ToSNSDiv .publishOptions .sensnstype,
 .ToSNSDiv .publishOptions .timerDiv {
@@ -863,7 +859,6 @@ export default {
 .ToSNSDiv .publishOptions .sensnstype .rd-radio {
   width: 27%;
   line-height: 42px;
-  /* display: inline; */
 }
 .ToSNSDiv .publishOptions .sensnstype .rd-radio:nth-child(2) {
   width: 18%;

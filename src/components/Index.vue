@@ -6,6 +6,8 @@
     <input class="upload_input" type="file" @change="upload" multiple="multiple" />
     <input class="copy_input" type="text" />
     <advance-search ref="advanceSearch"></advance-search>
+    <publish-to-sns ref="publishtoSNS"></publish-to-sns>
+    <regiter-tooa-ctrl ref="registerToOA"></regiter-tooa-ctrl>
     <rd-modal></rd-modal>
     <rd-notification></rd-notification>
     <rd-loadingbar></rd-loadingbar>
@@ -194,6 +196,8 @@ import Material from './Material'
 import ListMaterial from './ListMaterial'
 import Marker from './Marker'
 import Menu from './Menu'
+import PublishToSNS from './PublishToSNS'
+import registerToOA from './RegidterToOA/Index'
 
 export default {
   name: 'AppIndex',
@@ -209,8 +213,10 @@ export default {
     'player': Player,
     'material': Material,
     'list-material': ListMaterial,
-    'marker': Marker,
-    'menu-ctrl': Menu
+    'marker-ctrl': Marker,
+    'menu-ctrl': Menu,
+    'publish-to-sns': PublishToSNS,
+    'regiter-tooa-ctrl': registerToOA
   },
   data () {
     return {
@@ -275,7 +281,7 @@ export default {
     },
     currentCtrl () {
       if (this.isMarker) {
-        return 'marker'
+        return 'marker-ctrl'
       } else if (this.listSymbol) {
         return 'list-material'
       }
@@ -1451,6 +1457,14 @@ export default {
       //   content: this.$refs.export.$el,
       //   title: 'Export'
       // })
+      this.$store.state.publishWindow = new ModalWindow({
+        content: this.$refs.publishtoSNS.$el,
+        title: 'Publish to SNS'
+      })
+      this.$store.state.RegisterWundow = new ModalWindow({
+        content: this.$refs.registerToOA.$el,
+        title: 'Register To'
+      })
       this.$store.dispatch({
         type: TYPES.GET_SEARCH_QUERY
       }).then(res => {

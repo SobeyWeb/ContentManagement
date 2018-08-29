@@ -759,7 +759,16 @@ export default {
     return new Promise((resolve, reject) => {
       axios.get(url).then(res => {
         if (res.data.code === '0') {
-          resolve(res.data.ext)
+          let resDate = res.data.ext
+          let datas = []
+          if (resDate && resDate.length > 0) {
+            resDate.forEach(function(item) {
+              if (item.attributeKey) {
+                datas.push(item.attributeKey)
+              }
+            })
+          }
+          resolve(datas)
         } else {
           resolve(res)
         }
@@ -827,8 +836,17 @@ export default {
             context.state.materialSpace =
               datajson.entity.item.clipfile[0].filesize || 0
           } else {
+            if (!filPath) {
+              let pathData =
+                datajson.entity.item &&
+                datajson.entity.item.clipfile &&
+                datajson.entity.item.clipfile.filter(
+                  item => item.qualitytype === 1 && item.clipclass === 1
+                )
+              pathData = pathData && pathData.length && pathData[0].filename
+              filPath = pathData || ''
+            }
             context.state.snsviewPath = filPath
-
             let highsize = 0
             let lowsize = 0
             datajson.entity.item.clipfile.forEach(item => {
@@ -851,7 +869,7 @@ export default {
     return new Promise((resolve, reject) => {
       axios.get(url).then(res => {
         if (res.data.code === '0' && res.data.ext) {
-          resolve(res)
+          resolve(res.data.ext)
         } else {
           resolve(res)
         }
@@ -875,23 +893,23 @@ export default {
       })
     })
   },
-  // [TYPES.REGISTER_OA](context, payload) {
-  //   let url = API_CONFIG[TYPES.PUBLISH_TO_SNS]({})
-  //   let data = payload.data
-  //   data.usercode = context.state.userInfo.usercode
-  //   data.username = context.state.userInfo.username
-  //   data.replyto = URLCONFIG.TMSERVICE + '/sobey/plat/cmd'
-  //   data = JSON.stringify(data)
-  //   return new Promise((resolve, reject) => {
-  //     axios.post(url, data).then(res => {
-  //       if (res.data.code === '0') {
-  //         resolve(res)
-  //       } else {
-  //         resolve(res)
-  //       }
-  //     })
-  //   })
-  // },
+  [TYPES.REGISTER_OA](context, payload) {
+    let url = API_CONFIG[TYPES.PUBLISH_TO_SNS]({})
+    let data = payload.data
+    data.usercode = context.state.userInfo.usercode
+    data.username = context.state.userInfo.username
+    data.replyto = URLCONFIG.TMSERVICE + '/sobey/plat/cmd'
+    data = JSON.stringify(data)
+    return new Promise((resolve, reject) => {
+      axios.post(url, data).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          resolve(res)
+        }
+      })
+    })
+  },
   [TYPES.GET_STUDIO](context, payload) {
     var data = {
       FilterGroup: {

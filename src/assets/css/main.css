@@ -134,3 +134,143 @@ input[type='submit'] {
   cursor: pointer;
   outline: none;
 }
+
+.h5.window {
+  position: absolute;
+  display: block;
+  width: auto;
+  height: auto;
+  float: left;
+  z-index: 10050;
+  background-color: transparent;
+  -webkit-box-shadow: 0 1px 16px #101010;
+  box-shadow: 0 1px 16px #101010;
+  border: 1px solid #101010;
+}
+
+.h5.window .window-caption {
+  position: relative;
+  padding: 0px;
+  border-top: 0;
+  cursor: default;
+  color: #ffffff;
+  background-color: #1b1b1b;
+  border-bottom: 1px solid #101010;
+  height: 30px;
+}
+
+.h5.window .window-content {
+  position: relative;
+  width: 100%;
+  height: auto;
+  display: block;
+  padding: 0px;
+}
+
+.window-caption-icon {
+  margin-left: .3125rem;
+}
+
+.h5.window .hidden {
+  display: none !important;
+}
+
+.h5.window .window-caption .window-caption-title {
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  padding-left: 10px;
+  line-height: 30px;
+}
+
+.h5.window .window-caption .btn-close,
+.h5.window .window-caption .btn-min,
+.h5.window .window-caption .btn-max {
+  position: absolute;
+  height: 24px;
+  width: 25px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 1rem;
+  font-weight: normal;
+  padding: 0px;
+  z-index: 3;
+  outline: none;
+  cursor: pointer;
+  display: block;
+  top: 2px;
+  right: .25rem;
+  color: #a7d0ff;
+}
+
+.h5.window .window-caption .btn-close:after,
+.h5.window .window-caption .btn-min:after,
+.h5.window .window-caption .btn-max:after {
+  border-color: #777777;
+  content: '\D7';
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  margin-left: 0px;
+  font-size: 24px;
+  line-height: 24px;
+  margin-top: 0px;
+}
+
+.h5.window .window-content {
+  position: relative;
+  width: 100%;
+  height: auto;
+  display: block;
+  padding: 0px;
+}
+
+.h5 .mp-foot .mp-btn {
+  float: right;
+  width: 88px;
+  border: 1px solid #101010;
+  color: #cfd2d4;
+  background-color: #292929;
+  text-align: center;
+  display: block;
+  height: 26px;
+  line-height: 25px;
+  margin-top: 8px;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.h5 .mp-foot .mp-btn {
+  float: right;
+  width: 88px;
+  border: 1px solid #101010;
+  color: #cfd2d4;
+  background-color: #292929;
+  text-align: center;
+  display: block;
+  height: 26px;
+  line-height: 25px;
+  margin-top: 8px;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.h5 .mp-foot .mp-btn:disabled {
+  color: #cfd2d4;
+  background: #808080;
+  border-color: #101010;
+  cursor: not-allowed;
+  border: none;
+}
+
+.h5 .mp-foot .mp-btn:disabled:hover {
+  color: #cfd2d4;
+  background: #808080;
+  border-color: #101010;
+  cursor: not-allowed;
+  border: none;
+}
+
+.h5 .mp-foot .mp-btn:hover {
+  border: solid 1px #f5a623;
+}

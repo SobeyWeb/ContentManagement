@@ -96,7 +96,8 @@ export default {
   },
   [TYPES.GET_OBJECT_INFO](para) {
     return util.getUrl(
-      URLCONFIG.CMAPI + '/CMApi/api/v2/entity/object/getobjectinfo' + para.user
+      URLCONFIG.CMAPI + '/CMApi/api/v2/entity/object/getobjectinfo',
+      para
     )
   },
   [TYPES.GET_TWITTER_ACOUNTS](para) {
