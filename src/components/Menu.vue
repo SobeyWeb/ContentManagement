@@ -1,12 +1,12 @@
 <template>
   <div @contextmenu.prevent.stop v-show="position.active" class="menu_container animated2 zoomIn" :style="{left: position.x + 'px', top: position.y + 'px'}">
     <ul>
-      <li class="menu_item" :class="{operation_disabled : op.enabled}" @mousedown.stop.prevent.left="apply(op)" v-for="op in operations" :key="op.action">
+      <li class="menu_item" :class="{operation_disabled : op.enabled}" @mousedown.stop.prevent.left="apply(op)" v-for="(op,index) in operations" :key="index">
         <a>{{op.checked?op.name+'&nbsp;&nbsp;&nbsp;&nbsp;✓':op.name}}</a>
         <span class="sub_menu_icon fr" v-if="op.subOperations"></span>
         <div v-if="op.subOperations" class="sub_menu_container" :class="{sub_menu_container_left: isRight}" :style="{top: (op.subOperations.length >2?top:'undefined') + 'px'}">
           <ul class="menu_box">
-            <li class="munu_item" :class="{operation_disabled : subOp.enabled}" @mousedown.stop.prevent.left="apply(subOp)" v-for="subOp in op.subOperations" :key="subOp.action">
+            <li class="munu_item" :class="{operation_disabled : subOp.enabled}" @mousedown.stop.prevent.left="apply(subOp)" v-for="(subOp,i) in op.subOperations" :key="i">
               <a>{{subOp.checked?subOp.name+'&nbsp;&nbsp;&nbsp;&nbsp;✓':subOp.name}}</a>
             </li>
           </ul>
