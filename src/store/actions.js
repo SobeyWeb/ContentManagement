@@ -23,7 +23,7 @@ export default {
         type: TYPES.GET_SEARCH_QUERY
       })
       .then(res => {
-        var temp = res.find(
+        let temp = res.find(
           item =>
             item.templateName === 'default' + context.state.userInfo.usercode
         )
@@ -45,8 +45,8 @@ export default {
       })
   },
   [TYPES.GET_SEARCHRESULT](context, payload) {
-    var condition = payload.condition || payload.source.condition
-    var json
+    let condition = payload.condition || payload.source.condition
+    let json
     if (!condition) {
       return
     }
@@ -56,8 +56,8 @@ export default {
       ) //  重置搜索条件
     }
     if (condition.type === 1) {
-      var tab = condition.headers.find(item => item.selected)
-      var data = util.getAdvanceSearchCondition(tab, condition.node)
+      let tab = condition.headers.find(item => item.selected)
+      let data = util.getAdvanceSearchCondition(tab, condition.node)
       context
         .dispatch({
           type: TYPES.ADVANCE_SEARCH_MATERIALS,
@@ -172,7 +172,7 @@ export default {
     }
   },
   [TYPES.UPDATE_MATERIALS](context, payload) {
-    var tarr = payload.data.type.split('.')
+    let tarr = payload.data.type.split('.')
     if (
       context.state.previewOptions.materials.some(
         i => i.guid === payload.data.guid
@@ -180,7 +180,7 @@ export default {
     ) {
       context.state.refreshFunc()
     }
-    var ding = context.state.linkNodes[0].folders.find(
+    let ding = context.state.linkNodes[0].folders.find(
       i => i.guid === payload.data.guid
     )
     if (ding) {
@@ -189,7 +189,7 @@ export default {
           type: TYPES.GET_DING
         })
         .then(res => {
-          var same = res.data.ext.find(i => i.entity.guid === payload.data.guid)
+          let same = res.data.ext.find(i => i.entity.guid === payload.data.guid)
           if (same) {
             ding.name = same.entity.name
             ding.path = same.entity.folderpath + '/' + same.entity.name
@@ -227,7 +227,7 @@ export default {
               context
             )
           } else {
-            var node = util.initData(payload.data, res)
+            let node = util.initData(payload.data, res)
             node.type = tarr[0] === 'TREE' ? 'folder' : 'other'
             node.bgtype = node.type
             node.guid = payload.data.guid
@@ -252,7 +252,7 @@ export default {
             ) {
               util.updateMaterial(res.folders, payload.data, context)
             } else if (tarr[0] === 'TREE') {
-              var node = util.initData(payload.data, res)
+              let node = util.initData(payload.data, res)
               node.type = 'folder'
               node.bgtype = node.type
               node.guid = payload.data.guid
@@ -291,7 +291,7 @@ export default {
         'object'
       )
     }
-    var material = payload.source
+    let material = payload.source
     return new Promise((resolve, reject) => {
       axios.get(url).then(res => {
         if (res.data.code === '0') {
@@ -336,7 +336,7 @@ export default {
   },
   //  触发Rename
   [TYPES.DISPATCH_RENAME](context, payload) {
-    var node = context.state.selectedMaterials[0]
+    let node = context.state.selectedMaterials[0]
     if (node.operations.indexOf('Rename') === -1) {
       util.Notice.warning(
         'This material is not allowed to be renamed',
@@ -371,7 +371,7 @@ export default {
       })
     } else {
       if (node.father !== context.getters.currentNode) {
-        var path
+        let path
         if (appSetting.USEROOTPATH) {
           path = node.father.path.split('/')
         } else {
@@ -389,7 +389,7 @@ export default {
             }
           )
           .then(res => {
-            var newNode = getRepository(node.father.guid)
+            let newNode = getRepository(node.father.guid)
               .find(item => item.guid === node.guid)
             newNode.renaming = true
             context.commit({
@@ -411,7 +411,7 @@ export default {
             })
           })
       } else {
-        var newNode = getRepository(node.father.guid)
+        let newNode = getRepository(node.father.guid)
           .find(item => item.guid === node.guid)
         newNode.renaming = true
         context.commit({
@@ -431,7 +431,7 @@ export default {
   },
   //  触发Rename
   [TYPES.DISPATCH_ADD_FOLDER](context, payload) {
-    var node
+    let node
     if (payload.target && payload.target.length) {
       if (payload.target[0].selecting) {
         //  左侧树
@@ -479,15 +479,15 @@ export default {
     let url = API_CONFIG[TYPES.RECYCLE]({
       usertoken: context.state.userInfo.usertoken
     })
-    var promiseArr = []
-    var oldlength = payload.target.length
+    let promiseArr = []
+    let oldlength = payload.target.length
     if (
       !context.state.userInfo.roleType &&
       context.state.userInfo.permission.indexOf(
         PERMISSION.DELETE_FOLDER_TREE
       ) === -1
     ) {
-      var folderArr = payload.target.filter(item => item.type === 'folder')
+      let folderArr = payload.target.filter(item => item.type === 'folder')
       folderArr.forEach(item => {
         promiseArr.push(
           context
@@ -506,7 +506,7 @@ export default {
         )
       })
     }
-    var contentids = []
+    let contentids = []
     Promise.all(promiseArr).then(() => {
       oldlength !== payload.target.length &&
         util.Notice.warning('Some Folders can not be recycle', '', 3000)
@@ -540,9 +540,9 @@ export default {
               util.Notice.failed('Failed to delete search template', '', 3000)
             })
         } else {
-          var body = contentids.join(',')
+          let body = contentids.join(',')
           //  body  contentid Arr
-          var symbol = Symbol('recycle')
+          let symbol = Symbol('recycle')
           context.commit({
             type: TYPES.PUSH_EVENT,
             data: {
@@ -560,7 +560,7 @@ export default {
                     item => item === context.getters.currentNode
                   )
                 ) {
-                  var path
+                  let path
                   if (appSetting.USEROOTPATH) {
                     path = context.getters.currentNode.father.path.split('/')
                   } else {
@@ -604,16 +604,16 @@ export default {
     let url = API_CONFIG[TYPES.DELETE]({
       usertoken: context.state.userInfo.usertoken
     })
-    var contentids = []
+    let contentids = []
     payload.target.forEach(item => {
       contentids.push(item.guid)
       getRepository(item.father.guid).remove(item)
       item.type === 'folder' && item.father.folders.remove(item)
     })
     util.forceUpdate(payload.target[0] && payload.target[0].father.guid)
-    var body = contentids.join(',')
+    let body = contentids.join(',')
     //  body  contentid Arr
-    var symbol = Symbol('delete')
+    let symbol = Symbol('delete')
     context.commit({
       type: TYPES.PUSH_EVENT,
       data: {
@@ -643,7 +643,7 @@ export default {
     })
   },
   [TYPES.RESTORE_ALL](context, payload) {
-    var arrs = []
+    let arrs = []
     getRepository(context.getters.currentNode.guid)
       .forEach(item => arrs.push(item))
     return context.dispatch({
@@ -656,7 +656,7 @@ export default {
     let url = API_CONFIG[TYPES.RESTORE]({
       usertoken: context.state.userInfo.usertoken
     })
-    var contentids = []
+    let contentids = []
     payload.target.forEach(item => {
       contentids.push(item.guid)
       getRepository(item.father.guid).remove(item)
@@ -664,10 +664,10 @@ export default {
     })
     util.forceUpdate(payload.target[0] && payload.target[0].father.guid)
     if (contentids.length) {
-      var father = payload.target[0].father
-      var body = contentids.join(',')
+      let father = payload.target[0].father
+      let body = contentids.join(',')
       //  body  contentid Arr
-      var symbol = Symbol('restore')
+      let symbol = Symbol('restore')
       context.commit({
         type: TYPES.PUSH_EVENT,
         data: {
@@ -706,7 +706,7 @@ export default {
         return false
       }
     })
-    var materials = context.state.selectedMaterials.filter(
+    let materials = context.state.selectedMaterials.filter(
       item => item.operations.indexOf('Cut') > -1
     )
     context.commit({
@@ -733,7 +733,7 @@ export default {
         return false
       }
     })
-    var materials = context.state.selectedMaterials.filter(
+    let materials = context.state.selectedMaterials.filter(
       item => item.operations.indexOf('Copy') > -1
     )
     context.commit({
@@ -752,12 +752,12 @@ export default {
     })
   },
   [TYPES.MOVE_MATERIALS](context, payload) {
-    var arr = payload.data
-    var target = payload.target
+    let arr = payload.data
+    let target = payload.target
 
     // 此处直接移动元素  pushevent
     // event Arr push
-    var symbolArr = []
+    let symbolArr = []
     arr.group(item => item.father.guid).forEach(item => {
       let symbol = Symbol('move')
       context.commit({
@@ -774,7 +774,7 @@ export default {
     })
 
     arr.forEach(item => {
-      var oldFatherGuid = item.father.guid
+      let oldFatherGuid = item.father.guid
       getRepository(item.father.guid).remove(item)
       item.type === 'folder' && item.father.folders.remove(item)
       item.father = target
@@ -790,7 +790,7 @@ export default {
       util.forceUpdate(oldFatherGuid)
     })
     util.forceUpdate(target.guid)
-    var arrs = []
+    let arrs = []
     arr.forEach(item => {
       arrs.push(item.guid)
     })
@@ -825,8 +825,8 @@ export default {
           })
         })
         if (res.data.code === 'B1249') {
-          var msg = res.data.msg
-          var failedArr = arr
+          let msg = res.data.msg
+          let failedArr = arr
             .filter(item => msg.includes(item.guid))
             .map(item => item.name)
           util.Notice.failed(
@@ -840,12 +840,12 @@ export default {
       })
   },
   [TYPES.COPY_MATERIALS](context, payload) {
-    var arr = payload.data
-    var target = payload.target
-    var copiedArr = []
+    let arr = payload.data
+    let target = payload.target
+    let copiedArr = []
     arr.forEach(item => copiedArr.push(util.copyNode(item)))
     // event Arr push
-    var symbol = Symbol('copy')
+    let symbol = Symbol('copy')
     context.commit({
       type: TYPES.PUSH_EVENT,
       data: {
@@ -895,7 +895,7 @@ export default {
   // 粘贴
   [TYPES.PASTE](context, payload) {
     // paste
-    var target =
+    let target =
       payload.target && payload.target.length
         ? payload.target[0]
         : context.getters.currentNode
@@ -903,8 +903,8 @@ export default {
       util.Notice.warning('Can not be pasted in ' + target.name, '', 3000)
       return
     }
-    var arr = context.state.clipBoard
-    var canPasteArr
+    let arr = context.state.clipBoard
+    let canPasteArr
     if (context.state.clipBoardSymbol) {
       // 粘贴
       if (arr.length) {
@@ -1043,7 +1043,7 @@ export default {
             }
           })
           .then(res => {
-            var obj = util.getDownloadUrl(res.data.ext)
+            let obj = util.getDownloadUrl(res.data.ext)
             if (obj.isHigh) {
               download()
             } else {
@@ -1071,9 +1071,9 @@ export default {
             }
             function download() {
               obj.url.forEach((u, idx) => {
-                var ele = document.createElement('a')
+                let ele = document.createElement('a')
                 // 对文件名编码
-                var pos = u.lastIndexOf('/')
+                let pos = u.lastIndexOf('/')
                 u =
                   u.substring(0, pos + 1) +
                   encodeURIComponent(decodeURIComponent(u.substring(pos + 1)))
@@ -1100,7 +1100,7 @@ export default {
     let url = API_CONFIG[TYPES.GET_EXPORTSITES]({
       usertoken: context.state.userInfo.usertoken
     })
-    var condition = ''
+    let condition = ''
     if (
       payload.data.depts &&
       !(context.state.userInfo.roleType || context.state.userInfo.opType)
@@ -1113,7 +1113,7 @@ export default {
         ') AND USERTYPE=2))'
     }
 
-    var body =
+    let body =
       '"SELECT DISTINCT * FROM ET_COMMONGWSITE WHERE SITETYPE=1 ' +
       condition +
       '"'
@@ -1133,7 +1133,7 @@ export default {
     let url = API_CONFIG[TYPES.GET_FILTER_SETTING]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = `"SELECT PARAVALUE FROM ET_USERENVIRONMENT  WHERE USERID = ${
+    let body = `"SELECT PARAVALUE FROM ET_USERENVIRONMENT  WHERE USERID = ${
       context.state.userInfo.userid
     } AND PARATYPE = '54'"`
     return new Promise((resolve, reject) => {
@@ -1151,7 +1151,7 @@ export default {
     let url = API_CONFIG[TYPES.SET_FILTER_SETTING]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = `"REPLACE ET_USERENVIRONMENT(USERID, PARATYPE, PARAVALUE) VALUES(${
+    let body = `"REPLACE ET_USERENVIRONMENT(USERID, PARATYPE, PARAVALUE) VALUES(${
       context.state.userInfo.userid
     }, '54', ${payload.data})"`
     return new Promise((resolve, reject) => {
@@ -1168,7 +1168,7 @@ export default {
     let url = API_CONFIG[TYPES.SAVE_TASK]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = {
+    let body = {
       clipname: payload.data.clipname,
       receivedtime: new Date().format('yyyy-MM-dd hh:mm:ss'),
       siteid: payload.data.siteid,
@@ -1217,7 +1217,7 @@ export default {
   },
   // 导出到三方站点
   [TYPES.EXPORT](context, payload) {
-    var promiseArr = []
+    let promiseArr = []
     if (payload.target && payload.target.length) {
       context.state.exportMaterials = payload.target
       payload.target.forEach(item => {
@@ -1232,13 +1232,13 @@ export default {
               }
             })
             .then(res => {
-              var json = res.data.ext
+              let json = res.data.ext
               if (
                 json.entity.item.clipfile &&
                 json.entity.item.clipfile.length > 0
               ) {
-                var channel = 0
-                var channel4Audio = 0
+                let channel = 0
+                let channel4Audio = 0
                 json.entity.item.clipfile.forEach(i => {
                   if (i.mediachannel !== undefined && i.mediachannel !== null) {
                     if (i.clipclass !== 1) {
@@ -1247,10 +1247,10 @@ export default {
                     channel |= i.mediachannel
                   }
                 })
-                var hvFiles = json.entity.item.clipfile.filter(
+                let hvFiles = json.entity.item.clipfile.filter(
                   item => item.qualitytype === 0 && item.clipclass === 1
                 )
-                var hvLength = hvFiles.reduce(
+                let hvLength = hvFiles.reduce(
                   (i, j) => {
                     return {
                       clipin: 0,
@@ -1262,7 +1262,7 @@ export default {
                     clipout: 0
                   }
                 ).clipout
-                var haFiles = json.entity.item.clipfile.filter(
+                let haFiles = json.entity.item.clipfile.filter(
                   item =>
                     item.qualitytype === 0 &&
                     getclipclassType(item.clipclass).startsWith('Audio')
@@ -1303,7 +1303,7 @@ export default {
             3000
           )
         } else {
-          var depts = util
+          let depts = util
             .getcurrentDepts(
               context.state.userInfo.usercode,
               context.state.userArr,
@@ -1311,7 +1311,7 @@ export default {
             )
             .map(item => item.deptid)
             .join(',')
-          var id = context.state.userInfo.userid & 0x00ffffff
+          let id = context.state.userInfo.userid & 0x00ffffff
           context
             .dispatch({
               type: TYPES.GET_EXPORTSITES,
@@ -1342,7 +1342,7 @@ export default {
     // push to clipbord
 
     if (payload.target && payload.target.length) {
-      var imageType = 2
+      let imageType = 2
       if (payload.target.every(item => item.img16_9sd)) {
         imageType = 0
       }
@@ -1358,9 +1358,9 @@ export default {
               }
             })
             .then(res => {
-              var obj = res.data.ext.entity.item
+              let obj = res.data.ext.entity.item
               obj.imagetype = imageType
-              var data = {
+              let data = {
                 object: {
                   entity: /* object.entity */ {
                     guid: item.guid,
@@ -1409,15 +1409,15 @@ export default {
   // 入库
   [TYPES.SAVE_OBJECTINFO](context, payload) {
     return new Promise((resolve, reject) => {
-      var filepath = payload.data.filePath
-      var fileType = payload.data.fileType
-      var logicPath = payload.data.folderPath
-      var name = payload.data.name
+      let filepath = payload.data.filePath
+      let fileType = payload.data.fileType
+      let logicPath = payload.data.folderPath
+      let name = payload.data.name
 
-      var type = 'biz_sobey_video'
-      var subType = ClipSubType.ET_CLIPTYPE_UNKNOW
-      var cliptype = ObjectType.ET_ObjType_Clip
-      var fileSuffix = filepath
+      let type = 'biz_sobey_video'
+      let subType = ClipSubType.ET_CLIPTYPE_UNKNOW
+      let cliptype = ObjectType.ET_ObjType_Clip
+      let fileSuffix = filepath
         .substring(
           filepath.lastIndexOf('.') + 1,
           filepath.lastIndexOf('?') > -1 ? filepath.lastIndexOf('?') : undefined
@@ -1540,7 +1540,7 @@ export default {
       //     type = "biz_sobey_document"
       // }
 
-      var json = {
+      let json = {
         type: type,
         version: 1,
         object: {
@@ -1597,14 +1597,14 @@ export default {
             data: json
           })
           .then(res => {
-            var resJson = res.data.ext
+            let resJson = res.data.ext
             if (
               resJson &&
               resJson.object &&
               resJson.object.entity &&
               resJson.object.entity.item
             ) {
-              var videostandard = resJson.object.entity.item.videostandard
+              let videostandard = resJson.object.entity.item.videostandard
               if (!ET_VideoStandardIsHD(videostandard)) {
                 resJson.object.entity.item.imagetype = 0
               } else {
@@ -1686,7 +1686,7 @@ export default {
     let url = API_CONFIG[TYPES.GET_IMPORT_INFO]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = payload.data
+    let body = payload.data
     // body  contentid Arr
     return new Promise((resolve, reject) => {
       axios.post(url, body).then(res => {
@@ -1717,7 +1717,7 @@ export default {
     let url = API_CONFIG[TYPES.ADD_TASK]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = {
+    let body = {
       TaskRquest: {
         TaskGuid: Guid.NewGuid().ToString('N'),
         RefTaskGuid: payload.data.contentid,
@@ -1748,9 +1748,9 @@ export default {
     })
   },
   [TYPES.MULTI_SELECTITEMS](context, payload) {
-    var material
-    var start = Math.max(Math.min(context.state.signIndex, payload.data), 0)
-    var end = Math.min(
+    let material
+    let start = Math.max(Math.min(context.state.signIndex, payload.data), 0)
+    let end = Math.min(
       Math.max(context.state.signIndex, payload.data),
       context.getters.displayMaterials.length - 1
     )
@@ -1776,17 +1776,17 @@ export default {
     }
   },
   [TYPES.MULTI_SELECTMARKERS](context, payload) {
-    var start = Math.max(
+    let start = Math.max(
       Math.min(context.state.signMarkerIndex, payload.data),
       0
     )
-    var markers = payload.markers
-    var end = Math.min(
+    let markers = payload.markers
+    let end = Math.min(
       Math.max(context.state.signMarkerIndex, payload.data),
       markers.length - 1
     )
-    for (var i = start; i <= end; i++) {
-      var material = markers[i]
+    for (let i = start; i <= end; i++) {
+      let material = markers[i]
       material.selected = true
       context.commit({
         type: TYPES.ADD_SELECTEDMARKER,
@@ -1811,9 +1811,9 @@ export default {
     })
   },
   [TYPES.COPY_OBJECTS](context, payload) {
-    var promiseArr = []
-    var materials = payload.data.materials
-    var target = payload.data.target
+    let promiseArr = []
+    let materials = payload.data.materials
+    let target = payload.data.target
 
     context.commit({
       type: TYPES.CLEAR_SELECTEEDITEMS
@@ -1825,7 +1825,7 @@ export default {
         type: TYPES.ADD_SELECTEDITEM,
         data: item
       })
-      var children = context.getters.displayMaterials
+      let children = context.getters.displayMaterials
       context.commit({
         type: TYPES.SET_SIGNMATERIAL,
         data: children.indexOf(item)
@@ -1852,7 +1852,7 @@ export default {
     let url = API_CONFIG[TYPES.SAVE_OBJECT_INFO]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = payload.data
+    let body = payload.data
 
     // body  contentid Arr
     return new Promise((resolve, reject) => {
@@ -1866,10 +1866,10 @@ export default {
     })
   },
   [TYPES.GET_TRASHCAN_OBJECTS](context, payload) {
-    var hideLoading = payload.option && payload.option.hideLoading
+    let hideLoading = payload.option && payload.option.hideLoading
     !hideLoading && util.startLoading(context)
-    var resultArr = []
-    var promiseArr = []
+    let resultArr = []
+    let promiseArr = []
     return new Promise((resolve, reject) => {
       context
         .dispatch({
@@ -1881,7 +1881,7 @@ export default {
           resultArr = resultArr.concat(
             util.parseTrashCanData(res.data.ext.resultList, payload.source)
           )
-          var totalPage = res.data.totalPage
+          let totalPage = res.data.totalPage
           for (let i = 2; i <= totalPage; i++) {
             promiseArr.push(() =>
               context
@@ -1929,7 +1929,7 @@ export default {
       usertoken: context.state.userInfo.usertoken,
       pathtype: 'http'
     })
-    var body = {
+    let body = {
       name: '',
       orderBy: '',
       page: payload.page,
@@ -1956,11 +1956,11 @@ export default {
     let url = API_CONFIG[TYPES.CLEAR_TRASHCAN_OBJECTS]({
       usertoken: context.state.userInfo.usertoken
     })
-    var target = payload.target.length
+    let target = payload.target.length
       ? payload.target[0]
       : context.getters.currentNode
     // body  contentid Arr
-    var symbol = Symbol('clear trashcan')
+    let symbol = Symbol('clear trashcan')
     context.commit({
       type: TYPES.PUSH_EVENT,
       data: {
@@ -2050,7 +2050,7 @@ export default {
         break
       default:
     }
-    var lastVisit = util.getCookie(
+    let lastVisit = util.getCookie(
       'last_visit' + context.state.userInfo.usercode
     )
     if (lastVisit) {
@@ -2069,8 +2069,8 @@ export default {
     })
   },
   [TYPES.SELECT_MATERIAL](context, payload) {
-    var index = payload.data < 0 ? 0 : payload.data
-    var children = context.getters.displayMaterials
+    let index = payload.data < 0 ? 0 : payload.data
+    let children = context.getters.displayMaterials
 
     index = index < children.length - 1 ? index : children.length - 1
 
@@ -2091,7 +2091,7 @@ export default {
   },
   [TYPES.DISPATCH_UPLOAD](context, payload) {
     if (payload.target && payload.target.length) {
-      var material = payload.target[0]
+      let material = payload.target[0]
       if (appSetting.USEROOTPATH) {
         util.locateFolder(
           context,
@@ -2204,7 +2204,7 @@ export default {
           data: payload.target
         })
         .then(res => {
-          var barcodeContent =
+          let barcodeContent =
             '<div class="clearfix barcode-list">' +
             res
               .map(
@@ -2266,7 +2266,7 @@ export default {
       trimout: payload.data.trimout,
       newcontentid: payload.data.newcontentid
     })
-    var guid = payload.data.newcontentid
+    let guid = payload.data.newcontentid
 
     return new Promise((resolve, reject) => {
       context
@@ -2280,7 +2280,7 @@ export default {
           ]
         })
         .then(res => {
-          var barcodeContent =
+          let barcodeContent =
             '<div class="clearfix barcode-list">' +
             res
               .map(
@@ -2316,7 +2316,7 @@ export default {
           util.Notice.success('Retrieve successfully', '', 3000)
           resolve(res)
         } else {
-          var msg = 'Failed to retrieve'
+          let msg = 'Failed to retrieve'
           if (res.data.code === 'B1221') {
             msg = 'There is not enough space to retrieve the clip!'
           }
@@ -2324,7 +2324,7 @@ export default {
           url = API_CONFIG[TYPES.RECYCLE]({
             usertoken: context.state.userInfo.usertoken
           })
-          var arr = [guid]
+          let arr = [guid]
           return new Promise((resolve, reject) => {
             axios.post(url, JSON.stringify(arr)).then(res => {
               if (res.data.code === '0') {
@@ -2373,7 +2373,7 @@ export default {
     })
   },
   [TYPES.GET_FILESIZE](context, payload) {
-    var material = payload.source
+    let material = payload.source
     let url
     if (material.type === 'folder') {
       url = API_CONFIG[TYPES.GET_FILESIZE](
@@ -2460,9 +2460,9 @@ export default {
       isLock: payload.data.isLock,
       usertoken: context.state.userInfo.usertoken
     })
-    var promiseArr = []
+    let promiseArr = []
     payload.source.forEach(item => {
-      var body = {
+      let body = {
         objguid: item.guid,
         locktype:
           item.type === 'h5pgm' || item.type === 'sequence' ? '4000' : '4010', // payload.data.locktype || '4010',
@@ -2490,10 +2490,10 @@ export default {
   },
   [TYPES.SET_PERMISSION](context, payload) {
     return new Promise((resolve, reject) => {
-      var rights = payload.source.properties.find(
+      let rights = payload.source.properties.find(
         item => item.name === 'Rights'
       ).keyValues
-      var p = ''
+      let p = ''
       let pg = []
       let url = API_CONFIG[TYPES.SET_PERMISSION](
         {
@@ -2517,7 +2517,7 @@ export default {
           rights.radio.find(i => i.checked).privilege ||
           'private_' + context.state.userInfo.usercode // payload.source.creatorCode 跟ML一致，修改为私有时，权限为修改者
       }
-      var body = {
+      let body = {
         privilege: p,
         privilegestr: pg.join(','),
         contentId: payload.source.guid
@@ -2583,8 +2583,8 @@ export default {
     if (payload.target && payload.target.length) {
       context.state.previewSymbol = true
       Vue.nextTick(() => {
-        var pathList
-        var material = payload.target[0]
+        let pathList
+        let material = payload.target[0]
         if (appSetting.USEROOTPATH) {
           pathList = material.folderpath.split('/')
         } else {
@@ -2606,7 +2606,7 @@ export default {
     }
   },
   [TYPES.GET_TIMECODE_INFO](context, payload) {
-    var URL = URLCONFIG.CM + '/Handler/MaterialList.ashx'
+    let URL = URLCONFIG.CM + '/Handler/MaterialList.ashx'
     return new Promise((resolve, reject) => {
       $.ajax({
         type: 'post',
@@ -2873,7 +2873,7 @@ export default {
     let url = API_CONFIG[TYPES.GET_TASK]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = {
+    let body = {
       taskGuid: '',
       taskType: payload.data.taskType || 0,
       status: payload.data.status || -1,
@@ -2906,7 +2906,7 @@ export default {
     let url = API_CONFIG[TYPES.GET_TASK]({
       usertoken: context.state.userInfo.usertoken
     })
-    var body = {
+    let body = {
       taskGuidList: payload.data.taskGuidArr,
       taskGuid: '',
       IsMultiple: false,
@@ -2928,8 +2928,8 @@ export default {
   // always get new
   [TYPES.ADVANCE_SEARCH_MATERIALS](context, payload) {
     payload.showWaiting && util.startLoading(context)
-    var resultArr = []
-    var promiseArr = []
+    let resultArr = []
+    let promiseArr = []
     payload.data.json.page = 1
     payload.data.json.size = 500
     return new Promise((resolve, reject) => {
@@ -2946,7 +2946,7 @@ export default {
               payload.data.isMarker ? 'mark' : ''
             )
           )
-          var totalPage = res.data.totalPage
+          let totalPage = res.data.totalPage
           for (let i = 2; i <= totalPage; i++) {
             let json = JSON.parse(JSON.stringify(payload.data))
             json.json.page = i
@@ -3094,8 +3094,8 @@ export default {
   // always get new
   [TYPES.FULLTEXT_SEARCH_MATERIALS](context, payload) {
     payload.showWaiting && util.startLoading(context)
-    var resultArr = []
-    var promiseArr = []
+    let resultArr = []
+    let promiseArr = []
     payload.data.json.page = 1
     payload.data.json.size = 500
     return new Promise((resolve, reject) => {
@@ -3108,7 +3108,7 @@ export default {
           resultArr = resultArr.concat(
             util.parseData(res.data.ext, payload.source)
           )
-          var totalPage = res.data.totalPage
+          let totalPage = res.data.totalPage
           for (let i = 2; i <= totalPage; i++) {
             let json = JSON.parse(JSON.stringify(payload.data))
             json.json.page = i
@@ -3284,13 +3284,13 @@ export default {
     })
   },
   [TYPES.DISPATCH_SET_DING](context, payload) {
-    var linkRoot = context.state.linkNodes[0]
+    let linkRoot = context.state.linkNodes[0]
     context
       .dispatch({
         type: TYPES.GET_DING_COUNT
       })
       .then(res => {
-        var count = res.data.ext
+        let count = res.data.ext
         if (count + payload.target.length > 20) {
           util.Notice.warning(
             'The maximum number of quick links is 20',
@@ -3305,7 +3305,7 @@ export default {
                 source: item
               })
               .then(res => {
-                var copiedItem = util.initData(
+                let copiedItem = util.initData(
                   {
                     name: item.name
                   },
@@ -3325,7 +3325,7 @@ export default {
       })
   },
   [TYPES.DISPATCH_DELETE_DING](context, payload) {
-    var linkRoot = context.state.linkNodes[0]
+    let linkRoot = context.state.linkNodes[0]
     payload.target.forEach(item => {
       context
         .dispatch({
@@ -3346,7 +3346,7 @@ export default {
   },
   [TYPES.GET_BAR_CODE](context, payload) {
     let url = API_CONFIG[TYPES.GET_BAR_CODE]({})
-    var groupDic = {
+    let groupDic = {
       video: 'videogroup',
       image: 'picturegroup',
       txtfile: 'documentgroup',
@@ -3382,8 +3382,8 @@ export default {
               item.TapeList.some(i => i.TapeStatus !== 1)
             )
           ) {
-            var list = res.data.ext.map(item => item.TapeList)
-            var barcodeArr = Array.prototype.concat
+            let list = res.data.ext.map(item => item.TapeList)
+            let barcodeArr = Array.prototype.concat
               .apply([], list)
               .filter(i => i.TapeStatus !== 1)
               .groupBy('Barcode')
@@ -3450,7 +3450,7 @@ export default {
   [TYPES.ADD_GENERATION](context, payload) {
     let url = API_CONFIG[TYPES.ADD_GENERATION]({
     })
-    var body = {
+    let body = {
       contentid: payload.source.guid,
       sourcetype: payload.source.type,
       type: 'ClipToClip',
@@ -3480,7 +3480,7 @@ export default {
     let url = API_CONFIG[TYPES.GET_GENERATION]({
       pathtype: 'http'
     })
-    var body = {
+    let body = {
       start: {
         guid: payload.source.guid
       },
@@ -3502,7 +3502,7 @@ export default {
     })
   },
   [TYPES.DISPATCH_ONE_GENERATION](context, payload) {
-    var material = payload.target[0]
+    let material = payload.target[0]
     context.state.relations = []
     context
       .dispatch(TYPES.GET_GENERATION, {
@@ -3539,10 +3539,10 @@ export default {
     })
   },
   [TYPES.GET_PLAYER_INFO](context, payload) {
-    var promiseArr = []
-    var propPromiseArr = []
-    var type = 'video'
-    var opt = {
+    let promiseArr = []
+    let propPromiseArr = []
+    let type = 'video'
+    let opt = {
       loop: false,
       clipping: false,
       isLive: false,
@@ -3653,11 +3653,11 @@ export default {
                   } else {
                     opt.clipping = false
                   }
-                  var time =
+                  let time =
                     payload.data &&
                     payload.data.isRefresh &&
                     context.state.player.$refs.player.currentTime
-                  var isClippingComplete =
+                  let isClippingComplete =
                     payload.data.isRefresh &&
                     util.isMpd(context.state.previewOptions.source[0].src) &&
                     !util.isMpd(opt.source[0].src)
@@ -3776,11 +3776,11 @@ export default {
               !payload.data.onlyPlayer &&
                 Promise.all(propPromiseArr)
                   .then(res => {
-                    var typeArr = payload.target.groupBy('subtype')
-                    var result = []
-                    var pArr = []
+                    let typeArr = payload.target.groupBy('subtype')
+                    let result = []
+                    let pArr = []
                     typeArr.forEach(i => {
-                      var entities = []
+                      let entities = []
                       i.forEach(j =>
                         entities.push(
                           res.find(k => k.data.ext.entity.guid === j.guid)
@@ -3795,7 +3795,7 @@ export default {
                             }
                           })
                           .then(r => {
-                            var models = r.data.ext
+                            let models = r.data.ext
                             result.push(
                               ...util.getProperties(
                                 entities,
@@ -3817,7 +3817,7 @@ export default {
                   .catch(res => {
                     reject(res)
                   })
-              var time =
+              let time =
                 payload.data &&
                 payload.data.isRefresh &&
                 context.state.player.$refs.player.currentTime
@@ -3827,7 +3827,7 @@ export default {
                 type,
                 context
               )
-              var isClippingComplete =
+              let isClippingComplete =
                 payload.data.isRefresh &&
                 util.isMpd(context.state.previewOptions.source[0].src) &&
                 !util.isMpd(opt.source[0].src)
@@ -3924,7 +3924,7 @@ export default {
   },
   //  触发Rename
   [TYPES.DISPATCH_RENAME](context, payload) {
-    var node = context.state.selectedMaterials[0]
+    let node = context.state.selectedMaterials[0]
     if (node.operations.indexOf('Rename') === -1) {
       util.Notice.warning(
         'This material is not allowed to be renamed',
@@ -3959,7 +3959,7 @@ export default {
       })
     } else {
       if (node.father !== context.getters.currentNode) {
-        var path
+        let path
         if (appSetting.USEROOTPATH) {
           path = node.father.path.split('/')
         } else {
@@ -3977,7 +3977,7 @@ export default {
             }
           )
           .then(res => {
-            var newNode = getRepository(node.father.guid).find(
+            let newNode = getRepository(node.father.guid).find(
               item => item.guid === node.guid
             )
             newNode.renaming = true
@@ -4000,7 +4000,7 @@ export default {
             })
           })
       } else {
-        var newNode = getRepository(node.father.guid).find(
+        let newNode = getRepository(node.father.guid).find(
           item => item.guid === node.guid
         )
         newNode.renaming = true
@@ -4021,7 +4021,7 @@ export default {
   },
   //  触发Rename
   [TYPES.DISPATCH_ADD_FOLDER](context, payload) {
-    var node
+    let node
     if (payload.target && payload.target.length) {
       if (payload.target[0].selecting) {
         //  左侧树
@@ -4370,14 +4370,14 @@ export default {
         })
       ])
         .then(res => {
-          var deptArr = res[1].data.ext
-          var userArr = res[0].data.ext
+          let deptArr = res[1].data.ext
+          let userArr = res[0].data.ext
           context.state.userInfo.depts = util.getcurrentDepts(
             context.state.userInfo.usercode,
             userArr,
             deptArr
           )
-          var curUser = userArr.find(
+          let curUser = userArr.find(
             item => item.usercode === context.state.userInfo.usercode
           )
           if (curUser) {
@@ -4601,8 +4601,8 @@ export default {
   //  always get new
   [TYPES.GET_MATERIALS3](context, payload) {
     payload.showWaiting && util.startLoading(context)
-    var resultArr = []
-    var promiseArr = []
+    let resultArr = []
+    let promiseArr = []
     return new Promise((resolve, reject) => {
       context
         .dispatch({
@@ -4615,7 +4615,7 @@ export default {
           resultArr = resultArr.concat(
             util.parseData(res.data.ext, payload.source)
           )
-          var totalPage = res.data.totalPage
+          let totalPage = res.data.totalPage
           for (let i = 2; i <= totalPage; i++) {
             promiseArr.push(() =>
               context
