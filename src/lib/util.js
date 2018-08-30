@@ -1,5 +1,19 @@
 import { SortLikeWin, SortLikeWinBy } from './sort.js'
 import {
+  getclipclassType,
+  getChannelType,
+  ET_CLIP_CLASS_CC, ET_CLIP_CLASS_KEY, ET_CLIP_CLASS_TC, ET_CLIP_CLASS_G, ET_CLIP_CLASS_CLIP,
+  getdbeTrack,
+  getDbePassage,
+  ET_CLIP_CLASS_V,
+  ET_CLIP_DBE_A1,
+  ET_CLIP_DBE_A2,
+  ET_CLIP_DBE_A3,
+  ET_CLIP_DBE_A4,
+  ET_CLIP_DBE_A5,
+  ET_CLIP_DBE_A6,
+  ET_CLIP_DBE_A7,
+  ET_CLIP_DBE_A8,
   FileStatus,
   CLIPTYPE,
   VIDEOHS,
@@ -13,7 +27,7 @@ import {
   GetMillSecondsByFrameNum,
   ETGetFrameRate
 } from '../lib/format.js'
-import { frameToTime } from './transform.js'
+import { frameToTime, GetEntityType } from './transform.js'
 import state from '../store/state.js'
 import store from '../store'
 import URLCONFIG from '../config/urlConfig.js'
@@ -26,6 +40,8 @@ import {
   setRepository,
   pureGetRepository
 } from '../data/repository'
+import ltcRepository from '../data/ltcRepository'
+import vitcRepository from '../data/vitcRepository'
 import { defaultQuery } from '../data/basicData'
 import Guid from './Guid'
 export function getUrl(url, para, ifNotEnc) {
@@ -96,8 +112,8 @@ export function setCookie(name, value) {
   if (localStorage && localStorage.setItem) {
     localStorage.setItem(name, value)
   } else {
-    var Days = 30
-    var exp = new Date()
+    let Days = 30
+    let exp = new Date()
     exp.setTime(exp.getTime() + Days * 24 * 60 * 60 * 1000)
     document.cookie =
       name + '=' + escape(value) + ';expires=' + exp.toGMTString()
@@ -204,7 +220,7 @@ export function sortBy(arr, type, symbol, flag) {
   }
 }
 export function packegeCustomSearchData(serverCondition) {
-  var volidType = {
+  let volidType = {
     Title: {
       length: 255,
       onlyLength: true
@@ -250,7 +266,7 @@ export function packegeCustomSearchData(serverCondition) {
       onlyLength: true
     }
   }
-  var volid = key =>
+  let volid = key =>
     volidType[key] &&
     (e =>
       volidInput(
@@ -260,7 +276,7 @@ export function packegeCustomSearchData(serverCondition) {
         volidType[key] && volidType[key].onlyLength,
         key
       ))
-  var ctrlTable = {
+  let ctrlTable = {
     long: 'rd-number',
     double: 'rd-number',
     string: 'rd-text',
@@ -272,7 +288,7 @@ export function packegeCustomSearchData(serverCondition) {
   }
 
   serverCondition.forEach(item => {
-    var ctrl =
+    let ctrl =
       item.ctrl || ctrlTable[item.dataType] || ctrlTable[item.fieldtype]
     item.volid = volid(item.name)
     item.isCustom = item.isCustom === undefined ? true : item.isCustom
@@ -498,7 +514,7 @@ export function packegeCustomSearchData(serverCondition) {
   return serverCondition
 }
 export function volidInput(value, length, ele, onlyLength, key) {
-  var reg = /[*?/\\?<>|:".]/g
+  let reg = /[*?/\\?<>|:".]/g
   if (value.length > length) {
     Notice.warning(
       (key || 'Name') + ' exceeds the maximum length that system supports',
@@ -516,7 +532,7 @@ export function volidInput(value, length, ele, onlyLength, key) {
       "Can't contain any of the following characters" + ': * ? / \\ < > | : ".',
       3000
     )
-    var index = value.split(reg)[0].length
+    let index = value.split(reg)[0].length
     if (ele) {
       ele.value = value.replace(reg, '')
       ele.setSelectionRange(index, index)
@@ -527,15 +543,15 @@ export function volidInput(value, length, ele, onlyLength, key) {
   }
 }
 export function getcurrentDepts(usercode, userArr, deptArr) {
-  var user = userArr.filter(item => item.usercode === usercode)[0]
-  var result = []
+  let user = userArr.filter(item => item.usercode === usercode)[0]
+  let result = []
 
   function getAllFatherDepts(id, depts) {
-    var arr = []
+    let arr = []
     if (!depts && depts.length === 0 && id === -1) {
       return arr
     }
-    for (var i = 0, len = depts.length; i < len; i++) {
+    for (let i = 0, len = depts.length; i < len; i++) {
       if (id === depts[i].dept.deptid) {
         arr.push(depts[i].dept)
         arr = arr.concat(getAllFatherDepts(depts[i].dept.superid, depts))
@@ -552,7 +568,7 @@ export function getcurrentDepts(usercode, userArr, deptArr) {
   return result
 }
 export function getDptUserTree(deptArr, userArr, dptid) {
-  var tree = []
+  let tree = []
 
   function arrToTree(arr, userArr, superId, tree, floor) {
     if (!arr.length) {
@@ -594,17 +610,17 @@ export function getDptUserTree(deptArr, userArr, dptid) {
   }
   return tree
 }
-var throttleAjaxId = -1
+let throttleAjaxId = -1
 export function throttleAjax(ajaxArr, maxCount, cantCancel) {
   clearInterval(throttleAjaxId)
   return new Promise((resolve, reject) => {
     maxCount = maxCount || 5
-    var count = 0
-    var promiseArr = []
-    var id = setInterval(function() {
+    let count = 0
+    let promiseArr = []
+    let id = setInterval(function() {
       if (count < maxCount && ajaxArr.length > 0) {
         count++
-        var action = ajaxArr.shift()
+        let action = ajaxArr.shift()
         promiseArr.push(
           action()
             .then(() => count--)
@@ -630,7 +646,7 @@ export function getUserNameByUserCode(usercode) {
   return usercode
 }
 export function getIconFilename(iconfilename) {
-  var _iconfilename = ''
+  let _iconfilename = ''
   if (
     iconfilename &&
     iconfilename.startsWith &&
@@ -659,7 +675,7 @@ export function getIconFilename(iconfilename) {
   return _iconfilename
 }
 export function getMaterialType(material) {
-  var ctype = 'other'
+  let ctype = 'other'
   if (material.type === 16) {
     ctype = 'folder'
   } else {
@@ -858,7 +874,7 @@ export function extendData(sdata, node) {
   if (clipData.item && clipData.subtype !== 32) {
     if (clipData.item.videostandard) {
       // if(item.videostandard==VideoStandard.)
-      var temphs = VideoStandardGetHSClass(clipData.item.videostandard)
+      let temphs = VideoStandardGetHSClass(clipData.item.videostandard)
       if (temphs === VIDEOHS.ET_VIDEOHS_SD) {
         node.hsd = 'SD'
       }
@@ -1095,21 +1111,21 @@ export function extendData(sdata, node) {
   }
 }
 export function parseData(arr, father, option) {
-  var newArr = []
-  var iconDic = {
+  let newArr = []
+  let iconDic = {
     292: 'today_icon',
     293: 'this_week_icon',
     294: 'my_clip_icon',
     '86023a7e3f2646a2bbee8a9fec7e6bcb': 'node_icon'
   }
   if (option === 'marker' || option === 'mark') {
-    var marklist = arr
-    var framerate = 25.0
+    let marklist = arr
+    let framerate = 25.0
     marklist.forEach((item, index) => {
       if (item.color) {
-        var RedColor = item.color & 0x0000ff
-        var Gcolor = (item.color & 0x00ff00) >> 8
-        var Bcolor = (item.color & 0xff0000) >> 16
+        let RedColor = item.color & 0x0000ff
+        let Gcolor = (item.color & 0x00ff00) >> 8
+        let Bcolor = (item.color & 0xff0000) >> 16
         item.bgcolor = {
           background: 'rgb(' + RedColor + ',' + Gcolor + ',' + Bcolor + ')'
         }
@@ -1201,13 +1217,13 @@ export function parseData(arr, father, option) {
     })
     return newArr
   } else {
-    var floor
+    let floor
     if (father) {
       floor = father.floor + 1
     }
     if (Array.isArray(arr)) {
       arr.forEach(item => {
-        var node = {}
+        let node = {}
         node.updateId = 0 // add for resiponsive
         node.formatDate = item.entity.createdate // item.entity.createdate //.formatDate()
         node.createdate = new Date(item.entity.createdate).getTime() // .match(/\d+/g).join('')
@@ -1429,9 +1445,9 @@ export function parseData(arr, father, option) {
   return newArr
 }
 export function getRight(entity, node) {
-  var readonly = false
-  var privilege = entity.privilege || ''
-  var privilegeGroup = entity.privilegeGroup || []
+  let readonly = false
+  let privilege = entity.privilege || ''
+  let privilegeGroup = entity.privilegeGroup || []
   if (
     state.userInfo.roleType ||
     state.userInfo.usercode === node.creatorCode ||
@@ -1452,7 +1468,7 @@ export function getRight(entity, node) {
   return readonly
 }
 export function getContextMenu(sdata, node) {
-  var canDel =
+  let canDel =
     state.userInfo.roleType ||
     ((node.clipStatus === 'Normal' || !node.clipStatus) &&
       node.onlinstatus !== 'Archived')
@@ -1638,7 +1654,7 @@ export function getContextMenu(sdata, node) {
     } */
 }
 export function getAllFather(material) {
-  var arr = []
+  let arr = []
 
   function getFather(material, arr) {
     if (material && material.father) {
@@ -1712,8 +1728,8 @@ export function locateFolder(store, folderList, fNode, opt) {
       }
       resolve(fNode)
     } else {
-      var folderName = folderList[0]
-      var folder = (
+      let folderName = folderList[0]
+      let folder = (
         fNode.searchModel ||
         fNode.folders ||
         fNode.children ||
@@ -1758,7 +1774,7 @@ export function locateFolder(store, folderList, fNode, opt) {
                       type: TYPES.ADD_SELECTEDITEM,
                       data: item
                     })
-                    var children = store.getters.displayMaterials
+                    let children = store.getters.displayMaterials
                     store.commit({
                       type: TYPES.SET_SIGNMATERIAL,
                       data: children.indexOf(item)
@@ -1795,7 +1811,7 @@ export function locateFolder(store, folderList, fNode, opt) {
     }
   })
 }
-var loadingId = -1
+let loadingId = -1
 export function startLoading(context) {
   clearTimeout(loadingId)
   loadingId = setTimeout(() => (context.state.loading = true), 300)
@@ -1807,7 +1823,7 @@ export function stopLoading(context) {
 
 export function getListHeader(left, arr, attr) {
   attr = attr || 'width'
-  var l = arr.length
+  let l = arr.length
   for (let i = 0; i < l; i++) {
     if (arr[i][attr] > left) {
       return arr[i]
@@ -1858,7 +1874,7 @@ export const Model = {
   }
 }
 export function getAdvanceSearchCondition(tab, node) {
-  var json = {
+  let json = {
     conditiongroup: {
       query: [],
       relation: 'AND',
@@ -1874,8 +1890,8 @@ export function getAdvanceSearchCondition(tab, node) {
       }
     ]
   }
-  var type = 0
-  var isMarker = false
+  let type = 0
+  let isMarker = false
   switch (tab.name) {
     case 'Clip':
       json.conditiongroup.query.push(...defaultQuery[tab.name])
@@ -1930,16 +1946,16 @@ export function getAdvanceSearchCondition(tab, node) {
   }
 }
 export function packageQuery(tab) {
-  var result = []
+  let result = []
   tab.keyValues.forEach(item => {
     if (item.isRange) {
-      var fv =
+      let fv =
         (item.from.value &&
           (item.ctrl === 'vue-timepicker'
             ? '1899-12-31 ' + item.from.value
             : item.from.value)) ||
         (item.from.value === 0 ? 0 : '*')
-      var tv =
+      let tv =
         (item.to.value &&
           (item.ctrl === 'vue-timepicker'
             ? '1899-12-31 ' + item.to.value
@@ -2031,8 +2047,8 @@ export function packageQuery(tab) {
   return result
 }
 export function enterFullscreen() {
-  var el = document.documentElement
-  var rfs =
+  let el = document.documentElement
+  let rfs =
     el.requestFullScreen ||
     el.webkitRequestFullScreen ||
     el.mozRequestFullScreen ||
@@ -2041,15 +2057,15 @@ export function enterFullscreen() {
   if (typeof rfs !== 'undefined' && rfs) {
     rfs.call(el)
   } else if (typeof window.ActiveXObject !== 'undefined') {
-    // var wscript = new ActiveXObject('WScript.Shell')
+    // let wscript = new ActiveXObject('WScript.Shell')
     // if (wscript != null) {
     //   wscript.SendKeys('{F11}')
     // }
   }
 }
 export function exitFullscreen() {
-  var el = document
-  var rfs =
+  let el = document
+  let rfs =
     el.exitFullscreen ||
     el.webkitExitFullscreen ||
     el.mozExitFullscreen ||
@@ -2058,7 +2074,7 @@ export function exitFullscreen() {
   if (typeof rfs !== 'undefined' && rfs) {
     rfs.call(el)
   } else if (typeof window.ActiveXObject !== 'undefined') {
-    // var wscript = new ActiveXObject('WScript.Shell')
+    // let wscript = new ActiveXObject('WScript.Shell')
     // if (wscript != null) {
     //   wscript.SendKeys('{F11}')
     // }
@@ -2073,9 +2089,9 @@ export function forceUpdate(guid) {
   } catch (e) {}
 }
 export function getPadding(width, itemWidth, l) {
-  var padding = 7
-  var maxCount = Math.floor(width / itemWidth)
-  var diff = width % itemWidth
+  let padding = 7
+  let maxCount = Math.floor(width / itemWidth)
+  let diff = width % itemWidth
   if (diff < padding * 2 * (maxCount + 1)) {
     maxCount--
     diff += itemWidth
@@ -2093,7 +2109,7 @@ export function getHistories(node, arr) {
   }
 }
 export function getFulltextSearchCondtion(cond, node, type) {
-  var json = {
+  let json = {
     kvs: [],
     usercode: state.userInfo.usercode
   }
@@ -2143,16 +2159,16 @@ export function getCanSelectedItems(
     // 防止误操作
     return
   }
-  var children = context.getters.displayMaterials
-  var itemWidth = isMarkerList
+  let children = context.getters.displayMaterials
+  let itemWidth = isMarkerList
     ? 462
     : context.state.thumbnailStyle.width * context.state.scaleTime +
       2 * context.state.thumbPadding
-  var itemHeight = isMarkerList
+  let itemHeight = isMarkerList
     ? 102
     : 14 + context.state.thumbnailStyle.height * context.state.scaleTime + 45
-  var length = children.length
-  var rowCount = isMarkerList
+  let length = children.length
+  let rowCount = isMarkerList
     ? Math.floor(width / itemWidth)
     : Math.round((width - 2 * context.state.thumbPadding) / itemWidth)
   let x1
@@ -2167,9 +2183,9 @@ export function getCanSelectedItems(
   )
   y1 = Math.floor(dragData.top / itemHeight)
   y2 = Math.floor((dragData.top + dragData.height) / itemHeight)
-  for (var i = y1; i <= y2; i++) {
-    for (var j = x1; j <= x2; j++) {
-      var idx = i * rowCount + j
+  for (let i = y1; i <= y2; i++) {
+    for (let j = x1; j <= x2; j++) {
+      let idx = i * rowCount + j
       if (idx < length) {
         arr.push(i * rowCount + j)
       }
@@ -2198,24 +2214,24 @@ export function getCanSelectedItems(
 export function videoShot(video, quality) {
   if (video && video.setAttribute) {
     video.setAttribute('crossOrigin', 'anonymous')
-    var canvas = document.createElement('canvas')
+    let canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
-    var ct = canvas.getContext('2d')
+    let ct = canvas.getContext('2d')
     ct.drawImage(video, 0, 0)
-    var icon = canvas.toDataURL('image/jpeg', quality || 0.5)
+    let icon = canvas.toDataURL('image/jpeg', quality || 0.5)
     canvas = null
     ct = null
     return icon
   }
 }
 export function convertPath4Mac(path) {
-  var domain
-  var end
+  let domain
+  let end
 
   if (path.indexOf(':') > -1) {
     // disk symbol
-    var symbol = path[0]
+    let symbol = path[0]
     end = path.indexOf(':') + 1
     domain = path.substring(0, end)
     return path.replace(domain, '/Volumes/' + symbol).replace(/\\/gm, '/')
@@ -2238,9 +2254,9 @@ export function updateMarkerList(
 ) {
   markers.forEach((item, index) => {
     if (item.color) {
-      var RedColor = item.color & 0x0000ff
-      var Gcolor = (item.color & 0x00ff00) >> 8
-      var Bcolor = (item.color & 0xff0000) >> 16
+      let RedColor = item.color & 0x0000ff
+      let Gcolor = (item.color & 0x00ff00) >> 8
+      let Bcolor = (item.color & 0xff0000) >> 16
       item.bgcolor = {
         background: 'rgb(' + RedColor + ',' + Gcolor + ',' + Bcolor + ')'
       }
@@ -2252,24 +2268,24 @@ export function updateMarkerList(
     if (!item.markguid) {
       item.markguid = item.guid_
     }
-    var frameSec = GetSecondByEachFrame(videostandard).round(6)
-    var intime = GetTimeStringByFrameNum(
+    let frameSec = GetSecondByEachFrame(videostandard).round(6)
+    let intime = GetTimeStringByFrameNum(
       item.keyframe +
         GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
       ntsctcmode,
       videostandard
     )
-    var outtime = GetTimeStringByFrameNum(
+    let outtime = GetTimeStringByFrameNum(
       item.endkeyframe +
         GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
       ntsctcmode,
       videostandard
     )
-    var inPoint = GetMillSecondsByFrameNum(
+    let inPoint = GetMillSecondsByFrameNum(
       item.keyframe,
       videostandard
     ).roundByFrame(frameSec)
-    var outPoint = GetMillSecondsByFrameNum(
+    let outPoint = GetMillSecondsByFrameNum(
       item.endkeyframe,
       videostandard
     ).roundByFrame(frameSec)
@@ -2359,7 +2375,7 @@ export function updateMarkerList(
       item.text = item.note
     }
     if (item.iconfilename) {
-      var httpItem = httpMarkList[index] || {} // 未查找
+      let httpItem = httpMarkList[index] || {} // 未查找
       item.icon = getIconFilename(httpItem.iconfilename || item.iconfilename)
     }
     item.operations = ['Marks to Clip']
@@ -2369,14 +2385,14 @@ export function updateMarkerList(
   return markers
 }
 export function getMarkerList(entity, vtrin, httpEntity) {
-  var httpMarkList = (httpEntity && httpEntity.item.markpoints) || []
-  var marklist = entity.item.markpoints || []
-  var framerate = 25.0
+  let httpMarkList = (httpEntity && httpEntity.item.markpoints) || []
+  let marklist = entity.item.markpoints || []
+  let framerate = 25.0
   if (marklist && entity.item && entity.item.videostandard !== undefined) {
-    var ntsctcmode = entity.item.ntsctcmode || 0
-    var videostandard = entity.item.videostandard || 0
+    let ntsctcmode = entity.item.ntsctcmode || 0
+    let videostandard = entity.item.videostandard || 0
     framerate = ETGetFrameRate(videostandard) || 30
-    var totalFrames = GetFrameNumByHundredNS(
+    let totalFrames = GetFrameNumByHundredNS(
       Math.round(entity.item.length),
       videostandard,
       ntsctcmode
@@ -2404,8 +2420,8 @@ export function updateMaterial(arr, data, store) {
       store.getters.currentNode.guid === 2)
   ) {
     // 更新marker搜索结果
-    // var item = util.getRepository(store.getters.currentNode.guid).find(i => i.objectguid === data.guid);
-    var all = getRepository(store.getters.currentNode.guid).filter(
+    // let item = util.getRepository(store.getters.currentNode.guid).find(i => i.objectguid === data.guid);
+    let all = getRepository(store.getters.currentNode.guid).filter(
       i => i.objectguid === data.guid
     )
     all &&
@@ -2420,7 +2436,7 @@ export function updateMaterial(arr, data, store) {
         })
         .then(res => {
           all.forEach(item => {
-            var same = res.data.ext.entity.item.markpoints.find(
+            let same = res.data.ext.entity.item.markpoints.find(
               i => i.markguid === item.markguid
             )
             if (same) {
@@ -2448,16 +2464,16 @@ export function updateMaterial(arr, data, store) {
           }
         })
         .then(res => {
-          var iconfilename = item.iconfilename
-          var renaming = item.renaming
-          var selected = item.selected
-          var previewicon = item.previewicon
-          var properties = item.properties
-          var LTCItem = item.LTCItem
-          var VITCItem = item.VITCItem
-          var markers = item.markers
-          var name = item.name
-          var guid = item.guid
+          let iconfilename = item.iconfilename
+          let renaming = item.renaming
+          let selected = item.selected
+          let previewicon = item.previewicon
+          let properties = item.properties
+          let LTCItem = item.LTCItem
+          let VITCItem = item.VITCItem
+          let markers = item.markers
+          let name = item.name
+          let guid = item.guid
           if (
             item.folderpath &&
             item.folderpath !== res.data.ext.entity.folderpath
@@ -2502,7 +2518,7 @@ export function updateMaterial(arr, data, store) {
               item.path
             )
           }
-          var previewSame = store.state.previewOptions.materials.find(
+          let previewSame = store.state.previewOptions.materials.find(
             i => i.guid === item.guid
           )
           if (previewSame) {
@@ -2522,7 +2538,7 @@ export function updateMaterial(arr, data, store) {
       )
     ) {
       // move 适配move只有update的消息
-      var node = initData(data, item)
+      let node = initData(data, item)
       node.type = data.type.split('.')[0] === 'TREE' ? 'folder' : 'other'
       node.bgtype = node.type
       node.guid = data.guid
@@ -2557,7 +2573,7 @@ export function moveMaterial(arr, data, item) {
 export function getMaterialFoder(arr, data) {
   return new Promise((resolve, reject) => {
     for (let i = 0, l = arr.length; i < l; i++) {
-      var item = arr[i]
+      let item = arr[i]
       if (
         (data.fguid && item.guid === data.fguid) ||
         (data.folderPath && data.folderPath === item.path)
@@ -2588,7 +2604,7 @@ export function mergeChildrenPath(arr, path) {
   })
 }
 export function initData(file, father) {
-  var node = {}
+  let node = {}
   node.operations = []
   node.guid = Guid.NewGuid().ToString('N')
   node.folders = []
@@ -2620,10 +2636,10 @@ export function mergeHeader(target, source) {
   if (!target || !target.length) {
     return source
   } else {
-    var newAddHeaders = source.filter(
+    let newAddHeaders = source.filter(
       item => !item.id && !target.find(i => i.name === item.name)
     )
-    var index = 0
+    let index = 0
     target.forEach((item, i) => {
       if (!item.id) {
         let same = source.find(i => i.name === item.name)
@@ -2636,13 +2652,13 @@ export function mergeHeader(target, source) {
   }
 }
 export function getNextItem(node, isdeep) {
-  var closedFather = getClosedFather(node)
+  let closedFather = getClosedFather(node)
   if (closedFather) {
     return closedFather
   }
-  var father = node.father
-  var index
-  var folders
+  let father = node.father
+  let index
+  let folders
   if (node.guid === 1 && node.open && node.searchModel.length) {
     return node.searchModel.sort(SortLikeWin)[0]
   } else if (node.guid === 2) {
@@ -2684,8 +2700,8 @@ export function getClosedFather(node) {
 }
 
 export function getPrevItem(node) {
-  var closedFather = getClosedFather(node)
-  var index
+  let closedFather = getClosedFather(node)
+  let index
   if (closedFather) {
     return closedFather
   }
@@ -2699,7 +2715,7 @@ export function getPrevItem(node) {
       }
     }
 
-    var folders = sortByTitle(node.father.folders)
+    let folders = sortByTitle(node.father.folders)
     index = folders.indexOf(node)
     if (index > 0) {
       return getLastItem(folders[index - 1])
@@ -2718,7 +2734,7 @@ export function getTopFather(node) {
   }
 }
 export function getBottomChild(node) {
-  var folders = sortByTitle(node.folders)
+  let folders = sortByTitle(node.folders)
   if (node.open && folders.length > 0) {
     return getBottomChild(folders[folders.length - 1])
   } else {
@@ -2726,7 +2742,7 @@ export function getBottomChild(node) {
   }
 }
 export function getLastItem(node) {
-  var folders = sortByTitle(node.folders)
+  let folders = sortByTitle(node.folders)
   if (node.open && folders.length) {
     return getLastItem(folders[folders.length - 1])
   } else {
@@ -2734,7 +2750,7 @@ export function getLastItem(node) {
   }
 }
 export function debounce(delay, action, immediately) {
-  var id = -1
+  let id = -1
   return function() {
     if (immediately && id === -1) {
       action.apply(this, arguments)
@@ -2742,4 +2758,2076 @@ export function debounce(delay, action, immediately) {
     clearTimeout(id)
     id = setTimeout(() => action.apply(this, arguments), delay)
   }
+}
+export function newFolder(context, node) {
+  let folder = initData(
+    {
+      name: 'NewFolder'
+    },
+    node
+  )
+  folder.type = folder.bgtype = 'folder'
+  getUnusedName(context, folder, node, '(').then(res => {
+    folder.name = res
+    folder.path = node.path + '/' + res
+    let symbol = Symbol('add folder')
+    context.commit({
+      type: TYPES.PUSH_EVENT,
+      data: {
+        type: TYPES.ADD_FOLDER,
+        data: folder
+      },
+      symbol: symbol
+    })
+    getRepository(node.guid).push(folder)
+    forceUpdate(node.guid)
+    node.folders.push(folder)
+    context.commit({
+      type: TYPES.CLEAR_SELECTEEDITEMS
+    })
+    folder.selected = true
+    context.commit({
+      type: TYPES.ADD_SELECTEDITEM,
+      data: folder
+    })
+    context.commit({
+      type: TYPES.SET_SIGNMATERIAL,
+      data: context.getters.displayMaterials.indexOf(folder)
+    })
+    Vue.nextTick(() => {
+      setTimeout(() => (folder.renaming = true), 0)
+    })
+    context
+      .dispatch({
+        type: TYPES.ADD_FOLDER,
+        source: node,
+        data: folder.name
+      })
+      .then(res => {
+        folder._guid = res.data.ext.id
+        // 获取信息
+        // util.updateMaterial(util.getRepository(node.guid), {
+        //   guid: folder.guid
+        // }, context)
+        context.commit({
+          type: TYPES.DELETE_EVENT,
+          symbol: symbol
+        })
+        // util.Notice.success('copy success', 'copy success', 1000)
+      })
+      .catch(res => {
+        context.commit({
+          type: TYPES.RECOVERY_EVENT,
+          symbol: symbol
+        })
+        Notice.warning('Create failed', 'Create failed', 1000)
+      })
+  })
+}
+export function getUnusedName(context, item, target, template, ignoreName) {
+  if (ignoreName) {
+    return new Promise((resolve, reject) => {
+      resolve(item.name)
+    })
+  }
+  let index = 0
+  let t = template || ' Copy('
+
+  function getCanUseName(name, nameArr) {
+    if (nameArr.indexOf(name) > -1) {
+      index++
+      return getCanUseName(item.name + t + index + ')', nameArr)
+    } else {
+      return name
+    }
+  }
+  return new Promise((resolve, reject) => {
+    context
+      .dispatch({
+        type: TYPES.GET_MATERIALS2,
+        source: target
+      })
+      .then(res => {
+        let names = getRepository(target.guid).map(item => item.name)
+        resolve(getCanUseName(item.name, names))
+      })
+      .catch(res => {
+        let names = getRepository(target.guid).map(item => item.name)
+        resolve(getCanUseName(item.name, names))
+      })
+  })
+}
+export function copyObject(context, item, target, ignoreName) {
+  item.father = target
+  item.folderpath = target.path
+  let operations = item.operations
+  item.operations = []
+  return new Promise((resolve, reject) => {
+    getUnusedName(context, item, target, '', ignoreName).then(res => {
+      let obj = {}
+      getRepository(target.guid).push(item)
+      forceUpdate(target.guid)
+      if (!ignoreName) {
+        item.name = res
+        obj.name = res
+      }
+      obj.id = 0
+      obj.folderpath = target.path
+      obj.creator = context.state.userInfo.usercode
+      obj.type = item.typeid
+      obj.subtype = item.subtype
+      let type = GetEntityType(obj.type, obj.subtype)
+      obj.modifyterminal = context.state.userInfo.ip
+      obj.item = {}
+      if (item.type === 'video' && item.onlinstatus === 'Archived') {
+        item.filestatus &= ~FileStatus.ET_Obj_FS_HV_ALL
+        item.filestatus &= ~FileStatus.ET_Obj_FS_HA_ALL
+        obj.item.filestatus = item.filestatus
+        item.HQ = false
+      }
+      item.filestatus &= ~FileStatus.ET_Obj_FS_WA // 去掉WA标志
+      obj.item.filestatus = item.filestatus
+      item.WA = false
+      obj.item.videostandard = item.videostandard
+      obj.item.capturestatus = item.capturestatus
+      obj.item.dbestreamchannel = item.dbestreamchannel
+      obj.item.ntsctcmode = item.ntsctcmode
+      let json = {
+        type: type,
+        version: 1,
+        object: {
+          entity: obj
+        }
+      }
+      context
+        .dispatch({
+          type: TYPES.COPY_OBJECT,
+          source: item,
+          target: target,
+          data: json
+        })
+        .then(res => {
+          // let oldGuid = item.guid
+          item.guid = res.data.ext
+          // util.setRepository(item.guid, oldGuid)
+          forceUpdate(item.guid)
+          item.operations = operations
+          resolve(res)
+        })
+        .catch(res => reject(res))
+    })
+  })
+}
+export function copyNode(item) {
+  let copiedItem = initData(
+    {
+      name: item.name
+    },
+    item.father
+  )
+  Object.assign(copiedItem, item)
+  copiedItem.copying = true // 可能需要给未同步素材添加个状态
+  copiedItem.waiting = true
+  copiedItem.selected = false
+  copiedItem.checked = false
+  copiedItem.selecting = false
+  copiedItem.__guid = copiedItem.guid
+  copiedItem.guid = Guid.NewGuid().ToString('N')
+  let arr = getRepository(copiedItem.__guid) // source folder's children
+  setRepository(copiedItem.guid, [])
+  arr.forEach(i => {
+    let m = copyNode(i)
+    getRepository(copiedItem.guid).push(m)
+    m.type === 'folder' && copiedItem.folders.push(m)
+  })
+  forceUpdate(copiedItem.guid)
+  return copiedItem
+}
+
+export function getDownloadUrl(data) {
+  let url = []
+  let isHigh = true
+  if (data.entity.type === 32) {
+    if (data.entity.item.clipfile.length === 0) {
+      if (data.streammedia && data.streammedia.length) {
+        url.push(data.streammedia[0].filepath)
+        isHigh = false
+      }
+    } else {
+      data.entity.item.clipfile.forEach(item => {
+        if (item.qualitytype === 0 && item.clipclass === 1) {
+          url.push(item.filename)
+        }
+      })
+      let hvFiles = data.entity.item.clipfile.filter(
+        item => item.qualitytype === 0 && item.clipclass === 1
+      )
+      let hvLength = hvFiles.reduce(
+        (i, j) => {
+          return {
+            clipin: 0,
+            clipout: i.clipout + j.clipout - i.clipin - j.clipin
+          }
+        },
+        {
+          clipin: 0,
+          clipout: 0
+        }
+      ).clipout
+      if (hvFiles.length && hvLength >= data.entity.item.length) {
+        // 判断高质量是否全
+      } else {
+        url.length = 0
+      }
+      if (!url.length) {
+        data.entity.item.clipfile.forEach(item => {
+          if (item.qualitytype === 1 && item.clipclass === 1) {
+            url.push(item.filename)
+            isHigh = false
+          }
+        })
+        if (!url.length) {
+          url.push(data.entity.item.clipfile[0].filename)
+          isHigh = !data.entity.item.clipfile[0].qualitytype
+        }
+      }
+    }
+  } else {
+    url.push(data.entity.item.filename)
+  }
+  return {
+    url: url,
+    isHigh: isHigh
+  }
+}
+export function cleanNode(item) {
+  item.waiting = false
+  getRepository(item.guid) &&
+    getRepository(item.guid).forEach(i => {
+      cleanNode(i)
+    })
+}
+export function isMpd(src) {
+  let index = src.lastIndexOf('?')
+  return src && src.substring(0, index === -1 ? void 0 : index).endsWith('.mpd')
+}
+export function copyFolder(context, item, target, ignoreName) {
+  item.father = target
+  item.floor = target.floor + 1
+  item.folderpath = target.path
+  let operations = item.operations
+  item.operations = []
+  return new Promise((resolve, reject) => {
+    context
+      .dispatch({
+        type: TYPES.GET_MATERIALS2,
+        source: item
+      })
+      .then(res => {
+        getUnusedName(context, item, target, '', ignoreName).then(res => {
+          getRepository(target.guid).push(item)
+          forceUpdate(target.guid)
+          target.folders.push(item)
+          if (!ignoreName) {
+            item.name = res
+          }
+          item.path = target.path + '/' + item.name
+          context
+            .dispatch({
+              type: TYPES.ADD_FOLDER,
+              data: res,
+              source: target
+            })
+            .then(res => {
+              resolve(res)
+              let oldGuid = item.guid
+              item._guid = res.data.ext.id // 解决new folder copy时自动刷新的出现两个bug
+              item.guid = res.data.ext.id
+              setRepository(item.guid, oldGuid) // guid变更，同步数据
+              item.operations = operations
+              getRepository(item.guid).forEach(i => {
+                if (i.type === 'folder') {
+                  copyFolder(context, i, item, true)
+                    .then(res => resolve(res))
+                    .catch(res => reject(res))
+                } else {
+                  copyObject(context, i, item, true)
+                    .then(res => resolve(res))
+                    .catch(res => reject(res))
+                }
+              })
+              setRepository(item.guid, [])
+              forceUpdate(item.guid)
+            })
+            .catch(res => {
+              reject(res)
+            })
+        })
+      })
+  })
+}
+export function parseTrashCanData(arr, father) {
+  let newArr = []
+  let floor
+  if (father) {
+    floor = father.floor + 1
+  }
+  if (isArray(arr)) {
+    arr.forEach(item => {
+      let node = {}
+      node.formatDate = item.etobject.createdate
+      node.createdate = new Date(item.createDate).getTime()
+      node.typeid = item.etobject.type
+      if (item.etobject.type && item.etobject.subtype) {
+        node.type = getMaterialType(item.etobject)
+      } else {
+        node.type = item.type
+      }
+
+      if (node.type === 'audio') {
+        node.type = 'video'
+        node.bgtype = 'audio'
+        node.isAudio = true
+        node.typeIndex = 2
+      } else {
+        node.bgtype = node.type
+        node.isAudio = false
+        if (node.type === 'folder') {
+          node.path = item.treePath + '/' + item.etobject.name
+          node.typeIndex = 0
+        } else if (node.type === 'video') {
+          node.typeIndex = 1
+          node.channel = 2
+        } else if (node.type === 'h5pgm' || node.type === 'sequence') {
+          node.typeIndex = 11
+        } else if (node.type === 'image') {
+          node.typeIndex = 3
+        } else if (node.type === 'txtfile') {
+          node.typeIndex = 4
+        } else if (node.type === 'word') {
+          node.typeIndex = 5
+        } else if (node.type === 'ppt') {
+          node.typeIndex = 6
+        } else if (node.type === 'excel') {
+          node.typeIndex = 7
+        } else if (node.type === 'pdf') {
+          node.typeIndex = 8
+        } else if (node.type === 'project') {
+          node.typeIndex = 9
+        } else {
+          node.typeIndex = 10
+        }
+      }
+      if (node.type === 'video') {
+        node.previewType = 'video'
+      } else if (
+        ['ppt', 'pdf', 'excel', 'word', 'txtfile'].indexOf(node.type) > -1
+      ) {
+        node.previewType = 'document'
+      } else if (node.type === 'image') {
+        node.previewType = 'picture'
+      } else {
+        node.previewType = 'other'
+      }
+      node.duration = 10
+      node.folderpath = item.treePath || ''
+      node.guid = item.contentId
+      node.id = item.etobject.id
+      node.name = item.name
+      node.iconfilename = item.keyframe ? item.keyframe : ''
+      node.subtype = item.etobject.subtype
+      if (item.etobject.creator !== undefined || item.createUser) {
+        node.creatorCode = item.etobject.creator || item.createUser // for权限
+        node.creatorName = getUserNameByUserCode(
+          item.etobject.creator || item.createUser
+        )
+      }
+      try {
+        if (node.type === 'video') {
+          if (item.etobject.item) {
+            node.duration = item.etobject.item.length / 10000000
+            node.planningguid = item.etobject.item.planningguid
+            node.videostandard = item.etobject.item.videostandard
+            node.framerate =
+              ETGetFrameRate(item.etobject.item.videostandard) || 30
+            node.ntsctcmode = item.etobject.item.ntsctcmode
+            node.capturestatus = item.etobject.item.capturestatus
+            node.filestatus = item.etobject.item.filestatus
+            if (
+              (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_HA_ALL) >
+                0 ||
+              (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_HV_ALL) > 0
+            ) {
+              node.HQ = true
+            } else {
+              node.HQ = false
+            }
+            if (
+              (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_LV_ALL) >
+                0 ||
+              (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_LA_ALL) > 0
+            ) {
+              node.LQ = true
+            } else {
+              node.LQ = false
+            }
+            if (node.typeIndex === 1) {
+              if (
+                [1, 2, 32, 64, 128, 4096, 65536, 8192].indexOf(
+                  parseInt(item.etobject.item.capturestatus)
+                ) > -1
+              ) {
+                node.clipping = true
+              } else {
+                node.clipping = false
+              }
+              if (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_WA) {
+                node.WA = true
+              } else {
+                node.WA = false
+              }
+              if (
+                item.etobject.item.dbestreamchannel &&
+                item.etobject.item.dbestreamchannel !== 0
+              ) {
+                node.DB = true
+              } else {
+                node.DB = false
+              }
+              if (
+                item.etobject.item.videostandard &&
+                ETGetVideoStandardPI(item.etobject.item.videostandard) === 2
+              ) {
+                node.P = true
+                node.Ptitle = ETGetFrameRate(item.etobject.item.videostandard)
+              } else if (
+                item.etobject.item.videostandard &&
+                ETGetVideoStandardPI(item.etobject.item.videostandard) === 1
+              ) {
+                node.I = true
+                node.Ititle = ETGetFrameRate(item.etobject.item.videostandard)
+              }
+              if (
+                (item.etobject.item.filestatus &
+                  (FileStatus.ET_Obj_FS_HA_ALL |
+                    FileStatus.ET_Obj_FS_LA_ALL |
+                    FileStatus.ET_Obj_FS_HA_SEG |
+                    FileStatus.ET_Obj_FS_LA_SEG)) ===
+                0
+              ) {
+                node.channel = 1
+              }
+            }
+          }
+          if (
+            !node.isAudio &&
+            node.filestatus &
+              (FileStatus.ET_Obj_FS_LV_ALL | FileStatus.ET_Obj_FS_LV_SEG) &&
+            node.filestatus &
+              (FileStatus.ET_Obj_FS_LA_ALL | FileStatus.ET_Obj_FS_LA_SEG)
+          ) {
+            node.canGenerateProxy = !item.etobject.isseparation
+            node.proxyStatus = item.etobject.isseparation ? 'V + A' : 'VA'
+          }
+        }
+      } catch (e) {}
+      if (floor) {
+        node.floor = floor
+      }
+      if (father) {
+        node.father = father
+      }
+      node.folders = []
+      node.operations = []
+      node.properties = []
+      node.markers = {
+        values: []
+      }
+      node.LTCItem = []
+      node.VITCItem = []
+      getContextMenu(item, node)
+      restrictContextMenu(item, node)
+      node.selected = node.selected || false
+      node.selecting = node.selecting || false
+      node.dragOvering = node.dragOvering || false
+      node.open = node.open || false
+      node.checked = node.checked || false
+      node.renaming = node.renaming || false
+      node.uploading = node.uploading || false
+      node.readyUpload = node.readyUpload || false
+      node.cutting = node.cutting || false
+      node.readonly = false
+      node.children = []
+      newArr.push(node)
+    })
+  } else {
+    newArr = []
+  }
+  return newArr
+}
+export function getCheckedCode(pg, tree, flag) {
+  tree.forEach(item => {
+    if (item.checked && item.read && !flag) {
+      pg.add(item.read)
+    }
+    if (item.checked && item.write && flag) {
+      pg.add(item.write)
+    }
+    if (item.children && item.children.length) {
+      getCheckedCode(pg, item.children, flag)
+    }
+  })
+}
+export function deleteMaterial(arr, data) {
+  let flag = false
+  let father = arr.length && arr[0].father && arr[0].father.guid
+  arr.forEach(item => {
+    if (item.guid === data.guid) {
+      arr.remove(item)
+      flag = true
+      return
+    }
+    if (getRepository(item.guid).length || item.folders.length) {
+      deleteMaterial(getRepository(item.guid), data)
+      deleteMaterial(item.folders, data)
+    }
+  })
+  flag && forceUpdate(father)
+}
+export function getRelations(arr) {
+  return arr.map(item => {
+    let node = {
+      relations: [],
+      name: item.entity.name,
+      guid: item.entity.guid,
+      folderpath: item.entity.folderpath,
+      type: 'video',
+      iconfilename: item.entity.iconfilename
+    }
+    extendData(item, node)
+    return node
+  })
+}
+export function getProperties (resultArr, materials, models, type, context, httpResArr) {
+  let resFuncArr = []
+  let ctrlTable = {
+    'Single Line': 'rd-text',
+    'Mutli Text': 'rd-textarea',
+    'Multi Line': 'rd-textarea',
+    'Check Box': 'rd-checkbox',
+    'RadioButton': 'rd-radio',
+    'Numeric': 'rd-number',
+    'Dropdown': 'rd-select',
+    'Date': 'rd-datepicker',
+    'Time': 'vue-timepicker',
+    'DateTime': 'rd-datepicker',
+    'Button': 'rd-button',
+    'info': 'original-list-ctrl'
+  }
+  let typeTable = {
+    'video': 'A/V',
+    'image': 'Image',
+    'txtfile': 'Document',
+    'word': 'Document',
+    'excel': 'Document',
+    'pdf': 'Document',
+    'rar': 'Other',
+    'project': 'Other',
+    'aeproject': 'Other',
+    'other': 'Other'
+  }
+  let volidType = {
+    'Title': {
+      length: 255,
+      onlyLength: false
+    },
+    'Rights': {
+      length: 256,
+      onlyLength: true
+    },
+    'Comments': {
+      length: 1000,
+      onlyLength: true
+    },
+    'Item Name': {
+      length: 50,
+      onlyLength: true
+    },
+    'Journalist': {
+      length: 50,
+      onlyLength: true
+    },
+    'Category': {
+      length: 50,
+      onlyLength: true
+    },
+    'Program Name': {
+      length: 50,
+      onlyLength: true
+    },
+    'Source Tape Barcode': {
+      length: 13,
+      onlyLength: true
+    },
+    'Source Tape Title': {
+      length: 50,
+      onlyLength: true
+    },
+    'Backup Tape Title': {
+      length: 50,
+      onlyLength: true
+    },
+    'User Media ID': {
+      length: 50,
+      onlyLength: true
+    }
+  }
+  let volid = key => e => volidInput(e.target.value, volidType[key] && volidType[key].length, e.target, volidType[key] && volidType[key].onlyLength, key)
+  let formatTime = (v, m) => v === undefined && ['image', 'video'].indexOf(m.type) === -1 ? '' : ['video', 'image'].indexOf(m.type) > -1 ? getTimeString(v, m.videostandard, m.ntsctcmode) : '' // util.toSmpteString((v || 0) / 10000, m.videoStandard)
+  let formatFrame = (v, m) => v === undefined ? '' : GetTimeStringByFrameNum(v, m.ntsctcmode, m.videostandard)
+  let tTable = {
+    'default': v => v,
+    'Time': {
+      t: (v, m, e) => {
+        let time = {}
+        if (v && v.split(' ').length > 1) {
+          time.value = v.split(' ')[1]
+        } else {
+          time.value = ''
+        }
+        return time
+      },
+      dt: (v, m, e) => {
+        if (v) {
+          return '1899-12-31 ' + v
+        } else {
+          return undefined
+        }
+      }
+    },
+    'Dropdown': {
+      t: (v, m, e) => v,
+      dt: (v, m, e) => v // (v, m) => e.find(i => i.description == v).name
+    },
+    'To be Deleted': {
+      t: v => !!v,
+      dt: v => v ? 1 : 0
+    },
+    '16:9 SD': {
+      t: v => v === ImageType.ET_CLIP_IMAGETYPE_16_9SD,
+      dt: v => v ? ImageType.ET_CLIP_IMAGETYPE_16_9SD : ImageType.ET_CLIP_IMAGETYPE_ORIGINAL
+    },
+    'HDD': {
+      t: v => v,
+      dt: v => v
+    },
+    'Archived': {
+      t: v => v === 'online_deleted',
+      dt: v => v ? 'online_deleted' : ''
+    },
+    'Address': {
+      t: v => v.replace(/^global_sobey_defaultclass\/MaterialList/, 'Network'),
+      dt: v => v.replace(/^Network/, 'global_sobey_defaultclass/MaterialList')
+    },
+    'Material Type': {
+      t: (v, m) => m.isAudio ? 'Audio' : typeTable[m.type],
+      dt: (v, m) => m.subType
+    },
+    'Planning Date': {
+      t: (v, m) => v && +new Date(v) > 0 ? v : new Date().format('yyyy-MM-dd hh:mm:ss'),
+      dt: (v, m) => v
+    },
+    'Used Space': {
+      t: (v, m) => {
+        if (v === 0) return '0 B'
+        let k = 1024
+        let sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+        let i = Math.floor(Math.log(v) / Math.log(k))
+        return (v / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+      },
+      dt: (v, m) => v
+    },
+    'Stream Channel': {
+      t: (v, m) => {
+        if (v & (ET_CLIP_DBE_A1 | ET_CLIP_DBE_A2)) {
+          return 'S1/S1'
+        } else if (v & (ET_CLIP_DBE_A3 | ET_CLIP_DBE_A4)) {
+          return 'S2/S2'
+        } else if (v & (ET_CLIP_DBE_A5 | ET_CLIP_DBE_A6)) {
+          return 'S3/S3'
+        } else if (v & (ET_CLIP_DBE_A7 | ET_CLIP_DBE_A8)) {
+          return 'S4/S4'
+        } else if (v === undefined) {
+          return ''
+        } else {
+          return 'None'
+        }
+      },
+      dt: (v, m) => v
+    },
+    'Total Duration': {
+      t: formatTime,
+      dt: (v, m) => v
+    },
+    'SOF(STC)': {
+      t: formatTime,
+      dt: (v, m) => v
+    },
+    'EOF': {
+      t: formatTime,
+      dt: (v, m) => v
+    },
+    'SOM': {
+      t: formatTime,
+      dt: (v, m) => v
+    },
+    'EOM': {
+      t: formatTime,
+      dt: (v, m) => v
+    },
+    'Material Duration': {
+      t: formatTime,
+      dt: (v, m) => v
+    },
+    'Modified by': {
+      t: getUserNameByUserCode,
+      dt: (v, m) => v
+    },
+    'Creator': {
+      t: getUserNameByUserCode,
+      dt: (v, m) => v
+    },
+    'Duration': {
+      t: formatFrame,
+      dt: (v, m) => v
+    },
+    'STC': {
+      t: formatFrame,
+      dt: (v, m) => v
+    }
+  }
+  function addKeyValue(fileds, tab, material, data) {
+    fileds.forEach(f => {
+      if (f.visable) {
+        let ctrl = ctrlTable[f.displaytype] || ctrlTable['Single Line']
+        let readonly = f.readonly
+        if (f.key) { // 有key
+          let keyArr = f.key.split(',')
+          if (keyArr && keyArr.length === 1) {
+            let keys = keyArr[0].split('\\')
+            let value = data
+            keys.forEach(k => {
+              if (value) {
+                value = value[k]
+              } else {
+                value = ''
+              }
+            })
+            let t = tTable[f.values || f.displayname] && tTable[f.values || f.displayname].t || tTable.default
+            let dt = tTable[f.values || f.displayname] && tTable[f.values || f.displayname].dt || tTable.default
+            if (ctrl === ctrlTable['Numeric']) {
+              let fieldDetail = f.fielddetail
+              let max
+              let min
+              let type
+              if (fieldDetail) {
+                max = fieldDetail.maxLen
+                min = fieldDetail.minLen
+                type = fieldDetail.dataType
+              }
+              tab.keyValues.push({
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                value: {
+                  value: t(value, material),
+                  step: 1, // 可选
+                  min: min, // 可选
+                  max: max,
+                  type: type,
+                  placeholder: '',
+                  disabled: false
+                },
+                ctrl: ctrl,
+                readonly: readonly,
+                disabled: false,
+                keys: keys,
+                t: t,
+                dt: dt
+              })
+            } else if (ctrl === ctrlTable['Single Line'] || ctrl === ctrlTable['Mutli Text']) {
+              let fieldDetail = f.fielddetail
+              let max
+              let min
+              if (fieldDetail) {
+                max = fieldDetail.maxLen
+                min = fieldDetail.minLen
+              }
+              let multiplable = false
+              if (['Rights', 'Comments'].indexOf(f.displayname) > -1 || (f.displayname === 'Title' && material.type !== 'folder')) {
+                multiplable = true
+              } // 支持应用到所有的素材
+              if (f.displayname === 'Recording Time' && readonly && value) { // 纠正Recording time 1899
+                value = +new Date(value) > 0 ? value : ''
+              }
+              tab.keyValues.push({
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                value: t(value, material),
+                limit: {
+                  type: 'Length',
+                  min: min,
+                  max: max
+                },
+                multiplable: multiplable,
+                multiOption: {
+                  checked: false,
+                  disabled: false,
+                  text: 'Apply to all'
+                },
+                ctrl: ctrl,
+                volid: volid(f.displayname),
+                readonly: readonly,
+                disabled: false,
+                highLightHtml: material[keys[keys.length - 1] + '_hl'],
+                keys: keys,
+                t: t,
+                dt: dt
+              })
+            } else if (ctrl === ctrlTable['Check Box']) {
+              tab.keyValues.push({
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                value: {
+                  checked: value,
+                  text: f.values || f.displayname,
+                  keys: keys,
+                  readonly: readonly,
+                  disabled: false,
+                  t: t,
+                  dt: dt
+                },
+                ctrl: ctrl,
+                readonly: readonly,
+                disabled: false,
+                keys: keys,
+                t: t,
+                dt: dt
+              })
+            } else if (ctrl === ctrlTable['Dropdown']) {
+              let items = f.fielddetail && (f.fielddetail.enumContents || f.fielddetail.fixItems) || []
+              // dt = tTable['Dropdown'].dt('', material, items)
+              let opt = {
+                multiple: false,
+                value: {},
+                options: [],
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                ctrl: ctrl,
+                readonly: readonly,
+                highLightHtml: material[keys[keys.length - 1] + '_hl'],
+                disabled: false,
+                keys: keys,
+                t: t,
+                dt: dt
+              }
+              items.forEach(i => {
+                opt.options.push({
+                  selected: value === i.name || false,
+                  disabled: false,
+                  value: i.name || i,
+                  name: i.name || i
+                })
+              })
+              tab.keyValues.push(opt)
+            } else if (ctrl === ctrlTable['Date']) {
+              let opt = {
+                value: value,
+                options: {
+                  timePicker: f.displaytype === 'DateTime',
+                  placeHolder: 'Please select time',
+                  position: 'bottom',
+                  autoPosition: false,
+                  quickClose: true,
+                  format: 'YYYY-MM-DD HH:mm:ss', // f.displaytype === 'DateTime' ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD',
+                  monthList: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+                  weekList: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                },
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                readonly: readonly,
+                disabled: false,
+                keys: keys,
+                ctrl: ctrl,
+                t: t,
+                dt: dt
+              }
+              tab.keyValues.push(opt)
+            } else if (ctrl === ctrlTable['Time']) {
+              t = tTable.Time.t
+              dt = tTable.Time.dt
+              let opt = {
+                value: t(value),
+                format: 'HH:mm:ss',
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                readonly: readonly,
+                disabled: false,
+                keys: keys,
+                ctrl: ctrl,
+                t: t,
+                dt: dt
+              }
+              tab.keyValues.push(opt)
+            }
+          } else {
+            if (ctrl === ctrlTable['Check Box']) {
+              let item = {
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                value: [],
+                ctrl: ctrl,
+                readonly: readonly,
+                disabled: false
+              }
+              let valueArr = f.values.split('|')
+              keyArr.forEach((ka, i) => {
+                let keys = ka.split('\\')
+                let label = valueArr[i]
+                let t = tTable[label].t
+                let dt = tTable[label].dt
+                let value = data
+                keys.forEach(k => {
+                  if (value) {
+                    value = value[k]
+                  } else {
+                    value = ''
+                  }
+                })
+                let ro = false
+                if (label === '16:9 SD' && value === ImageType.ET_CLIP_IMAGETYPE_16_9HD) {
+                  ro = true
+                }
+                if (label === 'Archived' || (label === '16:9 SD' && (material.type !== 'video' || material.isAudio))) {
+                  ro = true
+                }
+                value = t(value, material)
+                // 存在不能勾选编辑的情况
+                item.value.push({
+                  checked: value,
+                  text: label,
+                  keys: keys,
+                  readonly: ro || readonly,
+                  disabled: false,
+                  t: t,
+                  dt: dt
+                })
+                if (label === 'Archived' && value) {
+                  let archiveTarget = data.entity.item.archiveTarget
+                  archiveTarget && archiveTarget.forEach(n => {
+                    item.value.push({
+                      ctrl: 'rd-tag',
+                      text: label,
+                      value: n,
+                      keys: keys,
+                      readonly: true,
+                      disabled: true,
+                      t: t,
+                      dt: dt
+                    })
+                  })
+                }
+              })
+              tab.keyValues.push(item)
+            }
+          }
+        } else {
+          // 特殊处理没有字段的
+          let t = tTable[f.displayname] && tTable[f.displayname].t || tTable.default
+          let dt = tTable[f.displayname] && tTable[f.displayname].dt || tTable.default
+          if (f.displayname === 'Used Space') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            context.dispatch({
+              type: TYPES.GET_FILESIZE,
+              source: material
+            }).then(res => {
+              kv.value = t(res.data.ext, material)
+            })
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'Audio Format') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            let file
+            if (data.entity && data.entity.item && data.entity.item && data.entity.item.clipfile && data.entity.item.clipfile.length) {
+              file = data.entity.item.clipfile.find(item => item.qualitytype === 0 && item.clipclass === 2) || data.entity.item.clipfile.find(item => item.qualitytype === 1 && item.clipclass === 2 && item.formatid)
+              if (file && file.formatid !== undefined) {
+                context.dispatch({
+                  type: TYPES.GET_FILEFORMAT,
+                  data: {
+                    formatid: file.formatid
+                  }
+                }).then(res => {
+                  let json = res.data.ext && res.data.ext.nleformat
+                  if (json) {
+                    kv.value = t(JSON.parse(json).formatdesc) || ''
+                  }
+                })
+              }
+            }
+
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'Video Format') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            let file
+            if (data.entity && data.entity.item && data.entity.item && data.entity.item.clipfile && data.entity.item.clipfile.length) {
+              file = data.entity.item.clipfile.find(item => item.qualitytype === 0 && item.clipclass === 1) || data.entity.item.clipfile.find(item => item.qualitytype === 1 && item.clipclass === 1 && item.formatid)
+              if (file && file.formatid !== undefined) {
+                context.dispatch({
+                  type: TYPES.GET_FILEFORMAT,
+                  data: {
+                    formatid: file.formatid
+                  }
+                }).then(res => {
+                  let json = res.data.ext && res.data.ext.nleformat
+                  if (json) {
+                    kv.value = t(JSON.parse(json).formatdesc) || ''
+                  }
+                })
+              } else if (material.type === 'image') {
+                let f = data.entity.item.clipfile[0]
+                let fileSuffix
+                if (f) {
+                  fileSuffix = f.filename.substring(f.filename.lastIndexOf('.') + 1).toUpperCase()
+                  kv.value = fileSuffix
+                }
+              }
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'SOM') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            if (data.entity && data.entity.item && data.entity.item.trimin !== undefined) {
+              kv.value = t(data.entity.item.trimin + (data.entity.item.vtrin || 0), material)
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'EOM') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            if (data.entity && data.entity.item && data.entity.item.trimout !== undefined) {
+              kv.value = t(data.entity.item.trimout + (data.entity.item.vtrin || 0), material)
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'EOF') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            if (data.entity && data.entity.item) {
+              kv.value = t((data.entity.item.length || 0) + (data.entity.item.vtrin || 0), material)
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'Material Duration') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            if (data.entity && data.entity.item && data.entity.item.trimout !== undefined && data.entity.item.trimin !== undefined) {
+              kv.value = t(data.entity.item.trimout - data.entity.item.trimin, material)
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'Edited by') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'Edited on') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'Input by') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: data.modifyName || data.creatorName || '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'Sequence Name') {
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: '',
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            tab.keyValues.push(kv)
+          } else if (f.displayname === 'List') {
+            let value = {
+              headers: [
+                {
+                  name: 'Attribute',
+                  attr: 'attribute',
+                  width: 200,
+                  dragging: false,
+                  checked: true,
+                  resizable: true
+                },
+                {
+                  name: 'Item',
+                  attr: 'item',
+                  width: 122,
+                  dragging: false,
+                  checked: true,
+                  resizable: true
+                },
+                {
+                  name: 'Value',
+                  attr: 'value',
+                  width: 122,
+                  dragging: false,
+                  checked: true,
+                  resizable: true
+                }],
+              values: []
+            }
+            if (data.metadata && data.metadata.original && data.metadata.original.orgattribute && data.metadata.original.orgattribute.length) {
+              value.values = data.metadata.original.orgattribute
+            }
+            let kv = {
+              order: f.order,
+              name: f.fielddetail && f.fielddetail.alias || f.displayname,
+              value: value,
+              ctrl: ctrl,
+              readonly: readonly,
+              disabled: false,
+              keys: '',
+              t: t,
+              dt: dt
+            }
+            tab.keyValues.push(kv)
+          }
+        }
+      }
+      tab.keyValues.sort((i1, i2) => i1.order - i2.order) // 按顺序排
+    })
+  }
+  resultArr.forEach(item => {
+    let data = item.data.ext
+    let entity = item.data.ext.entity
+    let httpEntity = httpResArr && httpResArr.find(item => item.data.ext.entity.guid === entity.guid).data.ext.entity
+    let material = materials.find(item => item.guid === entity.guid)
+    let properties = []
+    models.filter(i => i.visable).forEach(m => {
+      if (['Planning', 'Marks', 'Rights', 'File List'].indexOf(m.displayName) === -1) {
+        let tab = {
+          name: m.displayName,
+          order: m.order,
+          keyValues: [],
+          checked: true,
+          dragging: false,
+          width: 100,
+          selected: false
+        }
+        addKeyValue(m.field, tab, material, data)
+        if (m.displayName === 'Original Metadata') {
+          let items = ['Original way', 'Odd field first', 'Even field first']
+          let value = entity.item.showmode || 0
+
+          let opt = {
+            multiple: false,
+            value: {},
+            options: [],
+            order: -1,
+            name: 'Field Sequence',
+            ctrl: ctrlTable['Dropdown'],
+            readonly: !material.I,
+            disabled: false,
+            keys: ['entity', 'item', 'showmode'],
+            t: tTable.default,
+            dt: (v, m) => items.indexOf(v)
+          }
+          items.forEach((i, index) => {
+            opt.options.push({
+              selected: value === index || false,
+              disabled: false,
+              value: i,
+              name: index
+            })
+          })
+          tab.keyValues.unshift(opt)
+        }
+        properties.push(tab)
+      } else if (['Planning'].indexOf(m.displayName) > -1) {
+        let tab = {
+          name: m.displayName,
+          keyValues: [],
+          order: m.order,
+          checked: true,
+          dragging: false,
+          width: 100,
+          selected: false
+        }
+        let planning = {}
+        if (entity.item.planningguid) {
+          context.dispatch({
+            type: TYPES.GET_PLANNING_INFO,
+            source: entity.item
+          }).then(res => {
+            console.log(res)
+            planning = res.data.ext || {}
+            planning && addKeyValue(m.field, tab, material, planning)
+          })
+        } else {
+          addKeyValue(m.field, tab, material, planning)
+        }
+        properties.push(tab)
+      } else if (['Marks', 'Rights', 'File List'].indexOf(m.displayName) > -1) {
+        if (m.displayName === 'Marks') {
+          properties.push(getMarkers(entity, material, type, m.order, context, httpEntity))
+        } else if (m.displayName === 'File List') {
+          properties.push(getFileList(entity, material, type, m.order))
+        } else {
+          properties.push(getRights(context, material, m.order))
+        }
+      } else {
+        console.log('some tab do not parse')
+      }
+    })
+    if (!models.length) {
+      let tab = {
+        name: 'Basic Info',
+        order: 0,
+        keyValues: [],
+        checked: true,
+        dragging: false,
+        width: 100,
+        selected: true
+      }
+      tab.keyValues.push({
+        name: 'Title',
+        value: material.name,
+        ctrl: 'rd-text',
+        readonly: true,
+        disabled: false,
+        keys: []
+      })
+      properties.push(tab)
+    }
+    resFuncArr.push(() => {
+      delete material.properties
+      Vue.set(material, 'properties', properties)
+      material.properties.sort((p1, p2) => p1.order - p2.order)
+    })
+  })
+  return resFuncArr
+}
+export function getTimeString (time, videostandard, ntsctcmode, framerate) {
+  let vs = videostandard === undefined ? 1 : videostandard
+  let ntsc = ntsctcmode === undefined ? 1 : ntsctcmode
+  let tstr = GetTimeStringByFrameNum(GetFrameNumByHundredNS(time, vs, ntsc), ntsc, vs, framerate)
+  let hours = tstr.substr(0, 2)
+  if (parseInt(hours) > 23) {
+    tstr = (parseInt(hours) % 24).fixZero() + tstr.substr(2)
+  }
+  return tstr
+}
+export function getMarkers (entity, material, type, order, context, httpEntity) {
+  let markers = {
+    name: 'Marks',
+    keyValues: {},
+    order: order,
+    checked: true,
+    dragging: false,
+    width: 100,
+    selected: false
+  }
+  markers.keyValues.values = getMarkerList(entity, material.vtrin, httpEntity).sort((i1, i2) => {
+    return i1.keyframe - i2.keyframe
+  })
+  material.markers = markers.keyValues
+  let clipfile = entity.item.clipfile.filter(item => item.clipclass === 1)
+  let keyframeArr = []
+  let groupname = 'videogroup'
+  material.markers.values.filter(item => !item.icon).forEach(item => {
+    let fileguid = ''
+    let keytime = item.keyframe / material.framerate * 10000000
+    for (let i = 0, len = clipfile.length; i < len; i++) {
+      if (keytime >= clipfile[i].clipin && keytime <= clipfile[i].clipout) {
+        fileguid = clipfile[i].strfileguid
+        if (clipfile[i].qualitytype) {
+          groupname = 'videogroup_proxy'
+        }
+        break
+      }
+    }
+    if (fileguid) {
+      keyframeArr.push(
+        {
+          fileGUID: fileguid,
+          keyFrameNo: item.keyframe
+        }
+      )
+    }
+  })
+  keyframeArr.length && context.dispatch({
+    type: TYPES.SET_MARKER_STAMP,
+    data: {
+      guid: material.guid,
+      groupname: groupname,
+      json: keyframeArr
+    }
+  }).then(res => {
+    console.log(res.data)
+  })
+  return markers
+}
+export function getFileList (entity, material, type, order) {
+  let fileList = {
+    name: 'File List',
+    keyValues: {},
+    order: order,
+    checked: true,
+    dragging: false,
+    width: 100,
+    selected: false
+  }
+  let videostandard = entity.item.videostandard
+  let ntsctcmode = entity.item.ntsctcmode || 0
+  let framerate = material.framerate || 30
+  let dbestreamchannel = entity.item.dbestreamchannel
+  fileList.keyValues.values = entity.item.clipfile
+  material.fileList = entity.item.clipfile // add to material for use
+  fileList.keyValues.values.forEach(item => {
+    // item.filename = item.filename.replace('http:', '').replace(/\//g, '\\')
+    item.displayQuality = item.qualitytype ? 'Low' : 'High'
+    item.displayTrack = dbestreamchannel && item.clipclass !== ET_CLIP_CLASS_V && (dbestreamchannel & (item.clipclass >> 1)) ? getdbeTrack(item.clipclass) : '' || getclipclassType(item.clipclass)
+    item.displayPassage = dbestreamchannel && item.clipclass !== ET_CLIP_CLASS_V && (dbestreamchannel & (item.clipclass >> 1)) ? getDbePassage(item.clipclass) : '' || getChannelType(item.mediachannel)
+    item.displayIn = getTimeString(item.clipin, videostandard, ntsctcmode, framerate)
+    item.displayOut = getTimeString(item.clipout, videostandard, ntsctcmode, framerate)
+    item.displayEOF = getTimeString(item.fileout, videostandard, ntsctcmode, framerate)
+    item.displaySOF = getTimeString(item.filein, videostandard, ntsctcmode, framerate)
+    if ([ET_CLIP_CLASS_CC, ET_CLIP_CLASS_KEY, ET_CLIP_CLASS_TC, ET_CLIP_CLASS_G, ET_CLIP_CLASS_CLIP].indexOf(item.clipclass) > -1 || material.type === 'image') {
+      item.displayQuality = ''
+    // item.displayPassage = ''
+    }
+    if (['video', 'image'].indexOf(material.type) === -1) {
+      item.displayQuality = ''
+      item.displayTrack = ''
+      item.displayPassage = ''
+      item.displayIn = ''
+      item.displayOut = ''
+      item.displayEOF = ''
+      item.displaySOF = ''
+    }
+  })
+  fileList.keyValues.headers = [
+    {
+      name: 'File Name',
+      attr: 'filename',
+      width: 200,
+      dragging: false,
+      checked: true,
+      resizable: true
+    },
+    {
+      name: 'Quality',
+      attr: 'displayQuality',
+      width: 50,
+      dragging: false,
+      checked: true,
+      resizable: true
+    },
+    {
+      name: 'Track',
+      attr: 'displayTrack',
+      width: 50,
+      dragging: false,
+      checked: true,
+      resizable: true
+    },
+    {
+      name: 'Passage',
+      attr: 'displayPassage',
+      width: 50,
+      dragging: false,
+      checked: true,
+      resizable: true
+    },
+    {
+      name: 'In',
+      attr: 'displayIn',
+      width: 100,
+      dragging: false,
+      checked: true,
+      resizable: true
+    }, {
+      name: 'Out',
+      attr: 'displayOut',
+      width: 100,
+      dragging: false,
+      checked: true,
+      resizable: true
+    }, {
+      name: 'SOF',
+      attr: 'displaySOF',
+      width: 100,
+      dragging: false,
+      checked: true,
+      resizable: true
+    }, {
+      name: 'EOF',
+      attr: 'displayEOF',
+      width: 100,
+      dragging: false,
+      checked: true,
+      resizable: true
+    }
+  ]
+  return fileList
+}
+export function getRights (context, material, order) {
+  let deptTree1 = getDepTree(context.state.deptArr)
+  let deptTree2 = getDepTree(context.state.deptArr)
+  let rights = {
+    name: 'Rights',
+    keyValues: {},
+    order: order,
+    checked: true,
+    dragging: false,
+    width: 100,
+    selected: false
+  }
+  context.dispatch({
+    type: TYPES.IS_PERMISSION,
+    source: material
+  }).then(res => {
+    let permission = res.data.ext
+    let isWrite = false
+    if (permission.privilege && permission.privilege.startsWith('public')) {
+      rights.keyValues.access.forEach(i => i.disabled = true)
+      // rights.keyValues.readonly = false
+      rights.keyValues.radio[0].checked = true
+    } else if (permission.privilegeUserGroup && permission.privilegeUserGroup.length) {
+      permission.privilegeUserGroup.forEach(code => {
+        isWrite = checkDepTree(deptTree2, code, true) || isWrite
+        checkDepTree(deptTree1, code) // only access
+      })
+      rights.keyValues.radio[2].checked = true
+      if (isWrite) {
+        rights.keyValues.access[1].checked = true
+      } else {
+        rights.keyValues.access[0].checked = true
+      }
+    // rights.keyValues.access.forEach(item => item.disabled = false)
+    } else if (permission.privilege && permission.privilege.startsWith('private')) {
+      rights.keyValues.access.forEach(i => i.disabled = true)
+      rights.keyValues.radio[1].checked = true
+    } else {
+      // cannot editing
+      rights.keyValues.radio[0].checked = true
+    // rights.keyValues.readonly = true
+    }
+    if (context.state.userInfo.roleType === 1 || state.userInfo.usercode === material.creatorCode || material.creatorCode === (state.userInfo.nickname || state.userInfo.loginname.replace(/.*\\(.*)/g, '$1')) || permission.privilege.startsWith('public') || permission.privilege === state.userInfo.privilege || (isWrite && getcurrentDepts(context.state.userInfo.usercode, context.state.userArr, context.state.deptArr).some(item => permission.privilegeUserGroup.indexOf(item.privilege_write_group_code) > -1))) {
+      rights.keyValues.readonly = false
+      material.readonly = false
+    // if (!context.state.userInfo.roleType) {
+    //   // if (material.type === 'folder') {
+    //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_FOLDER) === -1 && (material.readonly = true)
+    //   // } else if (material.type === 'h5pgm' || material.type === 'sequence') {
+    //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_EDL) === -1 && (material.readonly = true)
+    //   // } else {
+    //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_OBJ) === -1 && (material.readonly = true)
+    //   // }
+    // }
+    } else {
+      rights.keyValues.readonly = true
+      material.readonly = true
+    }
+    if (material.father && material.father.guid === '86023a7e3f2646a2bbee8a9fec7e6bcb') { // 根目录下文件夹
+      rights.keyValues.readonly = true
+      material.readonly = true
+    }
+  })
+  rights.keyValues.radio = [
+    {
+      checked: false,
+      value: 'Public',
+      disabled: false,
+      privilege: 'public'
+    },
+    {
+      checked: false,
+      value: 'Private',
+      disabled: false,
+      privilege: context.state.userInfo.privilege // 跟ML一致，修改时私有权限为修改者
+    },
+    {
+      checked: false,
+      value: 'Condition',
+      disabled: false
+    }
+  ]
+  rights.keyValues.access = [
+    {
+      checked: false,
+      value: 'Access',
+      disabled: true,
+      deptTree: deptTree1
+    },
+    {
+      checked: false,
+      value: 'Access&Write',
+      disabled: true,
+      deptTree: deptTree2
+    }
+  ]
+  rights.keyValues.checkbox = {
+    checked: false,
+    disabled: false,
+    text: 'Also apply the setting to all subfoders and files.'
+  }
+  rights.keyValues.multiplable = true
+  rights.keyValues.multiOption = {
+    checked: false,
+    disabled: false,
+    text: 'Apply to all'
+  }
+  rights.keyValues.type = material.type
+  // rights.keyValues.deptTree = deptTree
+  return rights
+}
+export function getDepTree (depArr) {
+  let tree
+  let rootDepts = depArr.filter(item => item.dept.superid === -1)
+  if (rootDepts.length) {
+    tree = []
+    rootDepts.forEach(item => {
+      let t = {}
+      let node = item.dept || item
+      t.expand = false
+      t.checked = false
+      t.title = node.deptname
+      t.key = 'root'
+      t.children = []
+      tree.push(t)
+      bl(t.children, node.childdept || [])
+    })
+  } else {
+    tree = [{
+      expand: false,
+      checked: false,
+      title: 'All',
+      key: 'root',
+      children: []
+    }]
+    bl(tree[0].children, depArr)
+  }
+  function bl(children, Arr) {
+    Arr.forEach(item => {
+      let node = item.dept || item
+      let t = {}
+      t.expand = false
+      t.checked = false
+      t.title = node.deptname
+      t.key = node.deptid
+      t.read = node.privilege_read_group_code
+      t.write = node.privilege_write_group_code
+      t.children = []
+      children.push(t)
+      if (node.childdept && node.childdept.length) {
+        bl(t.children, node.childdept)
+      }
+    })
+  }
+  return tree
+}
+export function checkDepTree (tree, code, onlyWrite) {
+  let isWrite = false
+  tree.forEach(item => {
+    if (item.read === code && !onlyWrite) {
+      item.checked = true
+    }
+    if (item.write === code) {
+      item.checked = true
+      isWrite = true
+    }
+    if (item.children && item.children.length) {
+      isWrite = checkDepTree(item.children, code, onlyWrite) || isWrite
+      item.children && item.children.every(i => i.checked) && (item.checked = true, 0)
+    }
+  })
+  return isWrite
+}
+export function getTrashcanPreviewInfo (resultArr, fileListArr, materials, type, context) {
+  let source = []
+
+  resultArr.forEach((item, index) => {
+    let entity = item.data.ext.resultList
+    if (entity && entity.length) {
+      entity = entity[0]
+      let material = materials.find(item => item.guid === entity.contentId)
+      material.canPreview = true
+      let o = fileListArr[index].data.ext.entity
+      let i = o.item
+      Object.assign(i, entity.etobject.item)
+      Object.assign(o, entity.etobject)
+      o.item = i
+      o.guid = material.guid
+      o.name = material.name
+    }
+  })
+  source = getPreviewInfo(fileListArr, materials, type, context)
+  source.forEach((item, index) => {
+    item.operations = ['FullScreen']
+  })
+  return source
+}
+
+export function getPreviewInfo(resultArr, materials, type, context) {
+  let source = []
+  resultArr.forEach(item => {
+    let entity = item.data.ext.entity
+    let material = materials.find(item => item.guid === entity.guid)
+    let framerate = 30
+    if (entity.item && entity.item.videostandard !== undefined) {
+      framerate = ETGetFrameRate(entity.item.videostandard) || 30
+      material.videostandard = entity.item.videostandard // 同步帧率，采集中素材这个值可能会变
+      material.strimin = (entity.item.trimin / 10000000).fix(7)
+      material.strimout = (entity.item.trimout / 10000000).fix(7)
+    } else {
+      material.videostandard = material.videostandard || 32
+    }
+    material.canPreview = true
+    if (material.type === 'video') {
+      material.otcIndex = 0
+      material.lastOtcIndex = 1
+      material.maxLTCOffset = 0
+      material.maxVITCOffset = 0
+      material.vtrin = (entity.item.vtrin / 10000000).fix(7)
+      // if (material.LTCItem && material.LTCItem.length && material.VITCItem && material.VITCItem.length) {
+      //   //存在就不更新
+      // } else {
+      material._LTCItem = []
+      material._VITCItem = []
+      material.otcfiles = []
+      let funcArr = []
+      entity.item.clipfile && entity.item.clipfile.filter(item => item.clipclass === 2097152 && item.filename && item.filename.indexOf('.otc')).forEach((item, index) => {
+        material.otcfiles.push(item)
+        funcArr.push(() => {
+          material.otcIndex++
+          material.otcfilein = material.otcfilein !== undefined ? material.otcfilein : ((item.filein / 10000000).fix(7) || 0)
+          return getTimeCodeInfo(context, material, item, material.otcIndex, entity.item.videostandard, entity.item.ntsctcmode)
+        })
+      })
+      sync(funcArr).then(res => {
+        material._LTCItem.sort(function(a, b) {
+          return b.offset - a.offset
+        })
+        material._VITCItem.sort(function(a, b) {
+          return b.offset - a.offset
+        })
+        ltcRepository[material.guid] = material._LTCItem
+        material._LTCItem = []
+        // material.LTCItem = material._LTCItem
+        // material.VITCItem = material._VITCItem
+        vitcRepository[material.guid] = material._VITCItem
+        material._VITCItem = []
+        material.tcUpdate++
+      }) // 同步执行
+    // }
+    }
+    let lowBitrateArr = getLowBitrate(entity, framerate)
+    if (item.data.ext.streammedia && item.data.ext.streammedia.length) {
+      // https中 替换pdf的预览
+      item.data.ext.streammedia.filter(i => i.clipclass === 1 || i.clipclass === undefined).forEach(i => {
+        let httpspath = i.filename || i.filepath
+        source.push({
+          src: encodeUrl(httpspath),
+          start: (i.filein / 10000000).fix(7) || 0,
+          end: (i.fileout / 10000000).fix(7) || ((entity.item.length || 0) / 10000000).fix(7),
+          in: (i.clipin / 10000000).fix(7) || 0,
+          out: (i.clipout / 10000000).fix(7) || ((entity.item.length || 0) / 10000000).fix(7),
+          name: entity.name,
+          video: {},
+          guid: entity.guid,
+          // markers: markerList,
+          framerate: framerate,
+          videostandard: entity.item.videostandard,
+          buffered: 0,
+          ntsctcmode: entity.item.ntsctcmode ? entity.item.ntsctcmode : 0
+        })
+      })
+    } else if (lowBitrateArr.length) {
+      lowBitrateArr.sort((item1, item2) => item1.in - item2.in)
+      source.push(...lowBitrateArr)
+    } else {
+      source.push({
+        src: './images/' + (material.type === 'video' ? 'cannotpreview' : material.bgtype) + '.png',
+        name: entity.name,
+        text: 'online preview is not supported for this file',
+        guid: entity.guid,
+        video: {}
+      // markers: markerList
+      })
+      material.canPreview = false
+    }
+  })
+  source.forEach((item, index) => {
+    let fileSuffix = item.src.substring(item.src.lastIndexOf('.') + 1, item.src.lastIndexOf('?') > -1 ? item.src.lastIndexOf('?') : undefined).toLowerCase()
+    let material = materials.find(i => i.guid === item.guid)
+    if (['mp3', 'mp4', 'mpd', 'png'].indexOf(fileSuffix) === -1 && material.type === 'video') {
+      material.canPreview = false
+      item.src = './images/cannotpreview.png'
+      item.text = 'online preview is not supported for this file'
+    }
+    item.index = index
+    item.operations = ['Set Frame', 'Save Picture', 'FullScreen']
+    if (item.src.startsWith('http://') && document.location.protocol === 'https:') {
+      let purename = item.src.substring(item.src.indexOf('http://') + 7)
+      purename = purename.substring(purename.indexOf('/'))
+      item.src = URLCONFIG.PREVIEWHTTPS + purename
+    }
+  })
+  return source
+}
+export function getLowBitrate (entity, framerate) {
+  let lowBitrateArr = []
+  if (entity && entity.item && entity.item.clipfile) {
+    entity.item.clipfile.forEach(item => {
+      if (item.clipclass === 1 && item.qualitytype === 1) {
+        item.filename && lowBitrateArr.push({
+          src: encodeUrl(item.filename),
+          start: (item.filein / 10000000).fix(7),
+          end: (item.fileout / 10000000).fix(7),
+          in: (item.clipin / 10000000).fix(7),
+          out: (item.clipout / 10000000).fix(7),
+          name: entity.name,
+          video: {},
+          guid: entity.guid,
+          framerate: framerate,
+          videostandard: entity.item.videostandard,
+          buffered: 0,
+          ntsctcmode: entity.item.ntsctcmode ? entity.item.ntsctcmode : 0
+        })
+      }
+    })
+    let item = entity.item.clipfile.find(item => item.clipclass === 2 && item.qualitytype === 1)
+    if (!lowBitrateArr.length && item && entity.subtype === 4) { // 音频
+      item.filename && lowBitrateArr.push({
+        src: encodeUrl(item.filename),
+        start: 0,
+        end: item.fileout / 10000000,
+        in: item.clipin / 10000000,
+        out: item.clipout / 10000000,
+        name: entity.name,
+        video: {},
+        guid: entity.guid,
+        framerate: framerate,
+        videostandard: entity.item.videostandard,
+        buffered: 0,
+        ntsctcmode: entity.item.ntsctcmode ? entity.item.ntsctcmode : 0
+      })
+    }
+    item = entity.item.clipfile[0]
+    if (!lowBitrateArr.length && item && entity.subtype === 32) { // 图片
+      item.filename && lowBitrateArr.push({
+        src: encodeUrl(item.filename),
+        start: 0,
+        end: item.fileout / 10000000,
+        in: item.clipin / 10000000,
+        out: item.clipout / 10000000,
+        name: entity.name,
+        video: {},
+        guid: entity.guid,
+        framerate: framerate,
+        buffered: 0
+      })
+    }
+  }
+  return lowBitrateArr
+}
+
+export function sync (promArr) {
+  return new Promise((resolve, reject) => {
+    let i = 0
+    function loop() {
+      if (i < promArr.length) {
+        let func = promArr[i]
+        if (func instanceof Function) {
+          func().then(res => {
+            i++
+            loop()
+          }).catch(res => {
+            console.log(res)
+            i++
+            loop()
+          })
+        } else {
+          i++
+          loop()
+        }
+      } else {
+        resolve()
+      }
+    }
+    loop()
+  })
+}
+export function encodeUrl (str) {
+  return getIconFilename(str)
+}
+export function getTimeCodeInfo (context, material, clipfile, otcIndex, videoStandard, NtscTcMode) {
+  return new Promise((resolve, reject) => {
+    let url = clipfile.filename
+
+    let fileinFrame = parseInt(GetFrameNumByHundredNS(parseInt(clipfile.filein), videoStandard, NtscTcMode))
+    let clipinFrame = parseInt(GetFrameNumByHundredNS(parseInt(clipfile.clipin), videoStandard, NtscTcMode))
+    let clipoutFrame = parseInt(GetFrameNumByHundredNS(parseInt(clipfile.clipout), videoStandard, NtscTcMode))
+    context.dispatch({
+      type: TYPES.GET_TIMECODE_INFO,
+      data: {
+        url: decodeURIComponent(url)
+      }
+    }).then(res => {
+      let data = JSON.parse(res.R)
+      if (data.status !== 1) {
+        let _OTCFileRoot = data.OTCFileRoot
+        if (_OTCFileRoot) {
+          if (_OTCFileRoot.LTC && _OTCFileRoot.LTC[0] && _OTCFileRoot.LTC[0].LTCItem) {
+            // LTC
+            let arrLTCData = _OTCFileRoot.LTC[0].LTCItem
+            let bFirst = true
+            let tcCount = 0
+            for (let k = 0, l = arrLTCData.length; k < l; ++k) {
+              if (arrLTCData[k].offset < fileinFrame) continue
+              if (bFirst && arrLTCData[k].offset > fileinFrame) {
+                let tc = {
+                  offset: clipinFrame,
+                  ntc: -1
+                }
+                let bStill = false
+                for (let j = k - 1; j >= 0; --j) {
+                  if (arrLTCData[j].ntc === -2) {
+                    bStill = true
+                  } else if (arrLTCData[j].ntc === -1) {
+                    tc.ntc = -1
+                    break
+                  } else {
+                    tc.ntc = arrLTCData[j].ntc + (bStill ? 0 : fileinFrame - arrLTCData[j].offset)
+                    break
+                  }
+                }
+                material._LTCItem.push(tc)
+                tcCount++
+              }
+              let tc = {
+                offset: arrLTCData[k].offset - fileinFrame + clipinFrame,
+                ntc: arrLTCData[k].ntc
+              }
+              material._LTCItem.push(tc)
+              tcCount++
+              bFirst = false
+            }
+            let LTCCount = arrLTCData.length
+            if (bFirst && LTCCount > 0 && tcCount <= 0) {
+              let tc = {
+                offset: clipinFrame,
+                ntc: -1
+              }
+              let bStill = false
+              for (let j = LTCCount - 1; j >= 0; --j) {
+                if (arrLTCData[j].ntc === -2) {
+                  bStill = true
+                } else if (arrLTCData[j].ntc === -1) {
+                  tc.ntc = -1
+                  break
+                } else {
+                  tc.ntc = arrLTCData[j].ntc + (bStill ? 0 : fileinFrame - arrLTCData[j].offset)
+                  break
+                }
+              }
+              material._LTCItem.push(tc)
+              if (arrLTCData[LTCCount - 1].ntc === -2) {
+                tc = {
+                  offset: arrLTCData[LTCCount - 1].offset + clipinFrame,
+                  ntc: arrLTCData[LTCCount - 1].ntc
+                }
+                material._LTCItem.push(tc)
+              }
+            }
+            if (material._LTCItem.length > 0) {
+              if (otcIndex === material.otcfiles.length || material.otcfiles[otcIndex].clipin > clipfile.clipout) {
+                let tc = {
+                  offset: clipoutFrame,
+                  ntc: -1
+                }
+                material._LTCItem.push(tc)
+              }
+            }
+          }
+          if (_OTCFileRoot.VITC && _OTCFileRoot.VITC[0] && _OTCFileRoot.VITC[0].VITCItem) {
+            let arrVITCData = _OTCFileRoot.VITC[0].VITCItem
+            let bFirst = true
+            let tcCount = 0
+            for (let k = 0, l = arrVITCData.length; k < l; ++k) {
+              if (arrVITCData[k].offset < fileinFrame) continue
+              if (bFirst && arrVITCData[k].offset > fileinFrame) {
+                let tc = {
+                  offset: clipinFrame,
+                  ntc: -1
+                }
+                let bStill = false
+                for (let j = k - 1; j >= 0; --j) {
+                  if (arrVITCData[j].ntc === -2) {
+                    bStill = true
+                  } else if (arrVITCData[j].ntc === -1) {
+                    tc.ntc = -1
+                    break
+                  } else {
+                    tc.ntc = arrVITCData[j].ntc + (bStill ? 0 : fileinFrame - arrVITCData[j].offset)
+                    break
+                  }
+                }
+                material._VITCItem.push(tc)
+                tcCount++
+              }
+              let tc = {
+                offset: arrVITCData[k].offset - fileinFrame + clipinFrame,
+                ntc: arrVITCData[k].ntc
+              }
+              material._VITCItem.push(tc)
+              bFirst = false
+              tcCount++
+            }
+            let VITCCount = arrVITCData.length
+            if (bFirst && VITCCount > 0 && tcCount <= 0) {
+              let tc = {
+                offset: clipinFrame,
+                ntc: -1
+              }
+              let bStill = false
+              for (let j = VITCCount - 1; j >= 0; --j) {
+                if (arrVITCData[j].ntc === -2) {
+                  bStill = true
+                } else if (arrVITCData[j].ntc === -1) {
+                  tc.ntc = -1
+                  break
+                } else {
+                  tc.ntc = arrVITCData[j].ntc + (bStill ? 0 : fileinFrame - arrVITCData[j].offset)
+                  break
+                }
+              }
+              material._VITCItem.push(tc)
+              if (arrVITCData[VITCCount - 1].ntc === -2) {
+                tc = {
+                  offset: clipinFrame + 1,
+                  ntc: arrVITCData[VITCCount - 1].ntc
+                }
+                material._VITCItem.push(tc)
+              }
+            }
+            if (material._VITCItem.length > 0) {
+              if (otcIndex === material.otcfiles.length || material.otcfiles[otcIndex].clipin > clipfile.clipout) {
+                let tc = {
+                  offset: clipoutFrame,
+                  ntc: -1
+                }
+                material._VITCItem.push(tc)
+              }
+            }
+          }
+          resolve()
+        }
+      }
+    }).catch(res => {
+      console.log(res)
+      reject(res)
+    })
+  })
 }

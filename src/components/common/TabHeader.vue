@@ -274,4 +274,40 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.list_header_item {
+  line-height: 30px;
+  height: 30px;
+  display: inline-block;
+  text-align: center;
+  text-overflow: ellipsis;
+  /*overflow: hidden;*/
+  background: #464646;
+  border-left: #101010 solid 1px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  width: 200px;
+  position: relative;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab_header_container .list_header_item,
+.advance_search_container .list_header_item {
+  line-height: 38px;
+  height: 38px;
+}
+.list_header_item_checked {
+  background: #363636;
+  box-shadow: 0 1px 4px #1b1b1b;
+}
+.dragging_item {
+  position: absolute;
+  z-index: 1;
+  background: #363636;
+  top: 0px;
+  border-left: 1px solid #1b1b1b;
+  box-shadow: 0 1px 8px #101010;
+}
 </style>

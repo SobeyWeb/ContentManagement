@@ -1,12 +1,12 @@
 <template>
   <div class="sv_marker_list">
     <div class="sv_marker_title_box">
-      <span>{{dict.markPoint}}</span>
+      <span>Mark Point</span>
     </div>
     <div class="sv_marker_nav clearfix">
-      <div :class="{markSelected: esMarkerSymbol}" class="sv_marker_nav_item fl" v-on:click="esMarkerSymbol = !esMarkerSymbol">{{dict.emark}}</div>
-      <div :class="{markSelected: scMarkerSymbol}" class="sv_marker_nav_item fl" v-on:click="scMarkerSymbol = !scMarkerSymbol">{{dict.smark}}</div>
-      <div :class="{markSelected: chMarkerSymbol}" class="sv_marker_nav_item fl" v-on:click="chMarkerSymbol = !chMarkerSymbol">{{dict.cmark}}</div>
+      <div :class="{markSelected: esMarkerSymbol}" class="sv_marker_nav_item fl" v-on:click="esMarkerSymbol = !esMarkerSymbol">Essence Mark</div>
+      <div :class="{markSelected: scMarkerSymbol}" class="sv_marker_nav_item fl" v-on:click="scMarkerSymbol = !scMarkerSymbol">Scence Mark</div>
+      <div :class="{markSelected: chMarkerSymbol}" class="sv_marker_nav_item fl" v-on:click="chMarkerSymbol = !chMarkerSymbol">Change Mark</div>
       <div :class="{markSelected: loMarkerSymbol}" class="sv_marker_nav_item fl" v-on:click="loMarkerSymbol = !loMarkerSymbol">Logging Mark</div>
     </div>
     <div class="filter_container">
@@ -69,9 +69,6 @@ export default {
           return i.some(j => j.itemvalue.filter(n => n.languageid === this.lmLanguage).some(m => this.regExp.test(m.itemvalue)))
         }
       })))))
-    },
-    dict () {
-      return this.$store.state.dict
     },
     regExp () {
       var cond = this.condition.trim()
@@ -186,4 +183,100 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.sv_marker_list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.sv_marker_title_box {
+  line-height: 40px;
+  height: 40px;
+  box-sizing: border-box;
+  font-size: 15px;
+  color: #9b9b9b;
+  padding: 0 10px;
+  background-color: #2d2d2d;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1a1a1a;
+  border-top: 1px solid #1a1a1a;
+  display: none;
+}
+
+.sv_marker_nav {
+  line-height: 35px;
+  padding: 5px 0;
+}
+
+.sv_marker_nav_item {
+  display: inline-block;
+  background-color: #424242;
+  width: 146px;
+  font-size: 12px;
+  line-height: 25px;
+  height: 25px;
+  text-align: center;
+  margin: 0 1px;
+  cursor: pointer;
+  padding: 0px 1px;
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.sv_marker_nav_item::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  background: #b87b44;
+  -webkit-transition: -webkit-transform 0.3s, opacity 0.3s;
+  transition: transform 0.3s, opacity 0.3s;
+  -webkit-transform: translate3d(-115%, 0, 0) skewX(40deg);
+  transform: translate3d(-115%, 0, 0) skewX(40deg);
+}
+
+.markSelected.sv_marker_nav_item::before {
+  opacity: 1;
+  -webkit-transform: translate3d(0, 0, 0) skewX(0deg);
+  transform: translate3d(0, 0, 0) skewX(0deg);
+}
+
+.filter_container {
+  padding: 0 15px 5px 0;
+  position: relative;
+  line-height: 30px;
+}
+
+.clear_btn {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: url(../../../assets/images/searchbox_clean_nor.png) no-repeat
+    center;
+  cursor: pointer;
+  top: 9px;
+  right: 27px;
+}
+
+.filter_input {
+  font-size: 0.9rem;
+  line-height: 30px;
+  color: #cfd2d4;
+  background-color: #000;
+  background-image: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0 24px 0 10px;
+  width: 99%;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+  transition: border-color 0.3s eas;
+}
 </style>

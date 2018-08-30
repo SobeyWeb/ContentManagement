@@ -2659,7 +2659,7 @@ function isInteger(obj) {
   return parseInt(obj, 10) === obj
 }
 
-function ET_VideoStandardIsHD(vStandard) {
+export function ET_VideoStandardIsHD(vStandard) {
   var aspect = ETGetVideoApsect(vStandard)
   if (aspect.nWidth > 720) {
     return true
@@ -3156,4 +3156,275 @@ export function GetMillSecondsByFrameNum(
     // 默认25帧率
     return parseFloat(lFrameNumber / 25)
   }
+}
+export const ET_CLIP_CLASS_UNKNOW = 0x00000000
+export const ET_CLIP_CLASS_V = 0x00000001
+export const ET_CLIP_CLASS_A1 = 0x00000002
+export const ET_CLIP_CLASS_A2 = 0x00000004
+export const ET_CLIP_CLASS_A3 = 0x00000008
+export const ET_CLIP_CLASS_A4 = 0x00000010
+export const ET_CLIP_CLASS_A5 = 0x00000020
+export const ET_CLIP_CLASS_A6 = 0x00000040
+export const ET_CLIP_CLASS_A7 = 0x00000080
+export const ET_CLIP_CLASS_A8 = 0x00000100
+
+export const ET_CLIP_CLASS_A9 = 0x00000200
+export const ET_CLIP_CLASS_A10 = 0x00000400
+export const ET_CLIP_CLASS_A11 = 0x00000800
+export const ET_CLIP_CLASS_A12 = 0x00001000
+export const ET_CLIP_CLASS_A13 = 0x00002000
+export const ET_CLIP_CLASS_A14 = 0x00004000
+export const ET_CLIP_CLASS_A15 = 0x00008000
+export const ET_CLIP_CLASS_A16 = 0x00010000
+export const ET_CLIP_CLASS_TC = 0x00200000
+export const ET_CLIP_CLASS_CC = 0x00800000
+// var strTrack = "";
+// var strText = "";
+
+export const ET_CLIP_CLASS_ALL = 0x0000ffff
+
+export const ET_CLIP_CLASS_G = 0x00040000
+export const ET_CLIP_CLASS_KEY = 0x00080000
+export const ET_CLIP_CLASS_EFF = 0x00100000
+export const ET_CLIP_CLASS_CLIP = 0x00400000
+
+// DEB音频轨道
+export const ET_CLIP_DBE_A1 = 0x00000001
+export const ET_CLIP_DBE_A2 = 0x00000002
+export const ET_CLIP_DBE_A3 = 0x00000004
+export const ET_CLIP_DBE_A4 = 0x00000008
+export const ET_CLIP_DBE_A5 = 0x00000010
+export const ET_CLIP_DBE_A6 = 0x00000020
+export const ET_CLIP_DBE_A7 = 0x00000040
+export const ET_CLIP_DBE_A8 = 0x00000080
+export function getclipclassType(clipClass) {
+  let strTrack = ''
+  switch (clipClass) {
+    case ET_CLIP_CLASS_V:
+      strTrack = 'Video'
+      break
+    case ET_CLIP_CLASS_A1:
+      strTrack = 'Audio 1'
+      break
+    case ET_CLIP_CLASS_A2:
+      strTrack = 'Audio 2'
+      break
+    case ET_CLIP_CLASS_A3:
+      strTrack = 'Audio 3'
+      break
+    case ET_CLIP_CLASS_A4:
+      strTrack = 'Audio 4'
+      break
+    case ET_CLIP_CLASS_A5:
+      strTrack = 'Audio 5'
+      break
+    case ET_CLIP_CLASS_A6:
+      strTrack = 'Audio 6'
+      break
+    case ET_CLIP_CLASS_A7:
+      strTrack = 'Audio 7'
+      break
+    case ET_CLIP_CLASS_A8:
+      strTrack = 'Audio 8'
+      break
+    // paul for 16A
+    case ET_CLIP_CLASS_A9:
+      strTrack = 'Audio 9'
+      break
+    case ET_CLIP_CLASS_A10:
+      strTrack = 'Audio 10'
+      break
+    case ET_CLIP_CLASS_A11:
+      strTrack = 'Audio 11'
+      break
+    case ET_CLIP_CLASS_A12:
+      strTrack = 'Audio 12'
+      break
+    case ET_CLIP_CLASS_A13:
+      strTrack = 'Audio 13'
+      break
+    case ET_CLIP_CLASS_A14:
+      strTrack = 'Audio 14'
+      break
+    case ET_CLIP_CLASS_A15:
+      strTrack = 'Audio 15'
+      break
+    case ET_CLIP_CLASS_A16:
+      strTrack = 'Audio 16'
+      break
+    case ET_CLIP_CLASS_TC:
+      strTrack = 'TC'
+      break
+    case ET_CLIP_CLASS_CC:
+      strTrack = 'CC'
+      break
+    case ET_CLIP_CLASS_KEY:
+      // strTrack = "ETPROPERTYPAGE_MLPROPOTHER_KEY"///*_T("key文件")*/
+      strTrack = 'key file'
+      break
+    // add by wcj 2010 - 4-6 B字幕支持
+    case ET_CLIP_CLASS_G:
+      // strTrack = "ETPROPERTYPAGE_MLPROPOTHER_B";///*_T("B字幕")*/
+      strTrack = 'B subtitle'
+      break
+    case ET_CLIP_CLASS_CLIP:
+      strTrack = 'Sub Clip'
+      break
+    default:
+      strTrack = 'unkown8'
+      break
+  }
+  return strTrack
+}
+export function getdbeTrack(clipClass) {
+  var _DbeTrack = ''
+  switch (clipClass) {
+    case ET_CLIP_CLASS_A1:
+    case ET_CLIP_CLASS_A2:
+      _DbeTrack = 'S1'
+      break
+    case ET_CLIP_CLASS_A3:
+    case ET_CLIP_CLASS_A4:
+      _DbeTrack = 'S2'
+      break
+    case ET_CLIP_CLASS_A5:
+    case ET_CLIP_CLASS_A6:
+      _DbeTrack = 'S3'
+      break
+    case ET_CLIP_CLASS_A7:
+    case ET_CLIP_CLASS_A8:
+      _DbeTrack = 'S4'
+      break
+    default:
+      _DbeTrack = 'unkown8'
+      break
+  }
+  return _DbeTrack
+}
+// 获取DBE的passage
+export function getDbePassage(MediaChannel) {
+  var strChannel = ''
+  switch (MediaChannel) {
+    case ET_CLIP_CLASS_A1:
+      strChannel = 'Stream1'
+      break
+    case ET_CLIP_CLASS_A2:
+      strChannel = 'Stream2'
+      break
+    case ET_CLIP_CLASS_A3:
+      strChannel = 'Stream3'
+      break
+    case ET_CLIP_CLASS_A4:
+      strChannel = 'Stream4'
+      break
+    case ET_CLIP_CLASS_A5:
+      strChannel = 'Stream5'
+      break
+    case ET_CLIP_CLASS_A6:
+      strChannel = 'Stream6'
+      break
+    case ET_CLIP_CLASS_A7:
+      strChannel = 'Stream7'
+      break
+    case ET_CLIP_CLASS_A8:
+      strChannel = 'Stream8'
+      break
+    default:
+      strChannel = 'unkown8'
+      break
+  }
+  return strChannel
+}
+export function getStreamChannel(dbestreamchannel) {
+  var StreamChannel = ''
+  if (dbestreamchannel & (ET_CLIP_DBE_A1 | ET_CLIP_DBE_A2)) {
+    StreamChannel = 'S1/S1'
+  } else if (dbestreamchannel & (ET_CLIP_DBE_A3 | ET_CLIP_DBE_A4)) {
+    StreamChannel = 'S2/S2'
+  } else if (dbestreamchannel & (ET_CLIP_DBE_A5 | ET_CLIP_DBE_A6)) {
+    StreamChannel = 'S3/S3'
+  } else if (dbestreamchannel & (ET_CLIP_DBE_A7 | ET_CLIP_DBE_A8)) {
+    StreamChannel = 'S4/S4'
+  } else {
+    StreamChannel = 'None'
+  }
+  return StreamChannel
+}
+
+export function getChannelType(channel) {
+  let strText = ''
+  switch (channel) {
+    case ET_CLIP_CLASS_V:
+      strText = 'Video'
+      break
+    case ET_CLIP_CLASS_A1:
+      strText = 'Audio 1'
+      break
+    case ET_CLIP_CLASS_A2:
+      strText = 'Audio 2'
+      break
+    case ET_CLIP_CLASS_A3:
+      strText = 'Audio 3'
+      break
+    case ET_CLIP_CLASS_A4:
+      strText = 'Audio 4'
+      break
+    case ET_CLIP_CLASS_A5:
+      strText = 'Audio 5'
+      break
+    case ET_CLIP_CLASS_A6:
+      strText = 'Audio 6'
+      break
+    case ET_CLIP_CLASS_A7:
+      strText = 'Audio 7'
+      break
+    case ET_CLIP_CLASS_A8:
+      strText = 'Audio 8'
+      break
+    // paul for 16A
+    case ET_CLIP_CLASS_A9:
+      strText = 'Audio 9'
+      break
+    case ET_CLIP_CLASS_A10:
+      strText = 'Audio 10'
+      break
+    case ET_CLIP_CLASS_A11:
+      strText = 'Audio 11'
+      break
+    case ET_CLIP_CLASS_A12:
+      strText = 'Audio 12'
+      break
+    case ET_CLIP_CLASS_A13:
+      strText = 'Audio 13'
+      break
+    case ET_CLIP_CLASS_A14:
+      strText = 'Audio 14'
+      break
+    case ET_CLIP_CLASS_A15:
+      strText = 'Audio 15'
+      break
+    case ET_CLIP_CLASS_A16:
+      strText = 'Audio 16'
+      break
+    case ET_CLIP_CLASS_TC:
+      strText = ''
+      break
+    case ET_CLIP_CLASS_CC:
+      strText = ''
+      break
+    case ET_CLIP_CLASS_KEY:
+      // strText = "ETPROPERTYPAGE_MLPROPOTHER_KEY";//_T("key文件");
+      strText = ''
+      break
+    // add by wcj 2010 - 4-6 B字幕支持
+    case ET_CLIP_CLASS_G:
+      // strText = "ETPROPERTYPAGE_MLPROPOTHER_B";//_T("B字幕");
+      strText = ''
+      break
+
+    default:
+      strText = 'unkown8'
+      break
+  }
+  return strText
 }

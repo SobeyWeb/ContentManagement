@@ -12,11 +12,11 @@
       <div class="sv_marker_pos fl">
         <div v-if="material.isSMarker">
           <div class="fr" style="margin-bottom: 5px">
-            <span class="sv_timeCodeSpan">{{dict.in}}</span>
+            <span class="sv_timeCodeSpan">In</span>
             <input class="sv_markTimeCode" readonly="readonly" type="text" :value="material.inPoint" tabindex="-1">
           </div>
           <div class="fr">
-            <span class="sv_timeCodeSpan">{{dict.out}}</span>
+            <span class="sv_timeCodeSpan">Out</span>
             <input class="sv_markTimeCode" readonly="readonly" type="text" :value="material.outPoint" tabindex="-1">
           </div>
         </div>
@@ -32,7 +32,7 @@
         </div>
         <div v-else>
           <div class="fr">
-            <span class="sv_timeCodeSpan">{{dict.pos}}</span>
+            <span class="sv_timeCodeSpan">Pos</span>
             <input class="sv_markTimeCode" readonly="readonly" type="text" :value="material.pos" tabindex="-1">
           </div>
         </div>

@@ -10,21 +10,21 @@
     <div class="marker_pos">
       <ul v-if="material.isSMarker">
         <li>
-          <span class="timeCodeSpan">{{dict.in}}</span>
+          <span class="timeCodeSpan">In</span>
           <input class="markTimeCode" readonly="readonly" type="text" :value="material.inPoint">
         </li>
         <li>
-          <span class="timeCodeSpan">{{dict.out}}</span>
+          <span class="timeCodeSpan">Out</span>
           <input class="markTimeCode" readonly="readonly" type="text" :value="material.outPoint">
         </li>
       </ul>
       <ul v-else>
         <li>
-          <span class="timeCodeSpan">{{dict.pos}}</span>
+          <span class="timeCodeSpan">Pos</span>
           <input class="markTimeCode" readonly="readonly" type="text" :value="material.pos">
         </li>
         <li style="visibility: hidden;">
-          <span class="timeCodeSpan">{{dict.pos}}</span>
+          <span class="timeCodeSpan">Pos</span>
           <input class="markTimeCode" readonly="readonly" type="text" :value="material.pos">
         </li>
       </ul>

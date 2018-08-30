@@ -1,20 +1,4058 @@
+/* eslint-disable camelcase */
 import TYPES from '../dicts/mutationTypes.js'
 import API_CONFIG from '../config/apiConfig.js'
 import URLCONFIG from '../config/urlConfig.js'
 import NODETYPES from '../dicts/guidMaps.js'
 import axios from 'axios'
 import * as util from '../lib/util.js'
-import { getRepository } from '../data/repository.js'
+import { getRepository, setRepository } from '../data/repository.js'
+import appSetting from '../config/appSetting.js'
+import Vue from 'vue'
+import { emptyMaterial } from '../data/basicData'
+import Guid from '../lib/Guid'
+import { ET_VideoStandardIsHD, getclipclassType } from '../lib/format'
+import { GetEntityType, ClipSubType, ObjectType } from '../lib/transform'
+import PERMISSION from '../dicts/permission'
+import $ from 'jquery'
 let md5 = require('../lib/md5.min.js').md5
 
 export default {
+  [TYPES.GET_SEARCHMODEL](context, payload) {
+    return context
+      .dispatch({
+        type: TYPES.GET_SEARCH_QUERY
+      })
+      .then(res => {
+        var temp = res.find(
+          item =>
+            item.templateName === 'default' + context.state.userInfo.usercode
+        )
+        if (temp) {
+          res.remove(temp)
+        }
+        res.forEach(item => {
+          item.condition.headers.forEach(item => {
+            util.packegeCustomSearchData(item.keyValues)
+          })
+          item.name = item.templateName
+          item.bakCondition = JSON.parse(JSON.stringify(item.condition))
+        })
+        context.commit({
+          type: TYPES.GET_SEARCHMODEL,
+          target: payload.source,
+          data: res
+        })
+      })
+  },
+  [TYPES.GET_SEARCHRESULT](context, payload) {
+    var condition = payload.condition || payload.source.condition
+    var json
+    if (!condition) {
+      return
+    }
+    if (!payload.condition) {
+      payload.source.bakCondition = JSON.parse(
+        JSON.stringify(payload.source.condition)
+      ) //  重置搜索条件
+    }
+    if (condition.type === 1) {
+      var tab = condition.headers.find(item => item.selected)
+      var data = util.getAdvanceSearchCondition(tab, condition.node)
+      context
+        .dispatch({
+          type: TYPES.ADVANCE_SEARCH_MATERIALS,
+          data: data,
+          source: payload.source,
+          showWaiting: true
+        })
+        .then(res => {
+          context.commit({
+            type: TYPES.SET_MATERIALS,
+            target: payload.source,
+            data: res
+          })
+          context.commit({
+            type: TYPES.GET_NAVPATH,
+            target: payload.source,
+            data: []
+          })
+        })
+    } else if (condition.type === 2) {
+      json = util.getFulltextSearchCondtion(condition, condition.node, true)
+      context
+        .dispatch({
+          type: TYPES.FULLTEXT_SEARCH_MATERIALS,
+          data: {
+            json: json
+          },
+          source: payload.source,
+          showWaiting: true
+        })
+        .then(res => {
+          context.commit({
+            type: TYPES.SET_MATERIALS,
+            target: payload.source,
+            data: res
+          })
+          context.commit({
+            type: TYPES.GET_NAVPATH,
+            target: payload.source,
+            data: []
+          })
+        })
+    } else {
+      json = util.getFulltextSearchCondtion(condition, condition.node, false)
+      context
+        .dispatch({
+          type: TYPES.FULLTEXT_SEARCH_MATERIALS,
+          data: {
+            json: json
+          },
+          source: payload.source,
+          showWaiting: true
+        })
+        .then(res => {
+          context.commit({
+            type: TYPES.SET_MATERIALS,
+            target: payload.source,
+            data: res
+          })
+          context.commit({
+            type: TYPES.GET_NAVPATH,
+            target: payload.source,
+            data: []
+          })
+        })
+    }
+  },
+  [TYPES.REFRESH_MATERIAL](context, payload) {
+    payload.source = payload.source || context.getters.currentNode
+    if (payload.source.guid === 1 || payload.source.guid === 2) {
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.GET_SEARCHRESULT,
+            source: payload.source
+          })
+          .then(() => {
+            resolve()
+          })
+      })
+    } else if (payload.source.guid === -1) {
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.GET_FAVORITERESULT,
+            source: payload.source
+          })
+          .then(() => {
+            resolve()
+          })
+      })
+    } else if (payload.source.guid === 0) {
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.GET_TRASHCAN_OBJECTS,
+            source: payload.source,
+            option: {
+              hideLoading: payload.option && payload.option.hideLoading
+            }
+          })
+          .then(() => {
+            resolve()
+          })
+      })
+    } else {
+      return context.dispatch({
+        type: TYPES.GET_MATERIALS3,
+        source: payload.source,
+        alwaysGet: payload.alwaysGet
+      })
+    }
+  },
+  [TYPES.UPDATE_MATERIALS](context, payload) {
+    var tarr = payload.data.type.split('.')
+    if (
+      context.state.previewOptions.materials.some(
+        i => i.guid === payload.data.guid
+      )
+    ) {
+      context.state.refreshFunc()
+    }
+    var ding = context.state.linkNodes[0].folders.find(
+      i => i.guid === payload.data.guid
+    )
+    if (ding) {
+      context
+        .dispatch({
+          type: TYPES.GET_DING
+        })
+        .then(res => {
+          var same = res.data.ext.find(i => i.entity.guid === payload.data.guid)
+          if (same) {
+            ding.name = same.entity.name
+            ding.path = same.entity.folderpath + '/' + same.entity.name
+          } else {
+            context.state.linkNodes[0].folders.remove(ding)
+          }
+        })
+    }
+
+    if (
+      context.getters.currentNode.guid === 0 &&
+      ['RECYCLED', 'DELETE', 'RECOVERED'].indexOf(tarr[2]) > -1
+    ) {
+      context.dispatch({
+        type: TYPES.REFRESH_MATERIAL,
+        source: context.getters.currentNode,
+        option: {
+          hideLoading: true
+        }
+      })
+    }
+    if (tarr[0] === 'TREE' || tarr[0] === 'RESOURCE') {
+      if (tarr[2] === 'UPDATE') {
+        util.updateMaterial(context.state.nodes, payload.data, context)
+        util.updateMaterial(context.state.publicPath, payload.data, context) //  更新save clip 的tree
+      } else if (tarr[2] === 'CREATE' || tarr[2] === 'RECOVERED') {
+        util.getMaterialFoder(context.state.nodes, payload.data).then(res => {
+          if (
+            getRepository(res.guid)
+              .some(item => (item._guid || item.guid) === payload.data.guid)
+          ) {
+            util.updateMaterial(
+              getRepository(res.guid),
+              payload.data,
+              context
+            )
+          } else {
+            var node = util.initData(payload.data, res)
+            node.type = tarr[0] === 'TREE' ? 'folder' : 'other'
+            node.bgtype = node.type
+            node.guid = payload.data.guid
+            getRepository(res.guid).push(node)
+            util.forceUpdate(res.guid)
+            node.type === 'folder' && res.folders.push(node)
+            util.updateMaterial(
+              getRepository(res.guid),
+              payload.data,
+              context
+            )
+          }
+        })
+        //  更新save clip 的tree
+        util
+          .getMaterialFoder(context.state.publicPath, payload.data)
+          .then(res => {
+            if (
+              res.folders.some(
+                item => (item._guid || item.guid) === payload.data.guid
+              )
+            ) {
+              util.updateMaterial(res.folders, payload.data, context)
+            } else if (tarr[0] === 'TREE') {
+              var node = util.initData(payload.data, res)
+              node.type = 'folder'
+              node.bgtype = node.type
+              node.guid = payload.data.guid
+              res.folders.push(node)
+              util.updateMaterial(res.folders, payload.data, context)
+            }
+          })
+      } else if (tarr[2] === 'RECYCLED') {
+        util.deleteMaterial(context.state.nodes, payload.data)
+        util.deleteMaterial(context.state.publicPath, payload.data)
+      }
+    } else {
+      util.updateMaterial(context.state.nodes, payload.data, context)
+      util.updateMaterial(context.state.publicPath, payload.data, context) //  更新save clip 的tree
+    }
+  },
+  //  重命名
+  [TYPES.RENAME](context, payload) {
+    let url
+    if (payload.source.type === 'folder') {
+      url = API_CONFIG[TYPES.RENAME](
+        {
+          usertoken: context.state.userInfo.usertoken,
+          srcpath: payload.source.path,
+          name: payload.data
+        },
+        'folder'
+      )
+    } else {
+      url = API_CONFIG[TYPES.RENAME](
+        {
+          usertoken: context.state.userInfo.usertoken,
+          contentid: payload.source.guid,
+          newobjectname: payload.data
+        },
+        'object'
+      )
+    }
+    var material = payload.source
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          if (
+            getRepository(payload.source.guid).length ||
+            payload.source.folders.length
+          ) {
+            //  merge children path
+            util.mergeChildrenPath(
+              payload.source.hasGetChild
+                ? getRepository(payload.source.guid)
+                : payload.source.folders,
+              payload.source.path
+            )
+          }
+          let json = {
+            object: {
+              entity: /* object.entity */ {
+                guid: material.guid,
+                type: material.typeid,
+                subtype: material.subtype,
+                folderpath: material.folderpath,
+                modifier: context.state.userInfo.usercode,
+                modifyterminal: context.state.userInfo.ip,
+                modifydate: new Date().format('yyyy-MM-dd hh:mm:ss')
+              }
+            },
+            version: 1,
+            type: GetEntityType(material.typeid, material.subtype)
+          }
+          //  修改元数据
+          context.dispatch({
+            type: TYPES.SAVE_OBJECT_INFO,
+            data: json
+          })
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  //  触发Rename
+  [TYPES.DISPATCH_RENAME](context, payload) {
+    var node = context.state.selectedMaterials[0]
+    if (node.operations.indexOf('Rename') === -1) {
+      util.Notice.warning(
+        'This material is not allowed to be renamed',
+        '',
+        3000
+      )
+      return
+    }
+    if (node.guid === 2) {
+      context.dispatch({
+        type: TYPES.DISPATCH_SAVE_SEARCHRESULT,
+        target: [node]
+      })
+    } else if ([1, 2].indexOf(node.father.guid) > -1) {
+      node.renaming = true
+      context.commit({
+        type: TYPES.GET_NAVPATH,
+        target: node.father,
+        data: []
+      })
+      context.commit({
+        type: TYPES.CLEAR_SELECTEEDITEMS
+      })
+      node.selected = true
+      context.commit({
+        type: TYPES.ADD_SELECTEDITEM,
+        data: node
+      })
+      context.commit({
+        type: TYPES.SET_SIGNMATERIAL,
+        data: context.getters.displayMaterials.indexOf(node)
+      })
+    } else {
+      if (node.father !== context.getters.currentNode) {
+        var path
+        if (appSetting.USEROOTPATH) {
+          path = node.father.path.split('/')
+        } else {
+          path = node.father.path.split('/').slice(1)
+        }
+        util
+          .locateFolder(
+            context,
+            path,
+            {
+              children: context.getters.folderTree
+            },
+            {
+              isShowWaiting: true
+            }
+          )
+          .then(res => {
+            var newNode = getRepository(node.father.guid)
+              .find(item => item.guid === node.guid)
+            newNode.renaming = true
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node.father,
+              data: []
+            })
+            context.commit({
+              type: TYPES.CLEAR_SELECTEEDITEMS
+            })
+            newNode.selected = true
+            context.commit({
+              type: TYPES.ADD_SELECTEDITEM,
+              data: newNode
+            })
+            context.commit({
+              type: TYPES.SET_SIGNMATERIAL,
+              data: context.getters.displayMaterials.indexOf(newNode)
+            })
+          })
+      } else {
+        var newNode = getRepository(node.father.guid)
+          .find(item => item.guid === node.guid)
+        newNode.renaming = true
+        context.commit({
+          type: TYPES.CLEAR_SELECTEEDITEMS
+        })
+        newNode.selected = true
+        context.commit({
+          type: TYPES.ADD_SELECTEDITEM,
+          data: newNode
+        })
+        context.commit({
+          type: TYPES.SET_SIGNMATERIAL,
+          data: context.getters.displayMaterials.indexOf(newNode)
+        })
+      }
+    }
+  },
+  //  触发Rename
+  [TYPES.DISPATCH_ADD_FOLDER](context, payload) {
+    var node
+    if (payload.target && payload.target.length) {
+      if (payload.target[0].selecting) {
+        //  左侧树
+        node = payload.target[0]
+        context
+          .dispatch({
+            type: TYPES.GET_MATERIALS,
+            source: node
+          })
+          .then(() => {
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node,
+              data: []
+            })
+            util.newFolder(context, node)
+          })
+      } else {
+        return false
+      }
+    } else {
+      node = context.getters.currentNode
+      util.newFolder(context, node)
+    }
+  },
+  //  新建文件夹
+  [TYPES.ADD_FOLDER](context, payload) {
+    let url = API_CONFIG[TYPES.ADD_FOLDER]({
+      usertoken: context.state.userInfo.usertoken,
+      parentpath: payload.source.path,
+      name: payload.data
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  //  删除素材到回收站
+  [TYPES.RECYCLE](context, payload) {
+    let url = API_CONFIG[TYPES.RECYCLE]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var promiseArr = []
+    var oldlength = payload.target.length
+    if (
+      !context.state.userInfo.roleType &&
+      context.state.userInfo.permission.indexOf(
+        PERMISSION.DELETE_FOLDER_TREE
+      ) === -1
+    ) {
+      var folderArr = payload.target.filter(item => item.type === 'folder')
+      folderArr.forEach(item => {
+        promiseArr.push(
+          context
+            .dispatch({
+              type: TYPES.GET_MATERIALS_BY_PAGE,
+              source: item,
+              page: 1,
+              size: 1
+            })
+            .then(res => {
+              res.data.ext.length && payload.target.remove(item)
+              context.state.userInfo.permission.indexOf(
+                PERMISSION.DELETE_FOLDER
+              ) === -1 && payload.target.remove(item)
+            })
+        )
+      })
+    }
+    var contentids = []
+    Promise.all(promiseArr).then(() => {
+      oldlength !== payload.target.length &&
+        util.Notice.warning('Some Folders can not be recycle', '', 3000)
+      if (payload.target && payload.target.length) {
+        payload.target.forEach(item => {
+          contentids.push(item.guid)
+          getRepository(item.father.guid).remove(item)
+          item.type === 'folder' && item.father.folders.remove(item)
+        })
+        util.forceUpdate(payload.target[0].father.guid)
+        if (payload.target[0].father.guid === 0) {
+          return context.dispatch({
+            type: TYPES.DELETE,
+            target: payload.target
+          })
+        } else if (
+          payload.target[0].father.guid === 1 &&
+          (contentids[0] + '').length < 32
+        ) {
+          return context
+            .dispatch({
+              type: TYPES.DELETE_SEARCH_QUERY,
+              data: {
+                templateID: payload.target[0].templateId
+              }
+            })
+            .then(res => {
+              payload.target[0].father.searchModel.remove(payload.target[0])
+            })
+            .catch(res => {
+              util.Notice.failed('Failed to delete search template', '', 3000)
+            })
+        } else {
+          var body = contentids.join(',')
+          //  body  contentid Arr
+          var symbol = Symbol('recycle')
+          context.commit({
+            type: TYPES.PUSH_EVENT,
+            data: {
+              type: TYPES.RECYCLE,
+              from: payload.target[0].father,
+              target: payload.target
+            },
+            symbol: symbol
+          })
+          return new Promise((resolve, reject) => {
+            axios.post(url, JSON.stringify(body)).then(res => {
+              if (res.data.code === '0') {
+                if (
+                  payload.target.some(
+                    item => item === context.getters.currentNode
+                  )
+                ) {
+                  var path
+                  if (appSetting.USEROOTPATH) {
+                    path = context.getters.currentNode.father.path.split('/')
+                  } else {
+                    path = context.getters.currentNode.father.path
+                      .split('/')
+                      .slice(1)
+                  }
+                  util.locateFolder(
+                    context,
+                    path,
+                    {
+                      children: context.getters.folderTree
+                    },
+                    {
+                      isShowWaiting: true
+                    }
+                  )
+                }
+                context.commit({
+                  type: TYPES.DELETE_EVENT,
+                  symbol: symbol
+                })
+                //  util.Notice.success('recycle to trash success!', '', 3000)
+                resolve(res)
+              } else {
+                context.commit({
+                  type: TYPES.RECOVERY_EVENT,
+                  symbol: symbol
+                })
+                util.Notice.warning('Faild to delete clip', '', 3000)
+                reject(res)
+              }
+            })
+          })
+        }
+      }
+    })
+  },
+  //  彻底删除素材
+  [TYPES.DELETE](context, payload) {
+    let url = API_CONFIG[TYPES.DELETE]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var contentids = []
+    payload.target.forEach(item => {
+      contentids.push(item.guid)
+      getRepository(item.father.guid).remove(item)
+      item.type === 'folder' && item.father.folders.remove(item)
+    })
+    util.forceUpdate(payload.target[0] && payload.target[0].father.guid)
+    var body = contentids.join(',')
+    //  body  contentid Arr
+    var symbol = Symbol('delete')
+    context.commit({
+      type: TYPES.PUSH_EVENT,
+      data: {
+        type: TYPES.DELETE,
+        from: payload.target[0].father,
+        target: payload.target
+      },
+      symbol: symbol
+    })
+    //  body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.post(url, JSON.stringify(body)).then(res => {
+        if (res.data.code === '0') {
+          context.commit({
+            type: TYPES.DELETE_EVENT,
+            symbol: symbol
+          })
+          resolve(res)
+        } else {
+          context.commit({
+            type: TYPES.RECOVERY_EVENT,
+            symbol: symbol
+          })
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.RESTORE_ALL](context, payload) {
+    var arrs = []
+    getRepository(context.getters.currentNode.guid)
+      .forEach(item => arrs.push(item))
+    return context.dispatch({
+      type: TYPES.RESTORE,
+      target: arrs
+    })
+  },
+  //  从回收站还原素材
+  [TYPES.RESTORE](context, payload) {
+    let url = API_CONFIG[TYPES.RESTORE]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var contentids = []
+    payload.target.forEach(item => {
+      contentids.push(item.guid)
+      getRepository(item.father.guid).remove(item)
+      item.type === 'folder' && item.father.folders.remove(item)
+    })
+    util.forceUpdate(payload.target[0] && payload.target[0].father.guid)
+    if (contentids.length) {
+      var father = payload.target[0].father
+      var body = contentids.join(',')
+      //  body  contentid Arr
+      var symbol = Symbol('restore')
+      context.commit({
+        type: TYPES.PUSH_EVENT,
+        data: {
+          type: TYPES.RESTORE,
+          from: father,
+          target: payload.target
+        },
+        symbol: symbol
+      })
+      //  body  contentid Arr
+      return new Promise((resolve, reject) => {
+        axios.post(url, JSON.stringify(body)).then(res => {
+          if (res.data.code === '0') {
+            context.commit({
+              type: TYPES.DELETE_EVENT,
+              symbol: symbol
+            })
+            resolve(res)
+          } else {
+            context.commit({
+              type: TYPES.RECOVERY_EVENT,
+              symbol: symbol
+            })
+            reject(res)
+          }
+        })
+      })
+    }
+  },
+  // 剪贴
+  [TYPES.CUT](context, payload) {
+    // push to clipbord
+    context.state.selectedMaterials.forEach(item => {
+      if (item.operations.indexOf('Cut') === -1) {
+        util.Notice.warning(item.name + ' can not be cutted', '', 3000)
+        return false
+      }
+    })
+    var materials = context.state.selectedMaterials.filter(
+      item => item.operations.indexOf('Cut') > -1
+    )
+    context.commit({
+      type: TYPES.CLEAR_CLIPBOARD
+    })
+    context.commit({
+      type: TYPES.SET_CLIPBOARDSTATUS,
+      data: true
+    })
+    materials.forEach(item => {
+      item.cutting = true
+      context.commit({
+        type: TYPES.ADD_CLIPBOARD,
+        data: item
+      })
+    })
+  },
+  // 复制
+  [TYPES.COPY](context, payload) {
+    // push to clipbord
+    context.state.selectedMaterials.forEach(item => {
+      if (item.operations.indexOf('Copy') === -1) {
+        util.Notice.warning(item.name + ' can not be copied', '', 3000)
+        return false
+      }
+    })
+    var materials = context.state.selectedMaterials.filter(
+      item => item.operations.indexOf('Copy') > -1
+    )
+    context.commit({
+      type: TYPES.CLEAR_CLIPBOARD
+    })
+    context.commit({
+      type: TYPES.SET_CLIPBOARDSTATUS,
+      data: false
+    })
+    materials.forEach(item => {
+      item.copping = true
+      context.commit({
+        type: TYPES.ADD_CLIPBOARD,
+        data: item
+      })
+    })
+  },
+  [TYPES.MOVE_MATERIALS](context, payload) {
+    var arr = payload.data
+    var target = payload.target
+
+    // 此处直接移动元素  pushevent
+    // event Arr push
+    var symbolArr = []
+    arr.group(item => item.father.guid).forEach(item => {
+      let symbol = Symbol('move')
+      context.commit({
+        type: TYPES.PUSH_EVENT,
+        data: {
+          type: TYPES.MOVE_OBJECTS,
+          from: item[0].father,
+          to: target,
+          data: item
+        },
+        symbol: symbol
+      })
+      symbolArr.push(symbol)
+    })
+
+    arr.forEach(item => {
+      var oldFatherGuid = item.father.guid
+      getRepository(item.father.guid).remove(item)
+      item.type === 'folder' && item.father.folders.remove(item)
+      item.father = target
+      if (item.type === 'folder') {
+        item.floor = target.floor + 1
+        item.path = target.path + '/' + item.name
+        target.folders.push(item)
+        // 暂时不处理子目录，此处应该对齐所有子目录，还原应再次还原
+      }
+      item.waiting = true // 等待更新
+      item.folderpath = target.path
+      getRepository(target.guid).push(item)
+      util.forceUpdate(oldFatherGuid)
+    })
+    util.forceUpdate(target.guid)
+    var arrs = []
+    arr.forEach(item => {
+      arrs.push(item.guid)
+    })
+    context
+      .dispatch({
+        type: TYPES.MOVE_OBJECTS,
+        data: {
+          path: target.path,
+          contentids: arrs.join(',')
+        }
+      })
+      .then(res => {
+        // 删除事件
+        arr.forEach(item => {
+          util.cleanNode(item)
+        })
+        symbolArr.forEach(item => {
+          context.commit({
+            type: TYPES.DELETE_EVENT,
+            symbol: item
+          })
+        })
+        //  util.Notice.success(res.data.msg, '', 3000)
+      })
+      .catch(res => {
+        // 还原事件
+
+        symbolArr.forEach(item => {
+          context.commit({
+            type: TYPES.RECOVERY_EVENT,
+            symbol: item
+          })
+        })
+        if (res.data.code === 'B1249') {
+          var msg = res.data.msg
+          var failedArr = arr
+            .filter(item => msg.includes(item.guid))
+            .map(item => item.name)
+          util.Notice.failed(
+            'The folder with same name has been alreay existed',
+            failedArr.join(','),
+            3000
+          )
+        } else {
+          util.Notice.failed('Failed to move object', '', 3000)
+        }
+      })
+  },
+  [TYPES.COPY_MATERIALS](context, payload) {
+    var arr = payload.data
+    var target = payload.target
+    var copiedArr = []
+    arr.forEach(item => copiedArr.push(util.copyNode(item)))
+    // event Arr push
+    var symbol = Symbol('copy')
+    context.commit({
+      type: TYPES.PUSH_EVENT,
+      data: {
+        type: TYPES.COPY_OBJECTS,
+        to: target,
+        data: copiedArr
+      },
+      symbol: symbol
+    })
+    context
+      .dispatch({
+        type: TYPES.COPY_OBJECTS,
+        data: {
+          target: target,
+          materials: copiedArr
+        }
+      })
+      .then(res => {
+        // 删除事件
+        copiedArr.forEach(item => {
+          util.cleanNode(item)
+        })
+        context.commit({
+          type: TYPES.DELETE_EVENT,
+          symbol: symbol
+        })
+        // if (util.isArray(res)) {
+        //   res.forEach(item => util.Notice.success('copy success', 'copy success', 3000))
+        // } else {
+        //   util.Notice.success('copy success', 'copy success', 3000)
+        // }
+      })
+      .catch(res => {
+        // 还原事件
+        context.commit({
+          type: TYPES.RECOVERY_EVENT,
+          symbol: symbol
+        })
+        if (util.isArray(res)) {
+          // res.forEach(item => util.Notice.warning('copy failed', 'copy failed', 3000))
+        } else {
+          // util.Notice.warning('copy failed', 'copy failed', 3000)
+        }
+        util.Notice.failed('Failed to copy object', '', 3000)
+      })
+  },
+  // 粘贴
+  [TYPES.PASTE](context, payload) {
+    // paste
+    var target =
+      payload.target && payload.target.length
+        ? payload.target[0]
+        : context.getters.currentNode
+    if (target.operations.indexOf('Paste') === -1) {
+      util.Notice.warning('Can not be pasted in ' + target.name, '', 3000)
+      return
+    }
+    var arr = context.state.clipBoard
+    var canPasteArr
+    if (context.state.clipBoardSymbol) {
+      // 粘贴
+      if (arr.length) {
+        if (
+          arr.every(
+            item =>
+              util.getAllFather(target).indexOf(item) > -1 ||
+              item.guid === target.guid
+          )
+        ) {
+          util.Notice.warning('Can not be pasted in this folder', '', 3000)
+        } else if (
+          arr.some(
+            item =>
+              util.getAllFather(target).indexOf(item) > -1 ||
+              item.guid === target.guid
+          )
+        ) {
+          canPasteArr = arr.filter(
+            item =>
+              util.getAllFather(target).indexOf(item) === -1 ||
+              item.guid !== target.guid
+          )
+          util.Model.confirm(
+            'Move',
+            'Some materials can not be moved, are you sure to move other ' +
+              canPasteArr.length +
+              ' Materials',
+            () => {
+              context.dispatch({
+                type: TYPES.MOVE_MATERIALS,
+                data: canPasteArr,
+                target: target
+              })
+              context.commit({
+                type: TYPES.CLEAR_CLIPBOARD
+              })
+            },
+            () => {},
+            {
+              large: true, //  Boolean
+              cancelButton: {
+                show: true, //  Boolean
+                type: '', //  String 请参考 Button
+                text: 'Cancel' //  String
+              },
+              confirmButton: {
+                show: true,
+                type: 'primary',
+                text: 'Confirm'
+              }
+            }
+          )
+        } else {
+          context.dispatch({
+            type: TYPES.MOVE_MATERIALS,
+            data: arr,
+            target: target
+          })
+          context.commit({
+            type: TYPES.CLEAR_CLIPBOARD
+          })
+        }
+      }
+    } else {
+      if (
+        arr.every(
+          item =>
+            util.getAllFather(target).indexOf(item) > -1 ||
+            item.guid === target.guid
+        )
+      ) {
+        // notice can not paste same folder
+        util.Notice.warning('Can not be pasted in this folder', '', 3000)
+      } else if (
+        arr.some(
+          item =>
+            util.getAllFather(target).indexOf(item) > -1 ||
+            item.guid === target.guid
+        )
+      ) {
+        canPasteArr = arr.filter(
+          item =>
+            util.getAllFather(target).indexOf(item) === -1 ||
+            item.guid !== target.guid
+        )
+        util.Model.confirm(
+          'Move',
+          'Some materials can not be copied, are you sure to copy other ' +
+            canPasteArr.length +
+            ' Materials',
+          () => {
+            context.dispatch({
+              type: TYPES.COPY_MATERIALS,
+              data: canPasteArr,
+              target: target
+            })
+          },
+          () => {},
+          {
+            large: true, //  Boolean
+            cancelButton: {
+              show: true, //  Boolean
+              type: '', //  String 请参考 Button
+              text: 'Cancel' //  String
+            },
+            confirmButton: {
+              show: true,
+              type: 'primary',
+              text: 'Confirm'
+            }
+          }
+        )
+      } else {
+        // 复制
+        context.dispatch({
+          type: TYPES.COPY_MATERIALS,
+          data: arr,
+          target: target
+        })
+      }
+    }
+  },
+  // 粘贴
+  [TYPES.DOWNLOAD](context, payload) {
+    // push to clipbord
+    if (payload.target && payload.target.length) {
+      payload.target.forEach(item => {
+        context
+          .dispatch({
+            type: TYPES.GET_OBJECT_INFO,
+            data: {
+              contentid: item.guid,
+              pathtype: 'http',
+              type: item.typeid
+            }
+          })
+          .then(res => {
+            var obj = util.getDownloadUrl(res.data.ext)
+            if (obj.isHigh) {
+              download()
+            } else {
+              util.Model.confirm(
+                'Download',
+                'The hi-res part of "' +
+                  item.name +
+                  '" is not available, Do you want to download low-res or proxy?',
+                download,
+                () => {},
+                {
+                  large: true, //  Boolean
+                  cancelButton: {
+                    show: true, //  Boolean
+                    type: '', //  String 请参考 Button
+                    text: 'Cancel' //  String
+                  },
+                  confirmButton: {
+                    show: true,
+                    type: 'primary',
+                    text: 'Confirm'
+                  }
+                }
+              )
+            }
+            function download() {
+              obj.url.forEach((u, idx) => {
+                var ele = document.createElement('a')
+                // 对文件名编码
+                var pos = u.lastIndexOf('/')
+                u =
+                  u.substring(0, pos + 1) +
+                  encodeURIComponent(decodeURIComponent(u.substring(pos + 1)))
+                ele.setAttribute(
+                  'href',
+                  util.getUrl(u, {
+                    download: 1
+                  })
+                )
+                ele.setAttribute('download', item.name)
+                ele.setAttribute('target', '_blank')
+                document.body.appendChild(ele)
+                ele.click()
+                document.body.removeChild(ele)
+              })
+            }
+          })
+      })
+    }
+  },
+  // 获取导出站点列表
+  [TYPES.GET_EXPORTSITES](context, payload) {
+    // push to clipbord
+    let url = API_CONFIG[TYPES.GET_EXPORTSITES]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var condition = ''
+    if (
+      payload.data.depts &&
+      !(context.state.userInfo.roleType || context.state.userInfo.opType)
+    ) {
+      condition =
+        ' AND SITEID IN(SELECT SITEID FROM ET_COMMONGWSITE_DATA WHERE (USERID=' +
+        payload.data.id +
+        ' AND USERTYPE=1) OR (USERID IN (' +
+        payload.data.depts +
+        ') AND USERTYPE=2))'
+    }
+
+    var body =
+      '"SELECT DISTINCT * FROM ET_COMMONGWSITE WHERE SITETYPE=1 ' +
+      condition +
+      '"'
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  // 获取导出站点列表
+  [TYPES.GET_FILTER_SETTING](context, payload) {
+    // push to clipbord
+    let url = API_CONFIG[TYPES.GET_FILTER_SETTING]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = `"SELECT PARAVALUE FROM ET_USERENVIRONMENT  WHERE USERID = ${
+      context.state.userInfo.userid
+    } AND PARATYPE = '54'"`
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.code === '0' && res.data.ext && res.data.ext.length) {
+          resolve(res.data.ext[0].PARAVALUE === '1')
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  // 获取导出站点列表
+  [TYPES.SET_FILTER_SETTING](context, payload) {
+    let url = API_CONFIG[TYPES.SET_FILTER_SETTING]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = `"REPLACE ET_USERENVIRONMENT(USERID, PARATYPE, PARAVALUE) VALUES(${
+      context.state.userInfo.userid
+    }, '54', ${payload.data})"`
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.SAVE_TASK](context, payload) {
+    let url = API_CONFIG[TYPES.SAVE_TASK]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = {
+      clipname: payload.data.clipname,
+      receivedtime: new Date().format('yyyy-MM-dd hh:mm:ss'),
+      siteid: payload.data.siteid,
+      clipguid: payload.data.clipguid,
+      comment: payload.data.comment,
+      taskname: payload.data.taskname,
+      tasktype: 9,
+      taskstatus: 9,
+      submitterid: context.state.userInfo.userid,
+      hotfolder: payload.data.hotfolder,
+      logicpath: payload.data.logicpath,
+      taskcondition:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><COMMONGWDATA><CONDITION><INPOINT>' +
+        (payload.data.trimin || -1) +
+        '</INPOINT><OUTPOINT>' +
+        (payload.data.trimout || -1) +
+        '</OUTPOINT><CLIPCHANNEL>' +
+        payload.data.channel +
+        '</CLIPCHANNEL><EXPAND/></CONDITION></COMMONGWDATA>'
+    }
+
+    return new Promise((resolve, reject) => {
+      axios.put(url, body).then(res => {
+        if (res.data.code === '0') {
+          // 入taskmonitor
+          context.dispatch({
+            type: TYPES.ADD_TASK,
+            data: {
+              contentid: payload.data.clipguid,
+              type: 6,
+              name: payload.data.clipname,
+              items: [
+                {
+                  Name: 'TaskID',
+                  Val: res.data.ext
+                }
+              ]
+            }
+          })
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  // 导出到三方站点
+  [TYPES.EXPORT](context, payload) {
+    var promiseArr = []
+    if (payload.target && payload.target.length) {
+      context.state.exportMaterials = payload.target
+      payload.target.forEach(item => {
+        promiseArr.push(
+          context
+            .dispatch({
+              type: TYPES.GET_OBJECT_INFO,
+              data: {
+                contentid: item.guid,
+                pathtype: 'http',
+                type: item.typeid
+              }
+            })
+            .then(res => {
+              var json = res.data.ext
+              if (
+                json.entity.item.clipfile &&
+                json.entity.item.clipfile.length > 0
+              ) {
+                var channel = 0
+                var channel4Audio = 0
+                json.entity.item.clipfile.forEach(i => {
+                  if (i.mediachannel !== undefined && i.mediachannel !== null) {
+                    if (i.clipclass !== 1) {
+                      channel4Audio |= i.mediachannel
+                    }
+                    channel |= i.mediachannel
+                  }
+                })
+                var hvFiles = json.entity.item.clipfile.filter(
+                  item => item.qualitytype === 0 && item.clipclass === 1
+                )
+                var hvLength = hvFiles.reduce(
+                  (i, j) => {
+                    return {
+                      clipin: 0,
+                      clipout: i.clipout + j.clipout - i.clipin - j.clipin
+                    }
+                  },
+                  {
+                    clipin: 0,
+                    clipout: 0
+                  }
+                ).clipout
+                var haFiles = json.entity.item.clipfile.filter(
+                  item =>
+                    item.qualitytype === 0 &&
+                    getclipclassType(item.clipclass).startsWith('Audio')
+                )
+                if (
+                  (hvFiles.length && hvLength >= json.entity.item.length) ||
+                  item.subtype === 4
+                ) {
+                  //  subtype 4 只需要有音频高质量
+                  item.hvFlag = true
+                } else {
+                  item.hvFlag = false
+                }
+                if (haFiles.length || item.subtype === 2) {
+                  //  subtype 2 只需要有视频高质量
+                  item.haFlag = true
+                } else {
+                  item.haFlag = false
+                }
+                item.CHANNEL = channel
+                item.CHANNEL4AUDIO = channel4Audio
+              }
+            })
+        )
+      })
+      Promise.all(promiseArr).then(res => {
+        if (
+          context.state.exportInfo.TRIMIN === -1 &&
+          !payload.target.every(item => item.hvFlag && item.haFlag)
+        ) {
+          // 非高质量音视频全
+          util.Notice.warning(
+            payload.target
+              .filter(item => !item.hvFlag || !item.haFlag)
+              .map(item => item.name)
+              .join(',') + ' Can not export',
+            '',
+            3000
+          )
+        } else {
+          var depts = util
+            .getcurrentDepts(
+              context.state.userInfo.usercode,
+              context.state.userArr,
+              context.state.deptArr
+            )
+            .map(item => item.deptid)
+            .join(',')
+          var id = context.state.userInfo.userid & 0x00ffffff
+          context
+            .dispatch({
+              type: TYPES.GET_EXPORTSITES,
+              data: {
+                id: id,
+                depts: depts
+              }
+            })
+            .then(res => {
+              context.state.siteList = res.data.ext || []
+              context.state.siteList.forEach(item => (item.checked = false))
+              context.state.exportInfo = Object.assign(
+                context.state.exportInfo,
+                {
+                  isUseDefault: true,
+                  taskName: '',
+                  comments: ''
+                }
+              )
+              context.state.exportWindow.show()
+            })
+        }
+      })
+    }
+  },
+  // 16:9
+  [TYPES.SD169](context, payload) {
+    // push to clipbord
+
+    if (payload.target && payload.target.length) {
+      var imageType = 2
+      if (payload.target.every(item => item.img16_9sd)) {
+        imageType = 0
+      }
+      payload.target.forEach(item => {
+        if (item.imagetype !== imageType) {
+          context
+            .dispatch({
+              type: TYPES.GET_OBJECT_INFO,
+              data: {
+                contentid: item.guid,
+                pathtype: 'unc',
+                type: item.typeid
+              }
+            })
+            .then(res => {
+              var obj = res.data.ext.entity.item
+              obj.imagetype = imageType
+              var data = {
+                object: {
+                  entity: /* object.entity */ {
+                    guid: item.guid,
+                    type: item.typeid,
+                    subtype: item.subtype,
+                    folderpath: item.folderpath,
+                    modifier: context.state.userInfo.usercode,
+                    modifyterminal: context.state.userInfo.ip,
+                    modifydate: new Date().format('yyyy-MM-dd hh:mm:ss'),
+                    item: obj
+                    // 修改者待补全
+                  }
+                },
+                version: 1,
+                type: GetEntityType(item.typeid, item.subtype)
+              }
+              context
+                .dispatch({
+                  type: TYPES.SAVE_OBJECT_INFO,
+                  data: data
+                })
+                .then(res => {
+                  util.Notice.success(
+                    item.name +
+                      ' switch to ' +
+                      (imageType ? '16:9' : '4:3') +
+                      ' successfully',
+                    '',
+                    3000
+                  )
+                })
+                .catch(res => {
+                  util.Notice.warning(
+                    item.name +
+                      ' failed to switch to ' +
+                      (imageType ? '16:9' : '4:3'),
+                    '',
+                    3000
+                  )
+                })
+            })
+        }
+      })
+    }
+  },
+  // 入库
+  [TYPES.SAVE_OBJECTINFO](context, payload) {
+    return new Promise((resolve, reject) => {
+      var filepath = payload.data.filePath
+      var fileType = payload.data.fileType
+      var logicPath = payload.data.folderPath
+      var name = payload.data.name
+
+      var type = 'biz_sobey_video'
+      var subType = ClipSubType.ET_CLIPTYPE_UNKNOW
+      var cliptype = ObjectType.ET_ObjType_Clip
+      var fileSuffix = filepath
+        .substring(
+          filepath.lastIndexOf('.') + 1,
+          filepath.lastIndexOf('?') > -1 ? filepath.lastIndexOf('?') : undefined
+        )
+        .toLowerCase()
+
+      if (fileType.indexOf('image') > -1) {
+        type = 'biz_sobey_picture'
+        subType = ClipSubType.ET_CLIPTYPE_IMAGE
+      } else if (
+        [
+          'bmp',
+          'dip',
+          'jpg',
+          'jpeg',
+          'jpe',
+          'jfif',
+          'jif',
+          'tif',
+          'tiff',
+          'png',
+          'tga',
+          'psd'
+        ].indexOf(fileSuffix) > -1
+      ) {
+        type = 'biz_sobey_picture'
+        subType = ClipSubType.ET_CLIPTYPE_IMAGE
+      } else if (fileType.indexOf('video') > -1) {
+        type = 'biz_sobey_video'
+        subType = ClipSubType.ET_CLIPTYPE_AV
+      } else if (
+        [
+          'avi',
+          'mxf',
+          'mov',
+          'mp4',
+          'mpg',
+          'rmvb',
+          '3g2',
+          'm2p',
+          'vob',
+          'f4v',
+          'mkv',
+          'flv',
+          'm2v',
+          'ps',
+          'ts',
+          'es',
+          'rm',
+          'gxf',
+          'mts',
+          'm2ts',
+          'm2t'
+        ].indexOf(fileSuffix) > -1
+      ) {
+        type = 'biz_sobey_video'
+        subType = ClipSubType.ET_CLIPTYPE_AV
+      } else if (fileType.indexOf('audio') > -1) {
+        type = 'biz_sobey_audio'
+        subType = ClipSubType.ET_CLIPTYPE_A
+      } else if (['aif', 'aiff', 'mid'].indexOf(fileSuffix) > -1) {
+        type = 'biz_sobey_audio'
+        subType = ClipSubType.ET_CLIPTYPE_A
+      } else if (fileType.indexOf('pdf') > -1) {
+        // pdf
+        type = 'biz_sobey_document'
+        subType = ClipSubType.ET_CLIPTYPE_PDF
+      } else if (['doc', 'docx'].indexOf(fileSuffix) > -1) {
+        subType = ClipSubType.ET_CLIPTYPE_WORD
+        type = 'biz_sobey_document'
+      } else if (['xls', 'xlsx'].indexOf(fileSuffix) > -1) {
+        subType = ClipSubType.ET_CLIPTYPE_EXCEL
+        type = 'biz_sobey_document'
+      } else if (['ppt', 'pptx'].indexOf(fileSuffix) > -1) {
+        subType = ClipSubType.ET_CLIPTYPE_PPT
+        type = 'biz_sobey_document'
+      } else if (['pdf'].indexOf(fileSuffix) > -1) {
+        subType = ClipSubType.ET_CLIPTYPE_PDF
+        type = 'biz_sobey_document'
+      } else if (['txt'].indexOf(fileSuffix) > -1) {
+        subType = ClipSubType.ET_CLIPTYPE_TXT
+        type = 'biz_sobey_document'
+      } else if (fileType.indexOf('officedocument') > -1) {
+        // office
+        type = 'biz_sobey_document'
+        if (['doc', 'docx'].indexOf(fileSuffix) > -1) {
+          subType = ClipSubType.ET_CLIPTYPE_WORD
+        } else if (['xls', 'xlsx'].indexOf(fileSuffix) > -1) {
+          subType = ClipSubType.ET_CLIPTYPE_EXCEL
+        } else if (['ppt', 'pptx'].indexOf(fileSuffix) > -1) {
+          subType = ClipSubType.ET_CLIPTYPE_PPT
+        } else if (['pdf'].indexOf(fileSuffix) > -1) {
+          subType = ClipSubType.ET_CLIPTYPE_PDF
+        }
+      } else if (
+        ['zip', 'rar', '7z', 'cab', 'tar', 'dmg', 'ace', 'lzh'].indexOf(
+          fileSuffix
+        ) > -1
+      ) {
+        subType = ClipSubType.ET_CLIPTYPE_ZIP
+        type = 'biz_sobey_other'
+      } else if (fileSuffix === 'prproj') {
+        type = 'biz_sobey_other'
+        subType = ClipSubType.ET_CLIPTYPE_PREMIERE
+      } else if (fileSuffix === 'aep') {
+        type = 'biz_sobey_other'
+        subType = ClipSubType.ET_CLIPTYPE_AE
+      } else {
+        type = 'biz_sobey_other'
+        subType = ClipSubType.ET_CLIPTYPE_OTHER
+      }
+      // else if (fileSuffix === "csv")// TODO
+      // {
+      //     subType = ClipSubType.ET_CLIPTYPE_WORD
+      //     type = "biz_sobey_document"
+      // }
+      // else if (fileSuffix === "rtf")// TODO
+      // {
+      //     subType = ClipSubType.ET_CLIPTYPE_WORD
+      //     type = "biz_sobey_document"
+      // }
+
+      var json = {
+        type: type,
+        version: 1,
+        object: {
+          entity: {
+            folderpath: logicPath,
+            guid: Guid.NewGuid().ToString('N'),
+            modifyterminal: context.state.userInfo.ip,
+            name: name,
+            status: 0,
+            subtype: subType,
+            type: cliptype,
+            usedflag: 0
+          }
+        }
+      }
+      if (payload.source) {
+        payload.source.type = util.getMaterialType(json.object.entity)
+      }
+      if (subType === ClipSubType.ET_CLIPTYPE_IMAGE) {
+        json.object.entity.item = {
+          capturestatus: 0,
+          videostandard: 16,
+          trimin: 0,
+          trimout: 40000000,
+          length: 863999600000,
+          clipfile: [
+            {
+              qualitytype: 0,
+              filestatus: 0,
+              clipclass: 1,
+              filename: filepath,
+              mediachannel: 1
+            }
+          ]
+        }
+      } else {
+        json.object.entity.item = {
+          capturestatus: 0,
+          clipfile: [
+            {
+              qualitytype: 0,
+              filestatus: 0,
+              clipclass: 1,
+              filename: filepath,
+              mediachannel: 1
+            }
+          ]
+        }
+      }
+      if (type === 'biz_sobey_audio' || type === 'biz_sobey_video') {
+        context
+          .dispatch({
+            type: TYPES.GET_IMPORT_INFO,
+            data: json
+          })
+          .then(res => {
+            var resJson = res.data.ext
+            if (
+              resJson &&
+              resJson.object &&
+              resJson.object.entity &&
+              resJson.object.entity.item
+            ) {
+              var videostandard = resJson.object.entity.item.videostandard
+              if (!ET_VideoStandardIsHD(videostandard)) {
+                resJson.object.entity.item.imagetype = 0
+              } else {
+                resJson.object.entity.item.imagetype = 4
+              }
+              context
+                .dispatch({
+                  type: TYPES.SAVE_OBJECT_INFO,
+                  data: resJson
+                })
+                .then(res => {
+                  // 获取低质量  入taskmonitor  更新素材
+                  context
+                    .dispatch({
+                      type: TYPES.GENERATING_LOW_BITRATE,
+                      data: res.data.ext.contentid
+                    })
+                    .then(res => {
+                      // util.Notice.success(res.data.msg, '', 3000)
+                    })
+                    .catch(res => {
+                      util.Notice.warning(
+                        'Failed to generate Low-Res file',
+                        '',
+                        3000
+                      )
+                    })
+                  // 入taskmonitor
+                  context.dispatch({
+                    type: TYPES.ADD_TASK,
+                    data: {
+                      contentid: res.data.ext.contentid,
+                      messageid: res.data.ext.messageid,
+                      type: 1,
+                      name: name
+                    }
+                  })
+                  resolve(res)
+                  // util.Notice.success(res.data.msg, '', 3000)
+                })
+                .catch(res => {
+                  reject(res)
+                  util.Notice.failed('Analyzing file failed', '', 3000)
+                })
+            }
+          })
+          .catch(res => {
+            reject(res)
+            util.Notice.failed('Importing metadata failed', '', 3000)
+          })
+      } else {
+        context
+          .dispatch({
+            type: TYPES.SAVE_OBJECT_INFO,
+            data: json
+          })
+          .then(res => {
+            // 入taskmonitor
+            context.dispatch({
+              type: TYPES.ADD_TASK,
+              data: {
+                contentid: res.data.ext.contentid,
+                messageid: res.data.ext.messageid,
+                type: 1,
+                name: name
+              }
+            })
+            resolve(res)
+            // util.Notice.success(res.data.msg, '', 3000)
+          })
+          .catch(res => {
+            reject(res)
+            util.Notice.failed('Importing metadata failed', '', 3000)
+          })
+      }
+    })
+  },
+  [TYPES.GET_IMPORT_INFO](context, payload) {
+    let url = API_CONFIG[TYPES.GET_IMPORT_INFO]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = payload.data
+    // body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GENERATING_LOW_BITRATE](context, payload) {
+    let url = API_CONFIG[TYPES.GENERATING_LOW_BITRATE]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    // body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.ADD_TASK](context, payload) {
+    let url = API_CONFIG[TYPES.ADD_TASK]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = {
+      TaskRquest: {
+        TaskGuid: Guid.NewGuid().ToString('N'),
+        RefTaskGuid: payload.data.contentid,
+        StudioID: payload.data.studioid || null,
+        MessageID: payload.data.messageid || null,
+        TaskName: payload.data.name,
+        TaskType: payload.data.type,
+        CreateTime: new Date().format('yyyy-MM-dd hh:mm:ss'),
+        CreateUserCode: context.state.userInfo.usercode,
+        CreateUserName: context.state.userInfo.username,
+        AttributeItems: payload.data.items || null
+      },
+      RequestID: '00000000-0000-0000-0000-000000000000',
+      IsMultiple: false,
+      IsCompleted: true,
+      CommandName: 'TaskMonitorPlugin.AddTaskRequest'
+    }
+
+    // body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.IsSuccess) {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.MULTI_SELECTITEMS](context, payload) {
+    var material
+    var start = Math.max(Math.min(context.state.signIndex, payload.data), 0)
+    var end = Math.min(
+      Math.max(context.state.signIndex, payload.data),
+      context.getters.displayMaterials.length - 1
+    )
+    context.state.isFocusTree = false // 切换焦点
+    if (context.state.signIndex === start || !context.state.signIndex) {
+      for (let i = start; i <= end; i++) {
+        material = context.getters.displayMaterials[i]
+        material.selected = true
+        context.commit({
+          type: TYPES.ADD_SELECTEDITEM,
+          data: material
+        })
+      }
+    } else {
+      for (let i = end; i >= start; i--) {
+        material = context.getters.displayMaterials[i]
+        material.selected = true
+        context.commit({
+          type: TYPES.ADD_SELECTEDITEM,
+          data: material
+        })
+      }
+    }
+  },
+  [TYPES.MULTI_SELECTMARKERS](context, payload) {
+    var start = Math.max(
+      Math.min(context.state.signMarkerIndex, payload.data),
+      0
+    )
+    var markers = payload.markers
+    var end = Math.min(
+      Math.max(context.state.signMarkerIndex, payload.data),
+      markers.length - 1
+    )
+    for (var i = start; i <= end; i++) {
+      var material = markers[i]
+      material.selected = true
+      context.commit({
+        type: TYPES.ADD_SELECTEDMARKER,
+        data: material
+      })
+    }
+  },
+  [TYPES.MOVE_OBJECTS](context, payload) {
+    let url = API_CONFIG[TYPES.MOVE_OBJECTS]({
+      usertoken: context.state.userInfo.usertoken,
+      desfolderpath: payload.data.path
+    })
+    // body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.post(url, JSON.stringify(payload.data.contentids)).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.COPY_OBJECTS](context, payload) {
+    var promiseArr = []
+    var materials = payload.data.materials
+    var target = payload.data.target
+
+    context.commit({
+      type: TYPES.CLEAR_SELECTEEDITEMS
+    })
+    materials.forEach(item => {
+      // 选中复制后的素材
+      item.selected = true
+      context.commit({
+        type: TYPES.ADD_SELECTEDITEM,
+        data: item
+      })
+      var children = context.getters.displayMaterials
+      context.commit({
+        type: TYPES.SET_SIGNMATERIAL,
+        data: children.indexOf(item)
+      })
+
+      if (item.type !== 'folder') {
+        promiseArr.push(() => util.copyObject(context, item, target))
+      } else {
+        promiseArr.push(() => util.copyFolder(context, item, target))
+      }
+    })
+    return new Promise((resolve, reject) => {
+      util
+        .throttleAjax(promiseArr, false, true)
+        .then(res => {
+          resolve(res)
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.SAVE_OBJECT_INFO](context, payload) {
+    let url = API_CONFIG[TYPES.SAVE_OBJECT_INFO]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = payload.data
+
+    // body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_TRASHCAN_OBJECTS](context, payload) {
+    var hideLoading = payload.option && payload.option.hideLoading
+    !hideLoading && util.startLoading(context)
+    var resultArr = []
+    var promiseArr = []
+    return new Promise((resolve, reject) => {
+      context
+        .dispatch({
+          type: TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE,
+          page: 1,
+          size: 500
+        })
+        .then(res => {
+          resultArr = resultArr.concat(
+            util.parseTrashCanData(res.data.ext.resultList, payload.source)
+          )
+          var totalPage = res.data.totalPage
+          for (let i = 2; i <= totalPage; i++) {
+            promiseArr.push(() =>
+              context
+                .dispatch({
+                  type: TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE,
+                  page: i,
+                  size: 500
+                })
+                .then(res => {
+                  resultArr = resultArr.concat(
+                    util.parseTrashCanData(
+                      res.data.ext.resultList,
+                      payload.source
+                    )
+                  )
+                })
+            )
+          }
+          util
+            .throttleAjax(promiseArr)
+            .then(res => {
+              util.stopLoading(context)
+              context.commit({
+                type: TYPES.SET_MATERIALS,
+                target: payload.source,
+                data: resultArr
+              })
+              resolve()
+            })
+            .catch(res => {
+              util.stopLoading(context)
+              util.Notice.failed('Failed to get obejcts', '', 3000)
+              reject(res)
+            })
+        })
+        .catch(res => {
+          util.stopLoading(context)
+          util.Notice.failed('Failed to get obejcts', '', 3000)
+          reject(res)
+        })
+    })
+  },
+  [TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE](context, payload) {
+    let url = API_CONFIG[TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE]({
+      usertoken: context.state.userInfo.usertoken,
+      pathtype: 'http'
+    })
+    var body = {
+      name: '',
+      orderBy: '',
+      page: payload.page,
+      size: payload.size,
+      sort: ''
+    }
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url, body)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else if (res.data.code === 'CNR0001') {
+            res.data.ext = []
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => reject(res))
+    })
+  },
+  [TYPES.CLEAR_TRASHCAN_OBJECTS](context, payload) {
+    let url = API_CONFIG[TYPES.CLEAR_TRASHCAN_OBJECTS]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var target = payload.target.length
+      ? payload.target[0]
+      : context.getters.currentNode
+    // body  contentid Arr
+    var symbol = Symbol('clear trashcan')
+    context.commit({
+      type: TYPES.PUSH_EVENT,
+      data: {
+        type: TYPES.DELETE,
+        from: target,
+        target: getRepository(target.guid)
+      },
+      symbol: symbol
+    })
+    setRepository(target.guid, [])
+    util.forceUpdate(target.guid)
+    return new Promise((resolve, reject) => {
+      axios.post(url, null).then(res => {
+        if (res.data.code === '0') {
+          context.commit({
+            type: TYPES.DELETE_EVENT,
+            symbol: symbol
+          })
+          resolve(res)
+        } else {
+          context.commit({
+            type: TYPES.DELETE_EVENT,
+            symbol: symbol
+          })
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.OPEN_FOLDER](context, payload) {
+    if (payload.target && payload.target.length) {
+      if (payload.target[0].operations.indexOf('Open') === -1) {
+        util.Notice.warning('Can not open ' + payload.target[0].name, '', 3000)
+        return false
+      }
+    }
+    if (appSetting.USEROOTPATH) {
+      util.locateFolder(
+        context,
+        payload.target[0].path.split('/'),
+        {
+          children: context.getters.folderTree
+        },
+        {
+          isShowWaiting: true,
+          linkNode: payload.target[0].isDing ? payload.target[0] : null,
+          isSilent: payload.target[0].isDing
+        }
+      )
+    } else {
+      util.locateFolder(
+        context,
+        payload.target[0].path.split('/').slice(1),
+        {
+          children: context.getters.folderTree
+        },
+        {
+          isShowWaiting: true,
+          linkNode: payload.target[0].isDing ? payload.target[0] : null,
+          isSilent: payload.target[0].isDing
+        }
+      )
+    }
+  },
+  [TYPES.SET_SORTTYPE](context, payload) {
+    context.state.listOrder.disabled = true
+    switch (payload.data.name) {
+      case 'Title' + '  ↑':
+        context.state.sortType = 'title'
+        context.state.sortSymbol = true
+        break
+      case 'Title' + '  ↓':
+        context.state.sortType = 'title'
+        context.state.sortSymbol = false
+        break
+      case 'Create Time' + '  ↑':
+        context.state.sortType = 'createTime'
+        context.state.sortSymbol = true
+        break
+      case 'Create Time' + '  ↓':
+        context.state.sortType = 'createTime'
+        context.state.sortSymbol = false
+        break
+      case 'Type':
+        context.state.sortType = 'type'
+        context.state.TYPESymbol = !context.state.TYPESymbol
+        break
+      default:
+    }
+    var lastVisit = util.getCookie(
+      'last_visit' + context.state.userInfo.usercode
+    )
+    if (lastVisit) {
+      lastVisit = JSON.parse(lastVisit)
+      lastVisit.sortType = context.state.sortType
+      lastVisit.TYPESymbol = context.state.TYPESymbol
+      lastVisit.sortSymbol = context.state.sortSymbol
+      util.setCookie(
+        'last_visit' + context.state.userInfo.usercode,
+        JSON.stringify(lastVisit)
+      )
+    }
+    context.commit({
+      type: TYPES.SET_SIGNMATERIAL,
+      data: 0
+    })
+  },
+  [TYPES.SELECT_MATERIAL](context, payload) {
+    var index = payload.data < 0 ? 0 : payload.data
+    var children = context.getters.displayMaterials
+
+    index = index < children.length - 1 ? index : children.length - 1
+
+    if (index > -1 && index < children.length) {
+      context.commit({
+        type: TYPES.CLEAR_SELECTEEDITEMS
+      })
+      children[index].selected = true
+      context.commit({
+        type: TYPES.ADD_SELECTEDITEM,
+        data: children[index]
+      })
+      context.commit({
+        type: TYPES.SET_SIGNMATERIAL,
+        data: index
+      })
+    }
+  },
+  [TYPES.DISPATCH_UPLOAD](context, payload) {
+    if (payload.target && payload.target.length) {
+      var material = payload.target[0]
+      if (appSetting.USEROOTPATH) {
+        util.locateFolder(
+          context,
+          material.path.split('/'),
+          {
+            children: context.getters.folderTree
+          },
+          {
+            isShowWaiting: true
+          }
+        )
+      } else {
+        util.locateFolder(
+          context,
+          material.path.split('/').slice(1),
+          {
+            children: context.getters.folderTree
+          },
+          {
+            isShowWaiting: true
+          }
+        )
+      }
+    }
+    $('.upload_input').click()
+  },
+  [TYPES.DETAIL_VIEW](context, payload) {
+    context
+      .dispatch({
+        type: TYPES.OPEN_PLAYER,
+        target: payload.target,
+        data: {
+          isDV: true,
+          previewSymbol: true
+        }
+      })
+      .then(res => {
+        res && res.forEach && res.forEach(f => f()) // 执行设置properties
+      })
+      .catch(res => {
+        console.log(res)
+        util.Notice.warning('Can not preiew', '', 3000)
+      })
+  },
+  [TYPES.SET_ARCHIVETYPE](context, payload) {
+    switch (payload.data.name) {
+      case 'Online':
+        if (payload.data.checked) {
+          context.state.archiveFiters.Online = true
+        } else {
+          context.state.archiveFiters.Online = false
+        }
+        break
+      case 'HDD':
+        if (payload.data.checked) {
+          context.state.archiveFiters.HDD = true
+        } else {
+          context.state.archiveFiters.HDD = false
+        }
+        break
+      case 'ODA':
+        if (payload.data.checked) {
+          context.state.archiveFiters.ODA = true
+        } else {
+          context.state.archiveFiters.ODA = false
+        }
+        break
+      //  case 'Archive':
+      //    if (payload.data.checked) {
+      //      context.state.archiveFiters.Archived = true
+      //    } else {
+      //      context.state.archiveFiters.Archived = false
+      //    }
+      //    break
+      // default:
+    }
+    if (context.state.archiveFiters.ODA || context.state.archiveFiters.HDD) {
+      context.state.archiveFiters.double = true
+    } else {
+      context.state.archiveFiters.double = false
+    }
+    util.setCookie(
+      'archive_filters' + context.state.userInfo.usercode,
+      JSON.stringify(context.state.archiveFiters)
+    )
+  },
+  [TYPES.SET_STAMPBYFRAME](context, payload) {
+    let url = API_CONFIG[TYPES.SET_STAMPBYFRAME]({
+      contentid: payload.data.guid,
+      usertoken: context.state.userInfo.usertoken,
+      groupname: payload.data.groupname || 'videogroup'
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.data.json).then(res => {
+        if (res.data.code === '0') {
+          // util.Notice.success('Set stamp success', '', 3000)
+          resolve(res)
+        } else {
+          util.Notice.warning('Failed to set stamp', '', 3000)
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.RETRIEVE](context, payload) {
+    if (payload.target && payload.target.length) {
+      context
+        .dispatch({
+          type: TYPES.GET_BAR_CODE,
+          data: payload.target
+        })
+        .then(res => {
+          var barcodeContent =
+            '<div class="clearfix barcode-list">' +
+            res
+              .map(
+                item =>
+                  item ? '<div class="barcode-item fl">' + item + '</div>' : ''
+              )
+              .join('') +
+            '</div>'
+          util.Model.confirmWithHTML(
+            'Retrieve',
+            '<div>Selected material(s) is ready to be retrieved, please put below cartridge into the ODA Library to start auto-retrieving.</div>' +
+              barcodeContent,
+            () => {},
+            () => {},
+            {
+              large: true, //  Boolean
+              confirmButton: {
+                show: true,
+                type: 'primary',
+                text: 'OK'
+              },
+              cancelButton: {
+                show: false, //  Boolean
+                type: '', //  String 请参考 Button
+                text: 'Cancel' //  String
+              }
+            }
+          )
+        })
+        .catch(res => console.log(res))
+      payload.target.forEach(item => {
+        let url = API_CONFIG[TYPES.RETRIEVE]({
+          contentId: item.guid,
+          usertoken: context.state.userInfo.usertoken
+        })
+        axios.get(url).then(res => {
+          if (res.data.code === '0') {
+            util.updateMaterial(
+              getRepository(item.father.guid),
+              {
+                guid: item.guid
+              },
+              context
+            ) // 现在要10s左右后才更新到元数据，此处待完善
+            util.Notice.success(item.name + ' retrieved successfully', '', 3000)
+          } else {
+            util.Notice.failed('Retrieving ' + item.name + ' failed', '', 3000)
+          }
+        })
+      })
+    }
+  },
+  [TYPES.PART_RETRIEVE](context, payload) {
+    let url = API_CONFIG[TYPES.PART_RETRIEVE]({
+      contentid: payload.data.contentid,
+      usertoken: context.state.userInfo.usertoken,
+      targetpath: payload.data.targetpath || '',
+      trimin: payload.data.trimin,
+      trimout: payload.data.trimout,
+      newcontentid: payload.data.newcontentid
+    })
+    var guid = payload.data.newcontentid
+
+    return new Promise((resolve, reject) => {
+      context
+        .dispatch({
+          type: TYPES.GET_BAR_CODE,
+          data: [
+            {
+              guid: payload.data.contentid,
+              type: 'video' //  for filegroupname
+            }
+          ]
+        })
+        .then(res => {
+          var barcodeContent =
+            '<div class="clearfix barcode-list">' +
+            res
+              .map(
+                item =>
+                  item ? '<div class="barcode-item fl">' + item + '</div>' : ''
+              )
+              .join('') +
+            '</div>'
+          util.Model.confirmWithHTML(
+            'Retrieve',
+            '<div>Selected material(s) is ready to be retrieved, please put below cartridge into the ODA Library to start auto-retrieving.</div>' +
+              barcodeContent,
+            () => {},
+            () => {},
+            {
+              large: true, //  Boolean
+              confirmButton: {
+                show: true,
+                type: 'primary',
+                text: 'OK'
+              },
+              cancelButton: {
+                show: false, //  Boolean
+                type: '', //  String 请参考 Button
+                text: 'Cancel' //  String
+              }
+            }
+          )
+        })
+        .catch(res => console.log(res))
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          util.Notice.success('Retrieve successfully', '', 3000)
+          resolve(res)
+        } else {
+          var msg = 'Failed to retrieve'
+          if (res.data.code === 'B1221') {
+            msg = 'There is not enough space to retrieve the clip!'
+          }
+          util.Notice.warning(msg, '', 3000)
+          url = API_CONFIG[TYPES.RECYCLE]({
+            usertoken: context.state.userInfo.usertoken
+          })
+          var arr = [guid]
+          return new Promise((resolve, reject) => {
+            axios.post(url, JSON.stringify(arr)).then(res => {
+              if (res.data.code === '0') {
+                resolve(res)
+              } else {
+                reject(res)
+              }
+            })
+          })
+        }
+      })
+    })
+  },
+  [TYPES.UPDATE_MARKERPOINTS](context, payload) {
+    let url = API_CONFIG[TYPES.UPDATE_MARKERPOINTS]({
+      contentid: payload.data.guid,
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.data.json).then(res => {
+        if (res.data.code === '0') {
+          // util.Notice.success('update markerpoints success', '', 3000)
+          resolve(res)
+        } else {
+          util.Notice.failed('Failed to update marker', '', 3000)
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.DELETE_MARKERPOINTS](context, payload) {
+    let url = API_CONFIG[TYPES.DELETE_MARKERPOINTS]({
+      contentid: payload.data.guid,
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.delete(url, JSON.stringify(payload.data.json)).then(res => {
+        if (res.data.code === '0') {
+          // util.Notice.success('delete markerpoints success', '', 3000)
+          resolve(res)
+        } else {
+          util.Notice.failed('Failed to delete marker', '', 3000)
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_FILESIZE](context, payload) {
+    var material = payload.source
+    let url
+    if (material.type === 'folder') {
+      url = API_CONFIG[TYPES.GET_FILESIZE](
+        {
+          contentid: material.guid,
+          usertoken: context.state.userInfo.usertoken
+        },
+        'folder'
+      )
+    } else {
+      url = API_CONFIG[TYPES.GET_FILESIZE](
+        {
+          clipguid: material.guid,
+          usertoken: context.state.userInfo.usertoken
+        },
+        'object'
+      )
+    }
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+          // util.Notice.success('get file size success', '', 3000)
+        } else {
+          reject(res)
+          util.Notice.failed('Failed to get file size', '', 3000)
+        }
+      })
+    })
+  },
+  [TYPES.IS_PERMISSION](context, payload) {
+    let url = API_CONFIG[TYPES.IS_PERMISSION]({
+      contentid: payload.source.guid,
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+          // util.Notice.success('get permission success', '', 3000)
+        } else {
+          reject(res)
+          util.Notice.failed('Failed to get content permission', '', 3000)
+        }
+      })
+    })
+  },
+  [TYPES.GET_PLANNING_INFO](context, payload) {
+    let url = API_CONFIG[TYPES.GET_PLANNING_INFO]({
+      GUID: payload.source.planningguid,
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+          // util.Notice.success('get planning success', '', 3000)
+        } else {
+          reject(res)
+          util.Notice.failed('Failed to get planning info', '', 3000)
+        }
+      })
+    })
+  },
+  [TYPES.GET_FILEFORMAT](context, payload) {
+    let url = API_CONFIG[TYPES.GET_FILEFORMAT]({
+      lformatid: payload.data.formatid,
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+          // util.Notice.success('get planning success', '', 3000)
+        } else {
+          reject(res)
+          util.Notice.failed('Failed to get file format', '', 3000)
+        }
+      })
+    })
+  },
+  [TYPES.LOCK_OBEJCTS](context, payload) {
+    let url = API_CONFIG[TYPES.LOCK_OBEJCTS]({
+      isLock: payload.data.isLock,
+      usertoken: context.state.userInfo.usertoken
+    })
+    var promiseArr = []
+    payload.source.forEach(item => {
+      var body = {
+        objguid: item.guid,
+        locktype:
+          item.type === 'h5pgm' || item.type === 'sequence' ? '4000' : '4010', // payload.data.locktype || '4010',
+        loginid: context.state.userInfo.logininfoid,
+        usercode: context.state.userInfo.usercode,
+        lockip: context.state.userInfo.ip,
+        hivelockguid: ''
+      }
+      promiseArr.push(
+        new Promise((resolve, reject) => {
+          axios.post(url, body).then(res => {
+            if (res.data.code === '0') {
+              resolve(res)
+              // util.Notice.success('get planning success', '', 3000)
+            } else {
+              reject(res)
+              util.Notice.failed('This object has been occupied', '', 3000)
+            }
+          })
+        })
+      )
+    })
+
+    return Promise.all(promiseArr)
+  },
+  [TYPES.SET_PERMISSION](context, payload) {
+    return new Promise((resolve, reject) => {
+      var rights = payload.source.properties.find(
+        item => item.name === 'Rights'
+      ).keyValues
+      var p = ''
+      let pg = []
+      let url = API_CONFIG[TYPES.SET_PERMISSION](
+        {
+          type: payload.source.type === 'folder' ? 2 : 1,
+          usertoken: context.state.userInfo.usertoken
+        },
+        rights.checkbox.checked
+      )
+      if (rights.radio[2].checked) {
+        p =
+          context.state.userInfo.privilege ||
+          'private_' + context.state.userInfo.usercode // payload.source.creatorCode
+        util.getCheckedCode(pg, rights.access[0].deptTree, false)
+        util.getCheckedCode(pg, rights.access[1].deptTree, true)
+        if (!pg.length) {
+          reject(pg)
+          // p = rights.radio[1].privilege
+        }
+      } else {
+        p =
+          rights.radio.find(i => i.checked).privilege ||
+          'private_' + context.state.userInfo.usercode // payload.source.creatorCode 跟ML一致，修改为私有时，权限为修改者
+      }
+      var body = {
+        privilege: p,
+        privilegestr: pg.join(','),
+        contentId: payload.source.guid
+      }
+      axios.post(url, body).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.SET_MARKER_STAMP](context, payload) {
+    let url = API_CONFIG[TYPES.SET_MARKER_STAMP]({
+      contentid: payload.data.guid,
+      usertoken: context.state.userInfo.usertoken,
+      groupname: payload.data.groupname || 'videogroup'
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.data.json).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_TRASHCAN_OBJECT_INFO](context, payload) {
+    let url = API_CONFIG[TYPES.GET_TRASHCAN_OBJECT_INFO]({
+      contentid: payload.data.contentid,
+      usertoken: context.state.userInfo.usertoken,
+      pathtype: payload.data.pathtype || 'http'
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.COPY_OBJECT](context, payload) {
+    let url = API_CONFIG[TYPES.COPY_OBJECT]({
+      contentid: payload.source.__guid || payload.source.guid,
+      usertoken: context.state.userInfo.usertoken,
+      desfolderpath: payload.target.path
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.data).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.OPEN_PATH](context, payload) {
+    if (payload.target && payload.target.length) {
+      context.state.previewSymbol = true
+      Vue.nextTick(() => {
+        var pathList
+        var material = payload.target[0]
+        if (appSetting.USEROOTPATH) {
+          pathList = material.folderpath.split('/')
+        } else {
+          pathList = material.folderpath.split('/').slice(1)
+        }
+        util.locateFolder(
+          context,
+          pathList,
+          {
+            children: context.getters.folderTree
+          },
+          {
+            materialGuids: [material.guid],
+            isPreview: true,
+            isShowWaiting: true
+          }
+        )
+      })
+    }
+  },
+  [TYPES.GET_TIMECODE_INFO](context, payload) {
+    var URL = URLCONFIG.CM + '/Handler/MaterialList.ashx'
+    return new Promise((resolve, reject) => {
+      $.ajax({
+        type: 'post',
+        url: URL,
+        data: {
+          OperationType: 'GetTimeCodeInfo',
+          usertoken: context.state.userInfo.usertoken,
+          url: btoa(payload.data.url)
+        },
+        dataType: 'json',
+        async: true,
+        complete: function() {},
+        success: function(data) {
+          if (data.R) {
+            resolve(data)
+          }
+        }
+      })
+    })
+  },
+  [TYPES.MARKER_EXPORT](context, payload) {
+    if (appSetting.USEROOTPATH) {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/'),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    } else {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/').slice(1),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    }
+    context.state.exportInfo.isSaveFrame = false
+    context.state.exportInfo.isMarks2Clip = true
+    context.state.saveClipWindow.show('Marks to Clip')
+    // context.state.markerExportWindow.show()
+  },
+  [TYPES.DISPATCH_SAVE_FRAME_AS_CLIP](context, payload) {
+    if (appSetting.USEROOTPATH) {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/'),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    } else {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/').slice(1),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    }
+    context.state.exportInfo.isSaveFrame = true
+    context.state.exportInfo.isMarks2Clip = false
+    context.state.exportInfo.isRetrieve = false
+    context.state.saveClipWindow.show('Save Picture')
+  },
+  [TYPES.SAVE_AS_NEW_CLIP](context, payload) {
+    if (appSetting.USEROOTPATH) {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/'),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    } else {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/').slice(1),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    }
+    context.state.exportInfo.isSaveFrame = false
+    context.state.exportInfo.isMarks2Clip = false
+    context.state.exportInfo.isRetrieve = false
+    context.state.saveClipWindow.show('Save As')
+  },
+  [TYPES.DISPATCH_RETRIEVE](context, payload) {
+    if (appSetting.USEROOTPATH) {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/'),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    } else {
+      util.locateFolder(
+        context,
+        context.state.exportInfo.material.folderpath.split('/').slice(1),
+        {
+          children: context.state.publicPath
+        },
+        {
+          onlyFolder: true,
+          alwaysGet: true,
+          isCheck: true
+        }
+      )
+    }
+    context.state.exportInfo.isSaveFrame = false
+    context.state.exportInfo.isMarks2Clip = false
+    context.state.exportInfo.isRetrieve = true
+    context.state.saveClipWindow.show('Retrieve')
+  },
+  [TYPES.MARKERS_TO_CLIP](context, payload) {
+    let url = API_CONFIG[TYPES.MARKERS_TO_CLIP]({})
+    return payload.data.isLive
+      ? context.dispatch({
+        type: TYPES.LIVE_TRIM,
+        data: payload.data
+      })
+      : new Promise((resolve, reject) => {
+        axios.post(url, payload.data).then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+      })
+  },
+  [TYPES.SAVE_AS_NEWCLIP](context, payload) {
+    let url = API_CONFIG[TYPES.SAVE_AS_NEWCLIP]({
+      trimin: payload.data.nanoSecIn,
+      trimout: payload.data.nanoSecOut // 这个接口要传百纳秒
+    })
+    return payload.data.isLive
+      ? context.dispatch({
+        type: TYPES.LIVE_TRIM,
+        data: payload.data
+      })
+      : new Promise((resolve, reject) => {
+        axios.post(url, payload.data).then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+      })
+  },
+  [TYPES.GET_ICONSOURCE](context, payload) {
+    let url = API_CONFIG[TYPES.GET_ICONSOURCE]({
+      pathtype: 'http'
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, JSON.stringify(payload.data)).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_MARK_ICONSOURCE](context, payload) {
+    let url = API_CONFIG[TYPES.GET_MARK_ICONSOURCE]({
+      pathtype: 'http'
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.data).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.TRIM_SEND_TO_MPC](context, payload) {
+    let url = API_CONFIG[TYPES.TRIM_SEND_TO_MPC]({
+      contentid: payload.data.contentid
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, {}).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.LIVE_TRIM](context, payload) {
+    let url = API_CONFIG[TYPES.LIVE_TRIM]({
+      trimin: payload.data.trimin,
+      trimout: payload.data.trimout
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.data).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_TRASHCAN_FILELIST](context, payload) {
+    let url = API_CONFIG[TYPES.GET_TRASHCAN_FILELIST]({
+      contentid: payload.data.contentid,
+      usertoken: context.state.userInfo.usertoken,
+      pathtype: payload.data.pathtype || 'http'
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0' && res.data.ext) {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_TASK](context, payload) {
+    let url = API_CONFIG[TYPES.GET_TASK]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = {
+      taskGuid: '',
+      taskType: payload.data.taskType || 0,
+      status: payload.data.status || -1,
+      dtStart: payload.data.startTime || 0,
+      dtEndTime: payload.data.endTime || 0,
+      PageIndex: payload.data.pageIndex || 1,
+      PageSize: payload.data.pageSize || 10,
+      orderField: 0, // 列表名排序
+      orderType: 0, // 排序类型
+      userCode: btoa(context.state.userinfo.usercode),
+      keyWords: payload.data.keywords || '',
+      RequestID: '00000000-0000-0000-0000-000000000000',
+      IsMultiple: false,
+      IsCompleted: true,
+      CommandName: 'TaskMonitorPlugin.GetTaskRequest'
+    }
+
+    // body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.IsSuccess) {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.DELETE_TASK](context, payload) {
+    let url = API_CONFIG[TYPES.GET_TASK]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    var body = {
+      taskGuidList: payload.data.taskGuidArr,
+      taskGuid: '',
+      IsMultiple: false,
+      IsCompleted: true,
+      CommandName: 'TaskMonitorPlugin.DeleteTaskRequest'
+    }
+
+    // body  contentid Arr
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.IsSuccess) {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  // always get new
+  [TYPES.ADVANCE_SEARCH_MATERIALS](context, payload) {
+    payload.showWaiting && util.startLoading(context)
+    var resultArr = []
+    var promiseArr = []
+    payload.data.json.page = 1
+    payload.data.json.size = 500
+    return new Promise((resolve, reject) => {
+      context
+        .dispatch({
+          type: TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE,
+          data: payload.data
+        })
+        .then(res => {
+          resultArr = resultArr.concat(
+            util.parseData(
+              res.data.ext,
+              payload.source,
+              payload.data.isMarker ? 'mark' : ''
+            )
+          )
+          var totalPage = res.data.totalPage
+          for (let i = 2; i <= totalPage; i++) {
+            let json = JSON.parse(JSON.stringify(payload.data))
+            json.json.page = i
+            promiseArr.push(() =>
+              context
+                .dispatch({
+                  type: TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE,
+                  data: json
+                })
+                .then(res => {
+                  resultArr = resultArr.concat(
+                    util.parseData(
+                      res.data.ext,
+                      payload.source,
+                      payload.data.isMarker ? 'mark' : ''
+                    )
+                  )
+                })
+            )
+          }
+          util
+            .throttleAjax(promiseArr)
+            .then(res => {
+              util.stopLoading(context)
+              resolve(resultArr)
+            })
+            .catch(res => {
+              util.stopLoading(context)
+              util.Notice.failed('Failed to get obejcts', '', 3000)
+              reject(res)
+            })
+        })
+        .catch(res => {
+          util.stopLoading(context)
+          // util.Notice.failed('Failed to get obejcts', '', 3000)
+          resolve([])
+        })
+    })
+  },
+  [TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE](context, payload) {
+    let url = API_CONFIG[TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE](
+      payload.data.isMarker,
+      {
+        usertoken: context.state.userInfo.usertoken,
+        pathtype: 'http'
+      },
+      {
+        usertoken: context.state.userInfo.usertoken,
+        path:
+          [292, 293, 294].indexOf(payload.data.json.subtype) > -1
+            ? ''
+            : payload.data.path,
+        type: payload.data.type,
+        pathtype: 'http'
+      }
+    )
+
+    context.getters.searchResult.operations.add(
+      'Save Search Result',
+      'Show OA File'
+    )
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url, payload.data.json, false, {
+          IsHighLight: true
+        })
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.SET_SEARCH_QUERY](context, payload) {
+    // 保存
+    let url = API_CONFIG[TYPES.SET_SEARCH_QUERY]({
+      maximum: 6
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, payload.data.json).then(res => {
+        if (res.data && !res.data.code) {
+          resolve(res.data)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.GET_SEARCH_QUERY](context, payload) {
+    // 保存
+    let url = API_CONFIG[TYPES.SET_SEARCH_QUERY]({})
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data && !res.data.code) {
+          resolve(res.data)
+        } else {
+          resolve([])
+        }
+      })
+    })
+  },
+  [TYPES.MODIFY_SEARCH_QUERY](context, payload) {
+    // 保存
+    if (!payload.data.templateID) {
+      return context.dispatch({
+        type: TYPES.SET_SEARCH_QUERY,
+        data: payload.data
+      })
+    }
+    let url = API_CONFIG[TYPES.MODIFY_SEARCH_QUERY](payload.data.templateID)
+    return new Promise((resolve, reject) => {
+      axios.put(url, payload.data.json).then(res => {
+        if (res.data && !res.data.code) {
+          resolve(res.data)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.DELETE_SEARCH_QUERY](context, payload) {
+    // 保存
+    let url = API_CONFIG[TYPES.MODIFY_SEARCH_QUERY](payload.data.templateID)
+    return axios.delete(url)
+  },
+  [TYPES.GET_CUSTOM_SEARCH_CONDTION](context, payload) {
+    // 保存
+    let url = API_CONFIG[TYPES.GET_CUSTOM_SEARCH_CONDTION]({})
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          res.data.ext = []
+          resolve(res)
+        }
+      })
+    })
+  },
+  // always get new
+  [TYPES.FULLTEXT_SEARCH_MATERIALS](context, payload) {
+    payload.showWaiting && util.startLoading(context)
+    var resultArr = []
+    var promiseArr = []
+    payload.data.json.page = 1
+    payload.data.json.size = 500
+    return new Promise((resolve, reject) => {
+      context
+        .dispatch({
+          type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
+          data: payload.data
+        })
+        .then(res => {
+          resultArr = resultArr.concat(
+            util.parseData(res.data.ext, payload.source)
+          )
+          var totalPage = res.data.totalPage
+          for (let i = 2; i <= totalPage; i++) {
+            let json = JSON.parse(JSON.stringify(payload.data))
+            json.json.page = i
+            promiseArr.push(() =>
+              context
+                .dispatch({
+                  type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
+                  data: json
+                })
+                .then(res => {
+                  resultArr = resultArr.concat(
+                    util.parseData(res.data.ext, payload.source)
+                  )
+                })
+            )
+          }
+          util
+            .throttleAjax(promiseArr)
+            .then(res => {
+              util.stopLoading(context)
+              resolve(resultArr)
+            })
+            .catch(res => {
+              util.stopLoading(context)
+              util.Notice.failed('Failed to get obejcts', '', 3000)
+              reject(res)
+            })
+        })
+        .catch(res => {
+          util.stopLoading(context)
+          // util.Notice.failed('Failed to get obejcts', '', 3000)
+          resolve([])
+        })
+    })
+  },
+  [TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE](context, payload) {
+    let url = API_CONFIG[TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE]({
+      usertoken: context.state.userInfo.usertoken,
+      pathtype: 'http'
+    })
+    context.getters.searchResult.operations.add(
+      'Save Search Result',
+      'Show OA File'
+    )
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url, payload.data.json, false, {
+          IsHighLight: true
+        })
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.SAVE_FRAME_AS_CLIP](context, payload) {
+    let url = API_CONFIG[TYPES.SAVE_FRAME_AS_CLIP]({
+      usertoken: context.state.userInfo.usertoken,
+      filename: payload.data.filename,
+      iconno: payload.data.iconno,
+      extendname: payload.data.extendname,
+      fileformatid: payload.data.fileformatid
+    })
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url, payload.data.json)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.DISPATCH_SAVE_PICTURE](context, payload) {
+    context.state.player && context.state.player.$refs.player.saveFrame()
+  },
+  [TYPES.DISPATCH_SET_FRAME](context, payload) {
+    context.state.player && context.state.player.$refs.player.setStamp()
+  },
+  [TYPES.DISPATCH_FULLSCREEN](context, payload) {
+    context.state.player && context.state.player.$refs.player.enterFullscreen()
+  },
+  [TYPES.DISPATCH_EXIT_FULLSCREEN](context, payload) {
+    context.state.player && context.state.player.$refs.player.exitFullscreen()
+  },
+  [TYPES.GET_DING](context, payload) {
+    let url = API_CONFIG[TYPES.GET_DING]({
+      usercode: context.state.userInfo.usercode
+    })
+    return new Promise((resolve, reject) => {
+      axios
+        .get(url)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.SET_DING](context, payload) {
+    let url = API_CONFIG[TYPES.SET_DING]({
+      usercode: context.state.userInfo.usercode,
+      contentid: payload.source.guid
+    })
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.DELETE_DING](context, payload) {
+    let url = API_CONFIG[TYPES.DELETE_DING]({
+      usercode: context.state.userInfo.usercode,
+      contentid: payload.source.guid
+    })
+    return new Promise((resolve, reject) => {
+      axios
+        .delete(url)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.GET_DING_COUNT](context, payload) {
+    let url = API_CONFIG[TYPES.GET_DING_COUNT]({
+      usercode: context.state.userInfo.usercode
+    })
+    return new Promise((resolve, reject) => {
+      axios
+        .get(url)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.DISPATCH_SET_DING](context, payload) {
+    var linkRoot = context.state.linkNodes[0]
+    context
+      .dispatch({
+        type: TYPES.GET_DING_COUNT
+      })
+      .then(res => {
+        var count = res.data.ext
+        if (count + payload.target.length > 20) {
+          util.Notice.warning(
+            'The maximum number of quick links is 20',
+            '',
+            3000
+          )
+        } else {
+          payload.target.forEach(item => {
+            context
+              .dispatch({
+                type: TYPES.SET_DING,
+                source: item
+              })
+              .then(res => {
+                var copiedItem = util.initData(
+                  {
+                    name: item.name
+                  },
+                  linkRoot
+                )
+                Object.assign(copiedItem, item)
+                copiedItem.father = {}
+                copiedItem.selected = false
+                copiedItem.checked = false
+                copiedItem.selecting = false
+                copiedItem.isDing = true
+                copiedItem.operations = ['Open', 'Remove']
+                linkRoot.folders.push(copiedItem)
+              })
+          })
+        }
+      })
+  },
+  [TYPES.DISPATCH_DELETE_DING](context, payload) {
+    var linkRoot = context.state.linkNodes[0]
+    payload.target.forEach(item => {
+      context
+        .dispatch({
+          type: TYPES.DELETE_DING,
+          source: item
+        })
+        .then(res => {
+          linkRoot.folders.remove(item)
+        })
+    })
+  },
+  [TYPES.SET_OA_FILTER](context, payload) {
+    context.state.showOAMaterials = payload.data.checked
+    context.dispatch({
+      type: TYPES.SET_FILTER_SETTING,
+      data: context.state.showOAMaterials ? '1' : '0'
+    })
+  },
+  [TYPES.GET_BAR_CODE](context, payload) {
+    let url = API_CONFIG[TYPES.GET_BAR_CODE]({})
+    var groupDic = {
+      video: 'videogroup',
+      image: 'picturegroup',
+      txtfile: 'documentgroup',
+      word: 'documentgroup',
+      excel: 'documentgroup',
+      pdf: 'documentgroup',
+      rar: 'othersgroup',
+      project: 'othersgroup',
+      aeproject: 'othersgroup',
+      other: 'othersgroup'
+    }
+    return new Promise((resolve, reject) => {
+      axios
+        .post(
+          url,
+          payload.data.map(item => {
+            let groupname = 'videogroup'
+            if (item.isAudio) {
+              groupname = 'audiogroup'
+            } else {
+              groupname = groupDic[item.type]
+            }
+            return {
+              contentId: item.guid,
+              fileGroupName: groupname
+            }
+          })
+        )
+        .then(res => {
+          if (
+            res.data.code === '0' &&
+            res.data.ext.some(item =>
+              item.TapeList.some(i => i.TapeStatus !== 1)
+            )
+          ) {
+            var list = res.data.ext.map(item => item.TapeList)
+            var barcodeArr = Array.prototype.concat
+              .apply([], list)
+              .filter(i => i.TapeStatus !== 1)
+              .groupBy('Barcode')
+              .map(i => i[0].Barcode)
+            resolve(barcodeArr)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.GET_ORDER_LIST](context, payload) {
+    return Promise.resolve()
+  },
+  [TYPES.GENERATE_PROXY](context, payload) {
+    let url = API_CONFIG[TYPES.GENERATE_PROXY]({})
+    let replyUrl = API_CONFIG[TYPES.GET_TASK]()
+    return new Promise((resolve, reject) => {
+      axios
+        .post(
+          url,
+          JSON.stringify(payload.source.map(item => item.guid).join(',')),
+          false,
+          {
+            username: context.state.userInfo.username,
+            usercode: context.state.userInfo.usercode,
+            'reply-to': replyUrl
+          }
+        )
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.DISPATCH_GENERATE_PROXY](context, payload) {
+    if (payload.target.length > 5000) {
+      util.Notice.warning(
+        'The task number exceeds the restriction of 5000!',
+        '',
+        3000
+      )
+    } else {
+      context
+        .dispatch({
+          type: TYPES.GENERATE_PROXY,
+          source: payload.target
+        })
+        .then(res => {
+          util.Notice.success('Generate proxy success!', '', 3000)
+        })
+        .catch(res => util.Notice.failed('Generate proxy failed!', '', 3000))
+    }
+  },
+  [TYPES.ADD_GENERATION](context, payload) {
+    let url = API_CONFIG[TYPES.ADD_GENERATION]({
+    })
+    var body = {
+      contentid: payload.source.guid,
+      sourcetype: payload.source.type,
+      type: 'ClipToClip',
+      relations: [
+        {
+          contentid: payload.target.guid,
+          type: payload.target.type
+        }
+      ]
+    }
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url, body)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.GET_GENERATION](context, payload) {
+    let url = API_CONFIG[TYPES.GET_GENERATION]({
+      pathtype: 'http'
+    })
+    var body = {
+      start: {
+        guid: payload.source.guid
+      },
+      maxdept: 1
+    }
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url, body)
+        .then(res => {
+          if (res.data.code === '0') {
+            resolve(res)
+          } else {
+            reject(res)
+          }
+        })
+        .catch(res => {
+          reject(res)
+        })
+    })
+  },
+  [TYPES.DISPATCH_ONE_GENERATION](context, payload) {
+    var material = payload.target[0]
+    context.state.relations = []
+    context
+      .dispatch(TYPES.GET_GENERATION, {
+        source: material
+      })
+      .then(res => {
+        context.state.relations = util.getRelations(
+          res.data.ext.map(item => item.entityinfo)
+        )
+      })
+      .catch(res => {
+        util.Notice.failed('Query relations failed!', '', 3000)
+      })
+    context.state.relationsWindow.show()
+  },
+  [TYPES.GET_CUSTOM_METADATA](context, payload) {
+    let url = API_CONFIG[TYPES.GET_CUSTOM_METADATA]({
+      ObjType: payload.data.type,
+      usertoken: context.state.userInfo.usercode
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+          util.Notice.failed(
+            'Failed to get the squence of customized metadata',
+            '',
+            3000
+          )
+        }
+      })
+    })
+  },
+  [TYPES.GET_PLAYER_INFO](context, payload) {
+    var promiseArr = []
+    var propPromiseArr = []
+    var type = 'video'
+    var opt = {
+      loop: false,
+      clipping: false,
+      isLive: false,
+      mpdSource: {
+        src: '',
+        video: {}
+      },
+      materials: [emptyMaterial],
+      source: [],
+      lock: false
+    }
+
+    if (payload.target && payload.target.length) {
+      if (payload.target[0].guid === 0 || payload.target[0].guid === 1) {
+        opt.materials = payload.target
+        opt.type = type
+        context.state.previewOptions = opt
+        util.getProperties(
+          [
+            {
+              data: {
+                ext: {
+                  entity: {
+                    guid: payload.target[0].guid
+                  }
+                }
+              }
+            }
+          ],
+          payload.target,
+          [],
+          type,
+          context
+        )
+      } else if (payload.target[0].father.guid === 0) {
+        //  回收站素材
+        type = payload.target[0].previewType
+        if (
+          type === 'video' &&
+          !payload.target.every(
+            item =>
+              item.framerate === payload.target[0].framerate &&
+              item.isAudio === payload.target[0].isAudio &&
+              item.previewType === 'video'
+          )
+        ) {
+          util.Notice.warning('Can not preiew', '', 3000)
+        } else if (payload.target.every(item => item.previewType === 'other')) {
+          util.Notice.warning('Can not preiew', '', 3000)
+        } else {
+          payload.data &&
+            payload.data.previewSymbol &&
+            (0, (context.state.previewSymbol = payload.data.previewSymbol))
+          payload.data &&
+            payload.data.isDV &&
+            (1, (context.state.detailviewSymbol = payload.data.isDV))
+          Vue.nextTick(() => {
+            context.commit({
+              type: TYPES.SET_THUMBPADDING
+            })
+          })
+          context.commit({
+            type: TYPES.SET_DVPADDING
+          })
+          context.state.isFocusTree = false
+          context.state.isFocusPlayer = true
+          payload.target.forEach(item => {
+            promiseArr.push(
+              context.dispatch({
+                type: TYPES.GET_TRASHCAN_OBJECT_INFO,
+                data: {
+                  contentid: item.guid,
+                  pathtype: 'http',
+                  type: item.typeid
+                }
+              })
+            )
+            propPromiseArr.push(
+              context.dispatch({
+                type: TYPES.GET_TRASHCAN_FILELIST,
+                data: {
+                  contentid: item.guid,
+                  pathtype: 'http',
+                  type: item.typeid
+                }
+              })
+            )
+          })
+        }
+
+        return new Promise((resolve, reject) => {
+          Promise.all(promiseArr)
+            .then(res => {
+              //  opt.source = []
+              opt.materials = payload.target.slice()
+              opt.type = type
+              Promise.all(propPromiseArr)
+                .then(r => {
+                  opt.source = util.getTrashcanPreviewInfo(
+                    res,
+                    r,
+                    payload.target,
+                    type,
+                    context
+                  )
+                  if (payload.target.some(item => item.clipping)) {
+                    opt.clipping = true
+                  } else {
+                    opt.clipping = false
+                  }
+                  var time =
+                    payload.data &&
+                    payload.data.isRefresh &&
+                    context.state.player.$refs.player.currentTime
+                  var isClippingComplete =
+                    payload.data.isRefresh &&
+                    util.isMpd(context.state.previewOptions.source[0].src) &&
+                    !util.isMpd(opt.source[0].src)
+                  if (util.isMpd(opt.source[0].src)) {
+                    opt.isLive = true
+                  } else {
+                    if (isClippingComplete) {
+                      opt.isLive = true
+                    } else {
+                      opt.isLive = false
+                    }
+                  }
+                  time &&
+                    Vue.nextTick(() =>
+                      setTimeout(
+                        () =>
+                          (context.state.player.$refs.player.currentTime = time),
+                        0
+                      )
+                    )
+                  //  if (time) {
+                  //    context.state.previewOptions.initTime = time
+                  //  }
+                  if (!payload.data || !payload.data.isRefresh) {
+                    context.state.playerHistory.push(Object.assign({}, opt))
+                  }
+                  if (!isClippingComplete) {
+                    context.state.previewOptions = opt
+                  }
+                  resolve()
+                })
+                .catch(res => {
+                  reject(res)
+                })
+            })
+            .catch(res => {
+              reject(res)
+            })
+        })
+      } else {
+        type = payload.target.some(item => item.previewType === 'video')
+          ? 'video'
+          : payload.target[0].previewType
+        if (
+          type === 'video' &&
+          !payload.target.every(
+            item =>
+              item.framerate === payload.target[0].framerate &&
+              item.isAudio === payload.target[0].isAudio &&
+              item.previewType === 'video'
+          )
+        ) {
+          util.Notice.warning('Can not preiew', '', 3000)
+          context.state.previewOptions = opt
+          return
+        } else if (
+          type === 'video' &&
+          payload.target.length > 1 &&
+          payload.target.some(item => item.clipping)
+        ) {
+          util.Notice.warning(
+            'Ingesting material does not support combination previews',
+            '',
+            3000
+          )
+          context.state.previewOptions = opt
+          return
+        } else {
+          payload.data &&
+            payload.data.previewSymbol &&
+            (0, (context.state.previewSymbol = payload.data.previewSymbol))
+          payload.data &&
+            payload.data.isDV &&
+            (1, (context.state.detailviewSymbol = payload.data.isDV))
+          Vue.nextTick(() => {
+            context.commit({
+              type: TYPES.SET_THUMBPADDING
+            })
+          })
+          context.commit({
+            type: TYPES.SET_DVPADDING
+          })
+          context.state.isFocusTree = false
+          context.state.isFocusPlayer = true
+          payload.target.forEach(item => {
+            promiseArr.push(
+              context.dispatch({
+                type: TYPES.GET_OBJECT_INFO,
+                data: {
+                  contentid: item.guid,
+                  pathtype: 'http',
+                  type: item.typeid
+                }
+              })
+            )
+            propPromiseArr.push(
+              context.dispatch({
+                type: TYPES.GET_OBJECT_INFO,
+                data: {
+                  contentid: item.guid,
+                  pathtype: 'unc',
+                  type: item.typeid
+                }
+              })
+            )
+          })
+        }
+
+        return new Promise((resolve, reject) => {
+          Promise.all(promiseArr)
+            .then(res1 => {
+              //  context.state.previewOptions.source = []
+              opt.materials = payload.target.slice()
+              opt.type = type
+              //  unc
+              !payload.data.onlyPlayer &&
+                Promise.all(propPromiseArr)
+                  .then(res => {
+                    var typeArr = payload.target.groupBy('subtype')
+                    var result = []
+                    var pArr = []
+                    typeArr.forEach(i => {
+                      var entities = []
+                      i.forEach(j =>
+                        entities.push(
+                          res.find(k => k.data.ext.entity.guid === j.guid)
+                        )
+                      )
+                      pArr.push(
+                        context
+                          .dispatch({
+                            type: TYPES.GET_CUSTOM_METADATA,
+                            data: {
+                              type: GetEntityType(i[0].typeid, i[0].subtype)
+                            }
+                          })
+                          .then(r => {
+                            var models = r.data.ext
+                            result.push(
+                              ...util.getProperties(
+                                entities,
+                                i,
+                                models,
+                                type,
+                                context,
+                                res1
+                              )
+                            )
+                          })
+                          .catch(res => {
+                            reject(res)
+                          })
+                      )
+                    })
+                    Promise.all(pArr).then(res => resolve(result))
+                  })
+                  .catch(res => {
+                    reject(res)
+                  })
+              var time =
+                payload.data &&
+                payload.data.isRefresh &&
+                context.state.player.$refs.player.currentTime
+              opt.source = util.getPreviewInfo(
+                res1,
+                payload.target,
+                type,
+                context
+              )
+              var isClippingComplete =
+                payload.data.isRefresh &&
+                util.isMpd(context.state.previewOptions.source[0].src) &&
+                !util.isMpd(opt.source[0].src)
+              if (util.isMpd(opt.source[0].src)) {
+                opt.isLive = true
+              } else {
+                if (isClippingComplete) {
+                  opt.isLive = true
+                } else {
+                  opt.isLive = false
+                }
+              }
+              time &&
+                Vue.nextTick(() =>
+                  setTimeout(
+                    () =>
+                      (context.state.player.$refs.player.currentTime = time),
+                    0
+                  )
+                )
+              //  if (time) {
+              //    context.state.previewOptions.initTime = time
+              //  }
+              if (!payload.data || !payload.data.isRefresh) {
+                context.state.playerHistory.push(Object.assign({}, opt))
+              }
+              if (payload.target.some(item => item.clipping)) {
+                opt.clipping = true
+              } else {
+                opt.clipping = false
+              }
+              if (!isClippingComplete) {
+                context.state.previewOptions = opt
+              }
+            })
+            .catch(res => {
+              reject(res)
+            })
+        })
+      }
+    }
+  },
+  [TYPES.OPEN_PLAYER](context, payload) {
+    if (!payload.data || !payload.data.isRefresh) {
+      context.state.player && context.state.player.dispose()
+      context.state.property && context.state.property.dispose()
+    }
+    if (!payload.target.length) {
+      return context.dispatch({
+        type: TYPES.GET_PLAYER_INFO,
+        target: [context.getters.currentNode],
+        data: payload.data
+      })
+    } else {
+      return context.dispatch({
+        type: TYPES.GET_PLAYER_INFO,
+        target: payload.target,
+        data: payload.data
+      })
+    }
+  },
+  [TYPES.PROPERTIES](context, payload) {
+    context
+      .dispatch({
+        type: TYPES.OPEN_PLAYER,
+        target: payload.target,
+        data: {
+          previewSymbol: true
+        }
+      })
+      .then(res => {
+        res && res.forEach && res.forEach(f => f()) //  执行设置properties
+      })
+      .catch(res => {
+        console.log(res)
+        util.Notice.warning('Can not preiew', '', 3000)
+      })
+    //   }
+  },
+  [TYPES.DETAIL_VIEW](context, payload) {
+    context
+      .dispatch({
+        type: TYPES.OPEN_PLAYER,
+        target: payload.target,
+        data: {
+          isDV: true,
+          previewSymbol: true
+        }
+      })
+      .then(res => {
+        res && res.forEach && res.forEach(f => f()) //  执行设置properties
+      })
+      .catch(res => util.Notice.warning('Can not preiew', '', 3000))
+  },
+  //  触发Rename
+  [TYPES.DISPATCH_RENAME](context, payload) {
+    var node = context.state.selectedMaterials[0]
+    if (node.operations.indexOf('Rename') === -1) {
+      util.Notice.warning(
+        'This material is not allowed to be renamed',
+        '',
+        3000
+      )
+      return
+    }
+    if (node.guid === 2) {
+      context.dispatch({
+        type: TYPES.DISPATCH_SAVE_SEARCHRESULT,
+        target: [node]
+      })
+    } else if ([1, 2].indexOf(node.father.guid) > -1) {
+      node.renaming = true
+      context.commit({
+        type: TYPES.GET_NAVPATH,
+        target: node.father,
+        data: []
+      })
+      context.commit({
+        type: TYPES.CLEAR_SELECTEEDITEMS
+      })
+      node.selected = true
+      context.commit({
+        type: TYPES.ADD_SELECTEDITEM,
+        data: node
+      })
+      context.commit({
+        type: TYPES.SET_SIGNMATERIAL,
+        data: context.getters.displayMaterials.indexOf(node)
+      })
+    } else {
+      if (node.father !== context.getters.currentNode) {
+        var path
+        if (appSetting.USEROOTPATH) {
+          path = node.father.path.split('/')
+        } else {
+          path = node.father.path.split('/').slice(1)
+        }
+        util
+          .locateFolder(
+            context,
+            path,
+            {
+              children: context.getters.folderTree
+            },
+            {
+              isShowWaiting: true
+            }
+          )
+          .then(res => {
+            var newNode = getRepository(node.father.guid).find(
+              item => item.guid === node.guid
+            )
+            newNode.renaming = true
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node.father,
+              data: []
+            })
+            context.commit({
+              type: TYPES.CLEAR_SELECTEEDITEMS
+            })
+            newNode.selected = true
+            context.commit({
+              type: TYPES.ADD_SELECTEDITEM,
+              data: newNode
+            })
+            context.commit({
+              type: TYPES.SET_SIGNMATERIAL,
+              data: context.getters.displayMaterials.indexOf(newNode)
+            })
+          })
+      } else {
+        var newNode = getRepository(node.father.guid).find(
+          item => item.guid === node.guid
+        )
+        newNode.renaming = true
+        context.commit({
+          type: TYPES.CLEAR_SELECTEEDITEMS
+        })
+        newNode.selected = true
+        context.commit({
+          type: TYPES.ADD_SELECTEDITEM,
+          data: newNode
+        })
+        context.commit({
+          type: TYPES.SET_SIGNMATERIAL,
+          data: context.getters.displayMaterials.indexOf(newNode)
+        })
+      }
+    }
+  },
+  //  触发Rename
+  [TYPES.DISPATCH_ADD_FOLDER](context, payload) {
+    var node
+    if (payload.target && payload.target.length) {
+      if (payload.target[0].selecting) {
+        //  左侧树
+        node = payload.target[0]
+        context
+          .dispatch({
+            type: TYPES.GET_MATERIALS,
+            source: node
+          })
+          .then(() => {
+            context.commit({
+              type: TYPES.GET_NAVPATH,
+              target: node,
+              data: []
+            })
+            util.newFolder(context, node)
+          })
+      } else {
+      }
+    } else {
+      node = context.getters.currentNode
+      util.newFolder(context, node)
+    }
+  },
   [TYPES.MULTI_SELECTITEMS](context, payload) {
     let start = Math.max(Math.min(context.state.signIndex, payload.data), 0)
     let end = Math.min(
       Math.max(context.state.signIndex, payload.data),
       context.getters.displayMaterials.length - 1
     )
-    context.state.isFocusTree = false // 切换焦点
+    context.state.isFocusTree = false //  切换焦点
     if (context.state.signIndex === start || !context.state.signIndex) {
       for (let i = start; i <= end; i++) {
         let material = context.getters.displayMaterials[i]
@@ -82,7 +4120,7 @@ export default {
       })
     }
   },
-  // Intercept request
+  //  Intercept request
   [TYPES.INTERCEPT_AXIOS](context, payload) {
     axios.interceptors.request.use(
       config => {
@@ -108,11 +4146,11 @@ export default {
       }
     )
   },
-  // get client ip for login
+  //  get client ip for login
   [TYPES.GET_CLIENT_IP](context, payload) {
     return axios.get(API_CONFIG[TYPES.GET_CLIENT_IP]())
   },
-  // login
+  //  login
   [TYPES.LOGIN](context, payload) {
     return new Promise((resolve, reject) => {
       let url = API_CONFIG[TYPES.LOGIN](payload.data.isDomain)
@@ -150,7 +4188,7 @@ export default {
         })
     })
   },
-  // get user info
+  //  get user info
   [TYPES.GET_USERINFOBYID](context, payload) {
     let url = API_CONFIG[TYPES.GET_USERINFOBYID]({
       userid: context.state.userInfo.userid,
@@ -166,7 +4204,7 @@ export default {
       })
     })
   },
-  // get user permission
+  //  get user permission
   [TYPES.GET_USERPERMISSION](context, payload) {
     let url = API_CONFIG[TYPES.GET_USERPERMISSION]({
       usertoken: context.state.userInfo.usertoken
@@ -192,7 +4230,7 @@ export default {
         })
     })
   },
-  // node click
+  //  node click
   [TYPES.NODE_CLICK](context, payload) {
     let node = payload.data.target
     switch (node.guid) {
@@ -260,7 +4298,7 @@ export default {
           })
     }
   },
-  // delete materialas
+  //  delete materialas
   [TYPES.DELETE_MATERIALS](context, payload) {
     let arr = payload.target.slice()
     if (arr.every(item => item.operations.indexOf('Delete') > -1)) {
@@ -320,7 +4358,7 @@ export default {
       )
     }
   },
-  // get user tree
+  //  get user tree
   [TYPES.GET_USERTREE](context, payload) {
     return new Promise((resolve, reject) => {
       Promise.all([
@@ -358,7 +4396,7 @@ export default {
         })
     })
   },
-  // get all user
+  //  get all user
   [TYPES.GET_ALLDEPT](context, payload) {
     let url = API_CONFIG[TYPES.GET_ALLDEPT]({
       usertoken: context.state.userInfo.usertoken
@@ -454,7 +4492,7 @@ export default {
       })
     })
   },
-  // 获取member根节点
+  //  获取member根节点
   [TYPES.GET_ACTIONLIST_INFO](context, payload) {
     let url = API_CONFIG[TYPES.GET_ACTIONLIST_INFO]()
     return new Promise((resolve, reject) => {
@@ -560,7 +4598,7 @@ export default {
       })
     }
   },
-  // always get new
+  //  always get new
   [TYPES.GET_MATERIALS3](context, payload) {
     payload.showWaiting && util.startLoading(context)
     var resultArr = []
@@ -774,11 +4812,11 @@ export default {
   },
   [TYPES.OPEN_PUBLISHTOSNS](context, payload) {
     if (payload.target && payload.target.length) {
-      // if (context.state.userInfo.isPublishToSNS) { //具有发布权限
-      // } else { //没有发布权限
-      //   util.Notice.warning("您没有发布权限！", '', 3000);
-      //   return;
-      // }
+      //  if (context.state.userInfo.isPublishToSNS) { // 具有发布权限
+      //  } else { // 没有发布权限
+      //    util.Notice.warning("您没有发布权限！", '', 3000)
+      //    return
+      //  }
       context
         .dispatch({
           type: TYPES.GET_SNSCONFIG,
@@ -791,8 +4829,8 @@ export default {
             context.state.configSNSid = []
           }
         })
-      // 显示发布窗口
-      // context.state.ispublish = true;
+      //  显示发布窗口
+      //  context.state.ispublish = true
       context.state.publishWindow.show()
       context
         .dispatch({
@@ -810,7 +4848,7 @@ export default {
             (streammedia && (streammedia.filepath || streammedia.filename)) ||
             ''
           if (datajson.entity.subtype === 32) {
-            // 图片
+            //  图片
             context.state.snsviewPath = filPath || datajson.entity.iconfilename
             context.state.materialSpace =
               datajson.entity.item.clipfile[0].filesize || 0

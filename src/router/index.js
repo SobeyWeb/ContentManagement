@@ -28,6 +28,7 @@ export default new Router({
     },
     {
       path: '/index',
+      alias: '/',
       name: 'index',
       component: Index
     }
