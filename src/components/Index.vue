@@ -1459,11 +1459,32 @@ export default {
       // })
       this.$store.state.publishWindow = new ModalWindow({
         content: this.$refs.publishtoSNS.$el,
-        title: 'Publish to SNS'
+        title: 'Publish to SNS',
+        onhide: () => {
+          this.$refs.publishtoSNS.resetData
+        },
+        onshow: () => {
+          this.$store.dispatch({
+            type: TYPES.GET_SNSCONFIG,
+            data: {}
+          }).then(result => {
+            if (result) {
+              this.$store.state.configSNSid = result
+            } else {
+              this.$store.state.configSNSid = []
+            }
+          })
+        }
       })
       this.$store.state.RegisterWundow = new ModalWindow({
         content: this.$refs.registerToOA.$el,
-        title: 'Register To'
+        title: 'Register To',
+        onshow: () => {
+
+        },
+        onhide: () => {
+
+        }
       })
       this.$store.dispatch({
         type: TYPES.GET_SEARCH_QUERY

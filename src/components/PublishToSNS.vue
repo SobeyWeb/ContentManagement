@@ -74,6 +74,7 @@
 <script>
 import TYPES from '../dicts/mutationTypes.js'
 import APPSETTING from '../config/appSetting'
+import * as util from '../lib/util.js'
 let defaultRequestType = [{
   checked: true,
   value: 'Publish Now'
@@ -324,7 +325,7 @@ export default {
         if (this.textArae.headline && this.textArae.headline.length > 0) {
           this.textArae.headline = ''
         }
-        // util.Notice.warning('illegal characters', "Your URL is not property formatted.", 3000)
+        util.Notice.warning('illegal characters', 'Your URL is not property formatted.', 3000)
       } else if (!NewVal) {
         if (this.textArae.headline && this.textArae.headline.length > 0) {
           this.textArae.headline = ''
@@ -401,7 +402,7 @@ export default {
       if (snsAcountInfoList.length > 0) { // 选择了发布账号
         // 先判断素材空间是否在要求内
         if (parseFloat(this.materialSpace / (1024 * 1024)) > 1024) {
-          // util.Notice.warning('Material space is too large, please choose the material!', '', 3000)
+          util.Notice.warning('Material space is too large, please choose the material!', '', 3000)
         } else {
           let sendsnsComments = []
           let clipSubtype = this.viewType
@@ -459,7 +460,7 @@ export default {
             sendsnsComments.push(comments)
           })
           if (inconformitySnsAcount && inconformitySnsAcount.length > 0) {
-            // util.Notice.warning('The ' + inconformitySnsAcount.join(',') + 'Send time not qualified!', '', 3000)
+            util.Notice.warning('The ' + inconformitySnsAcount.join(',') + 'Send time not qualified!', '', 3000)
           }
           if (sendsnsComments.length > 0) {
             if (((this.materialSpace <= 1024 && this.materialSpace > 512) || (this.materialSpace <= 512 && clipSubtype === 2 && this.materialSpace > 5)) && (currentNodePath === APPSETTING.PRESNSPUBLISHPATH || this.selectedMaterials[0].folderpath)) {
@@ -470,11 +471,10 @@ export default {
                 return item.senType === 'SendSNS'
               })
               if (twitterComment && twitterComment.length > 0) {
-                // let aounts = this.getSendAcounts(twitterComment)
-                // util.Notice.warning(aounts.join(',') + ' Failed to add the publish task(s)!', '', 3000)
+                let aounts = this.getSendAcounts(twitterComment)
+                util.Notice.warning(aounts.join(',') + ' Failed to add the publish task(s)!', '', 3000)
               }
             }
-
             sendsnsComments.forEach(function (i, v) {
               if (i.senType === 'SendImmediately' && i.adsattachments) {
                 if (clipSubtype === 1) {
@@ -490,7 +490,6 @@ export default {
               isSendMPC = true
             }
             // clipSubtype 3表示带广告的视屏  4表示带广告的图片
-
             let publishData = {
               'taskname': this.taskname,
               'isprepublish': isSendMPC, // isSendMPC, // 是否需要转码 true表示不需要转码
@@ -502,7 +501,6 @@ export default {
               type: TYPES.PUBLISH_TO_SNS,
               data: publishData
             }).then((result) => {
-              // let aounts = this.getSendAcounts(sendsnsComments)
               if (result.data.code === '0') {
                 let resAcountinfo = result.data.ext
                 let successAcount = resAcountinfo.filter(item => {
@@ -512,26 +510,24 @@ export default {
                   return item.code === '1'
                 })
                 if (successAcount && successAcount.length > 0) {
-                  // let successCountName = this.getSendAcounts(successAcount)
-                  // util.Notice.success('The ' + successCountName.join(',') + ' publish task(s) is added successfully!', '', 3000)
+                  let successCountName = this.getSendAcounts(successAcount)
+                  util.Notice.success('The ' + successCountName.join(',') + ' publish task(s) is added successfully!', '', 3000)
                 }
                 if (errorAcount && errorAcount.length > 0) {
                   errorAcount.forEach((item) => {
                     let comment = []
                     comment.push(item)
-                    // let countName = this.getSendAcounts(comment)
-                    // util.Notice.warning(countName + ' publishing failed, ' + item.msg, '', 3000)
+                    let countName = this.getSendAcounts(comment)
+                    util.Notice.warning(countName + ' publishing failed, ' + item.msg, '', 3000)
                   })
                 }
-                // util.Notice.success('The ' + aounts.join(',') + ' publish task(s) is added successfully!', '', 3000)
               } else {
-                // util.Notice.warning(aounts.join(',') + ' Failed to add the publish task(s)!', '', 3000)
                 let resAcountinfo = result.data.ext
                 resAcountinfo.forEach((item) => {
                   let comment = []
                   comment.push(item)
-                  // let countName = this.getSendAcounts(comment)
-                  // util.Notice.warning(countName + ' publishing failed, ' + item.msg, '', 3000)
+                  let countName = this.getSendAcounts(comment)
+                  util.Notice.warning(countName + ' publishing failed, ' + item.msg, '', 3000)
                 })
               }
             }).catch(() => {
@@ -541,8 +537,7 @@ export default {
           }
         }
       } else { // 未选择发布账号
-        // util.Notice.warning('Please choose the accounts to publish the clip!', '', 3000)
-        // jWarn(LgDic.HotDic('Please choose the accounts to publish the clip!'))
+        util.Notice.warning('Please choose the accounts to publish the clip!', '', 3000)
       }
     }
   }

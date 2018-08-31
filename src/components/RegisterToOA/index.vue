@@ -50,19 +50,16 @@ export default {
         registerViewPath: 'OA Material / ',
         registerPath: '',
         oaFolderMosid: '',
-        studiodata: [],
-        rundowntimedata: [],
-        timedata: [],
-        rundowndata: [],
-        programInfo: [],
+        // studiodata: [],
+        // rundowntimedata: [],
+        // timedata: [],
+        // rundowndata: [],
+        // programInfo: [],
+        registerData: [],
         selectedStudioid: '',
         selectedStudioMosid: '',
         selectTime: '',
-        selectRundownid: '',
-        tempStudiodata: [],
-        tempTimedata: [],
-        tempRundowndata: [],
-        tempProgramInfodata: []
+        selectRundownid: ''
       }
     }
   },
@@ -148,10 +145,93 @@ export default {
       let currentViewname = registertype.modelname
       this.currentRegisterView = currentViewname
     },
+    inoutToOa (inoutToOaData) {
+      if (inoutToOaData.eventmosid) {
+        if (inoutToOaData.clipping) {
+          inoutToOaData.registerdata.iscliping = true
+        }
+        this.$store.dispatch({
+          type: TYPES.CAN_TRANSCODING,
+          data: {
+            EventID: inoutToOaData.eventId,
+            RundownID: this.props.selectRundownid
+          }
+        }).then(res => {
+          if (res.data.nRet === 0) { // 允许注册
+            this.$store.dispatch({
+              type: TYPES.FRAGMENT_REGISTER,
+              data: inoutToOaData.registerdata
+            }).then((result) => {
+              let datas = result
+              if (datas.code !== '0') {
+                if (datas.code === 'RE00001') {
+                  util.Notice.warning('Failed to register because this is an exceptional clip!', '', 3000)
+                } else {
+                  util.Notice.warning('register to event fail!', '', 3000)
+                }
+              } else {
+                let newclipid = datas.ext.guid
+                let extXml = datas.ext.xmlinfo || ''
+                let msgID = (extXml && extXml.substring(extXml.indexOf('RequestID>') + 10, extXml.indexOf('</RequestID>'))) || ''
+                this.$store.dispatch({
+                  type: TYPES.REGISTER_TO_EVENT,
+                  data: {
+                    eventId: inoutToOaData.eventId,
+                    objectGuid: newclipid
+                  }
+                }).then((result) => {
+                  let datas = result
+                  datas = JSON.parse(datas)
+                  if (datas.Results) {
+                    let selectedStudio = this.props.registerData.filter((item) => item.ischeckedStudio)
+                    let selectStudioID = selectedStudio && selectedStudio.length && selectedStudio[0].studioid || ''
+                    util.Notice.success('register to event success.', '', 3000)
+                    this.$store.dispatch({
+                      type: TYPES.ADD_TASK,
+                      data: {
+                        contentid: datas.Results.ClipGuid,
+                        messageid: datas.Results.RequestID || msgID,
+                        type: inoutToOaData.taskType,
+                        name: inoutToOaData.oldclipName,
+                        studioid: selectStudioID
+                      }
+                    }).then((res) => {
+                      if (res.data.IsSuccess) {
+                      } else {
+                        util.Notice.warning('Add task fail!', '', 3000)
+                      }
+                    }).catch((res) => {
+                      util.Notice.warning('Add task fail!', '', 3000)
+                    })
+                  } else {
+                    if (datas.ErrDetail) {
+                      util.Notice.warning(datas.ErrDetail, '', 3000)
+                    } else {
+                      util.Notice.warning('register to event fail!', '', 3000)
+                    }
+                  }
+                }).catch((res) => {
+                  util.Notice.warning('register to event fail!', '', 3000)
+                })
+              }
+            }).catch(() => {
+              util.Notice.warning('register to event fail!', '', 3000)
+            })
+          } else {
+            util.Notice.warning('register to event fail!', '', 3000)
+          }
+        }).catch(res => {
+          util.Notice.warning('register to event fail!', '', 3000)
+        })
+      } else {
+        // 没有mosid
+        util.Notice.warning('Material mosid does not exist!', '', 3000)
+      }
+    },
     // 注册
     register () {
       let p = this.currentRegisterView
-      let timeIn = this.$store.state.exportInfo.INPOINT
+      let timeIn = this.$store.state.exportInfo.INPOINT // 百纳秒
       let timeOut = this.$store.state.exportInfo.OUTPOINT
       let taskType = 3 // CM用3 premire用4
       if (this.$store.state.system) { // premire用4(现task修改枚举值后未5)
@@ -164,7 +244,7 @@ export default {
       let clipstatus = this.materials.capturestatus || 0
       if (clipstatus === 32) { // 如果是正在trim当成完成的素材注册
         clipping = false
-      }
+      } // true表示正在采集
       let isfragment = false // 默认不是片段
       if (timeIn === -1 && timeOut === -1) {
         isfragment = true // 整段
@@ -174,15 +254,19 @@ export default {
         timeOut = parseInt(timeIn) + 1
       }
       if (p === 'registertoevent_ctrl') { // 注册到event
-        let checkInfo = this.props.programInfo.filter((item) => {
-          return item.selected
-        })
-        let selectedStudio = this.props.studiodata.filter((item) => {
+        let selectedStudio = this.props.registerData.filter((item) => {
           return item.ischeckedStudio
         })
-        let eventmosid = selectedStudio && selectedStudio.length ? selectedStudio[0].studiomosid : ''
-        let eventId = checkInfo && checkInfo.length ? checkInfo[0].eventId : ''
-        let MaterialID = checkInfo && checkInfo.length ? checkInfo[0].MaterialID : ''
+        let selectTime = selectedStudio && selectedStudio.filter((item) => item.selected)[0].children
+        let selectRundown = selectTime && selectTime.filter((item) => item.selected)[0].children
+        let checkInfo = selectRundown && selectRundown.filter((item) => item.selected)[0].childre
+        let eventmosid = selectedStudio && selectedStudio.length && selectedStudio[0].studiomosid || ''
+        let eventId
+        let MaterialID = ''
+        if (checkInfo.length > 0) {
+          eventId = checkInfo[0].eventId
+          MaterialID = checkInfo[0].MaterialID
+        }
         if (eventId && this.materials) {
           if (isfragment && !clipping) { // 完成的素材整段注册
             this.$store.dispatch({
@@ -194,11 +278,8 @@ export default {
             }).then((result) => {
               let datas = result
               datas = JSON.parse(datas)
-              if (datas.Results) {
-                // let type = 3 // CM用3 premire用4
-                let selectStudioID = this.props.studiodata.filter((item) => {
-                  return item.ischeckedStudio
-                })[0].studioid
+              if (datas.Results) { // CM用3 premire用4
+                let selectStudioID = selectedStudio && selectedStudio.length && selectedStudio[0].studioid || ''
                 util.Notice.success('register to event success.', '', 3000)
                 this.$store.dispatch({
                   type: TYPES.ADD_TASK,
@@ -211,6 +292,7 @@ export default {
                   }
                 }).then((res) => {
                   if (res.data.IsSuccess) {
+                    // util.Notice.success('register to event success.', '', 3000)
                   } else {
                     util.Notice.warning('Add task fail!', '', 3000)
                   }
@@ -243,8 +325,20 @@ export default {
               clipout: timeOut
             }
             if (isfragment) { // 素材整段注册到event
-              delete registerdata.clipin
-              delete registerdata.clipout
+              registerdata = {
+                sourceguid: oldclipGuid, // 素材id
+                targetmosid: eventmosid,
+                relativepath: eventPath,
+                targetguid: ''
+              }
+            }
+            let inoutToOaData = {
+              eventmosid: eventmosid || '',
+              clipping: clipping,
+              registerdata: registerdata,
+              eventId: eventId,
+              taskType: taskType,
+              oldclipName: oldclipName
             }
             if (MaterialID) {
               this.$store.dispatch({
@@ -268,144 +362,19 @@ export default {
                     }
                   }
                 }
-                if (eventmosid) {
-                  if (clipping) {
-                    registerdata.iscliping = true
-                  }
-                  this.$store.dispatch({
-                    type: TYPES.FRAGMENT_REGISTER,
-                    data: registerdata
-                  }).then((result) => {
-                    let datas = result
-                    if (datas.code !== '0') { // 失败
-                      if (datas.code === 'RE00001') {
-                        util.Notice.warning('Failed to register because this is an exceptional clip!', '', 3000)
-                      } else {
-                        util.Notice.warning('register to event fail!', '', 3000)
-                      }
-                    } else {
-                      let newclipid = datas.ext.guid
-                      this.$store.dispatch({
-                        type: TYPES.REGISTER_TO_EVENT,
-                        data: {
-                          'eventId': eventId,
-                          'objectGuid': newclipid
-                        }
-                      }).then((result) => {
-                        let datas = result
-                        datas = JSON.parse(datas)
-                        if (datas.Results) {
-                          let selectStudioID = this.props.studiodata.filter((item) => {
-                            return item.ischeckedStudio
-                          })[0].studioid
-                          util.Notice.success('register to event success.', '', 3000)
-                          this.$store.dispatch({
-                            type: TYPES.ADD_TASK,
-                            data: {
-                              contentid: datas.Results.ClipGuid,
-                              messageid: datas.Results.RequestID,
-                              type: taskType,
-                              name: oldclipName, // objname
-                              studioid: selectStudioID
-                            }
-                          }).then((res) => {
-                            if (res.data.IsSuccess) {
-                            } else {
-                              util.Notice.warning('Add task fail!', '', 3000)
-                            }
-                          }).catch((res) => {
-                            util.Notice.warning('Add task fail!', '', 3000)
-                          })
-                        } else { // 注册
-                          if (datas.ErrDetail) {
-                            util.Notice.warning(datas.ErrDetail, '', 3000)
-                          } else {
-                            util.Notice.warning('register to event fail!', '', 3000)
-                          }
-                        }
-                      }).catch((res) => {
-                        util.Notice.warning('register to event fail!', '', 3000)
-                      })
-                    }
-                  }).catch(() => {
-                    util.Notice.warning('register to event fail!', '', 3000)
-                  })
-                } else {
-                  // 没有mosid
-                  util.Notice.warning('Material mosid does not exist!', '', 3000)
-                }
+                this.inoutToOa(inoutToOaData)
               }).catch(res => {
+                if (res.data.code === '404') {
+                  this.inoutToOa(inoutToOaData)
+                }
                 console.log('getobjectinfo failed!')
               })
             } else {
-              // 无素材id的情况   不需要传targetguid
-              if (eventmosid) {
-                registerdata.iscliping = clipping
-                this.$store.dispatch({
-                  type: TYPES.FRAGMENT_REGISTER,
-                  data: registerdata
-                }).then((result) => {
-                  let datas = result
-                  if (datas.code !== '0') { // 失败
-                    if (datas.code === 'RE00001') {
-                      util.Notice.warning('Failed to register because this is an exceptional clip!', '', 3000)
-                    } else {
-                      util.Notice.warning('register to event fail!', '', 3000)
-                    }
-                  } else {
-                    let newclipid = datas.ext.guid
-                    this.$store.dispatch({
-                      type: TYPES.REGISTER_TO_EVENT,
-                      data: {
-                        'eventId': eventId,
-                        'objectGuid': newclipid
-                      }
-                    }).then((result) => {
-                      let datas = result
-                      datas = JSON.parse(datas)
-                      if (datas.Results) {
-                        let selectStudioID = this.props.studiodata.filter((item) => {
-                          return item.ischeckedStudio
-                        })[0].studioid
-                        util.Notice.success('register to event success.', '', 3000)
-                        this.$store.dispatch({
-                          type: TYPES.ADD_TASK,
-                          data: {
-                            contentid: datas.Results.ClipGuid,
-                            messageid: datas.Results.RequestID,
-                            type: taskType,
-                            name: oldclipName, // objname
-                            studioid: selectStudioID
-                          }
-                        }).then((res) => {
-                          if (res.data.IsSuccess) {
-                          } else {
-                            util.Notice.warning('Add task fail!', '', 3000)
-                          }
-                        }).catch((res) => {
-                          util.Notice.warning('Add task fail!', '', 3000)
-                        })
-                      } else { // 注册
-                        if (datas.ErrDetail) {
-                          util.Notice.warning(datas.ErrDetail, '', 3000)
-                        } else {
-                          util.Notice.warning('register to event fail!', '', 3000)
-                        }
-                      }
-                    }).catch((res) => {
-                      util.Notice.warning('register to event fail!', '', 3000)
-                    })
-                  }
-                }).catch(() => {
-                  util.Notice.warning('register to event fail!', '', 3000)
-                })
-              } else {
-                // 没有mosid
-                util.Notice.warning('Material mosid does not exist!', '', 3000)
-              }
+              // 无素材id的情况不需要传targetguid
+              this.inoutToOa(inoutToOaData)
             }
           }
-        } else { // 没素材id或者未选中event的青睐
+        } else { // 没素材id或者未选中event的情况
           util.Notice.warning('Please select Event!', '', 3000)
           return
         }
@@ -419,9 +388,15 @@ export default {
             isfragment: 0
           }
           if (!isfragment) { // 片段
-            registerdata.isfragment = 1
-            registerdata.clipin = timeIn
-            registerdata.clipout = timeOut
+            registerdata = {
+              sourceguid: oldclipGuid, // 素材id
+              targetmosid: this.props.oaFolderMosid,
+              targetguid: '',
+              relativepath: this.props.registerPath,
+              isfragment: 1,
+              clipin: timeIn,
+              clipout: timeOut
+            }
           }
           this.$store.dispatch({
             type: TYPES.REGISTER_TO_OAFOLDER,
@@ -473,7 +448,7 @@ export default {
                       data: {
                         contentid: datas.ext.guid,
                         messageid: msgID,
-                        type: OaFolderTaskType, // 2
+                        type: OaFolderTaskType,
                         name: oldclipName,
                         studioid: this.props.oaFolderMosid
                       }
@@ -516,8 +491,6 @@ export default {
       this.resetDate()
     },
     resetDate () {
-      this.$store.state.isRegister = false
-      this.$store.state.isplayerRegister = false
       this.$store.state.oaFolder[0].children = []
       this.$store.state.oaFolder[0].folders = []
     },
@@ -537,19 +510,10 @@ export default {
           registerViewPath: playListData.registerViewPath || 'OA Material / ',
           registerPath: playListData.registerPath || '',
           oaFolderMosid: playListData.oaFolderMosid || '',
-          studiodata: [],
-          rundowntimedata: [],
-          timedata: [],
-          rundowndata: [],
-          programInfo: [],
           selectedStudioid: playListData.Studioid || '',
           selectedStudioMosid: playListData.StudioMosid || '',
           selectTime: playListData.FirstPlayDate || '',
-          selectRundownid: playListData.rundownid || '',
-          tempStudiodata: [],
-          tempTimedata: [],
-          tempRundowndata: [],
-          tempProgramInfodata: []
+          selectRundownid: playListData.rundownid || ''
         }
     }
   }

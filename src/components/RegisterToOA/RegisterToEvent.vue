@@ -75,7 +75,7 @@ export default {
   methods: {
     selectStudio (event) {
       var studioId = event.target.selectedOptions[0].getAttribute('studioId')
-      this.data.studiodata.forEach((item) => {
+      this.data.registerData.forEach((item) => {
         if (item.name === event.target.value && item.studioid === studioId) {
           item.ischeckedStudio = true
         } else {
@@ -89,108 +89,83 @@ export default {
         var checkedStudio = this.data.studiodata.filter(function (item) {
           return item.name === event.target.value
         })
-        var mosid = checkedStudio[0].studiomosid
-        var studioid = checkedStudio[0].studioid
-        this.data.selectedStudioid = studioid
-        this.data.selectedStudioMosid = mosid
+        var studioid = (checkedStudio && checkedStudio[0].studioid) || ''
+        this.data.selectedStudioid = (checkedStudio && checkedStudio[0].studioid) || ''
+        this.data.selectedStudioMosid = studioid
         if (studioid) {
           this.$store.dispatch({
             type: TYPES.GET_RUNDOWN_LIST,
             data: studioid
           }).then((result) => {
-            var datas = result
-            if (datas && datas.length > 0) {
-              this.data.rundowntimedata = datas
+            if (result && result.length > 0) {
+              // this.data.rundowntimedata = datas
               var arr = []
-              var newArr = []
-              datas.map(item => item.FirstPlayDate).forEach(item => {
+              // var newArr = []
+              var rundownData = result.map(item => item.FirstPlayDate) || []
+              rundownData.forEach(item => {
                 if (arr.indexOf(item) < 0) arr.push(item)
               })
               arr.sort()
-              this.data.tempTimedata = arr
-              this.data.tempRundowndata = []
-              this.data.tempProgramInfodata = []
               var defaultArr = [{
                 name: 'Please select time',
-                selected: true
+                selected: true,
+                children: []
               }]
               if (arr.length > 0) {
                 arr.forEach(item => {
+                  let childrenDate = [{
+                    studioid: '',
+                    name: 'Please select rundown list',
+                    FirstPlayDate: '',
+                    Rundownid: '',
+                    selected: true
+                  }]
+                  rundownData && rundownData.forEach(i => {
+                    if (item === i.FirstPlayDate) {
+                      item.selected = false
+                      childrenDate.push(item)
+                    }
+                  })
                   var obj = {
                     name: item,
-                    selected: false
+                    selected: false,
+                    children: childrenDate
                   }
-                  newArr.push(obj)
+                  defaultArr.push(obj)
                 })
               }
-              this.data.timedata = [...defaultArr, ...newArr]
+              checkedStudio && (checkedStudio[0].children = [...defaultArr])
             }
           }).catch((re) => {
             util.Notice.warning('Rundown list can not be found', '', 3000)
           })
         }
       } else {
-        this.data.rundowntimedata = []
-        this.data.rundowndata = []
-        this.data.programInfo = []
-        this.data.timedata = []
-        this.data.tempTimedata = []
-        this.data.tempRundowndata = []
-        this.data.tempProgramInfodata = []
       }
     },
     checkedTime (event) {
-      this.data.rundowndata = []
-      this.data.programInfo = []
       var currentTime = event.target.value
-      this.data.timedata.forEach((item, index) => {
+      let timeData = this.data.registerData && this.data.registerData.filter(item => item.selected)[0].children
+      timeData && timeData.forEach((item, index) => {
         if (item.name === currentTime && event.target.selectedIndex === index) {
           item.selected = true
         } else {
           item.selected = false
         }
       })
-
       this.data.selectTime = currentTime
-      var Arr = []
-      this.data.rundowntimedata.forEach((item) => {
-        if (currentTime === item.FirstPlayDate) {
-          Arr.push(item)
-        }
-      })
-      this.data.tempRundowndata = Arr
-      this.data.tempProgramInfodata = []
-      var defaultDate = [{
-        studioid: '',
-        name: 'Please select rundown list',
-        FirstPlayDate: '',
-        Rundownid: '',
-        selected: true
-      }]
-      Arr.forEach((item) => {
-        item.selected = false
-      })
-      if (Arr && Arr.length > 0) {
-        this.data.rundowndata = [...defaultDate, ...Arr]
-      } else {
-        this.data.rundowndata = []
-      }
     },
     checkedRundown () {
-      this.data.programInfo = []
-      this.data.tempProgramInfodata = []
-      var currentRundown = event.target.value
-      var studioID = ''
-      var rundowID = ''
-      var SelectRundownid = event.target.selectedOptions[0].getAttribute('Rundownid')
-      this.data.rundowntimedata.forEach(function (item) {
+      let currentRundown = event.target.value
+      let studioID = ''
+      let rundowID = ''
+      let SelectRundownid = event.target.selectedOptions[0].getAttribute('Rundownid')
+      let timeDate = this.data.registerData.filter(item => item.ischeckedStudio)[0].children
+      let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
+      rundownDate && rundownDate.forEach(function (item) {
         if (currentRundown === item.name && SelectRundownid === item.Rundownid) {
           studioID = item.studioid
           rundowID = item.Rundownid
-        }
-      })
-      this.data.rundowndata.forEach((item) => {
-        if (item.name === currentRundown && SelectRundownid === item.Rundownid) {
           item.selected = true
         } else {
           item.selected = false
@@ -198,7 +173,7 @@ export default {
       })
       this.data.selectedStudioid = studioID
       this.data.selectRundownid = rundowID
-      var tempProgramInfo = []
+      let curRundown = rundownDate && rundownDate.filter(item => item.selected)[0]
       if (studioID && rundowID) {
         this.$store.dispatch({
           type: TYPES.GET_PROGRAMEINFO_LIST,
@@ -207,15 +182,9 @@ export default {
             rundownid: rundowID
           }
         }).then((result) => {
-          var datas = result
-          if (datas.length > 0) {
-            tempProgramInfo = datas
-            var strData = JSON.stringify(tempProgramInfo)
+          if (result.length > 0) {
             if (rundowID === this.data.selectRundownid) {
-              this.data.programInfo = []
-              this.data.tempProgramInfodata = JSON.parse(strData)
-              this.data.programInfo = JSON.parse(strData)
-            } else {
+              curRundown.children = result
             }
           }
         }).catch((re) => {
@@ -224,7 +193,10 @@ export default {
       }
     },
     selectRow (studioinfo) {
-      this.data.programInfo.forEach(function (item) {
+      let timeDate = this.data.registerData.filter(item => item.selected)[0].children
+      let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
+      let programInfo = rundownDate && rundownDate.filter(item => item.selected)[0].children
+      programInfo.forEach(function (item) {
         item.selected = false
       })
       studioinfo.selected = true

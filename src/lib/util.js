@@ -2769,3 +2769,184 @@ export function debounce(delay, action, immediately) {
     id = setTimeout(() => action.apply(this, arguments), delay)
   }
 }
+export function confirmMessage (title, content) {
+  Model.confirm(title, content,
+    () => {
+    },
+    () => {
+    },
+    {
+      large: true,
+      cancelButton: {
+        show: false,
+        type: '',
+        text: 'Cancel'
+      },
+      confirmButton: {
+        show: true,
+        type: 'primary',
+        text: 'Confirm'
+      }
+    })
+}
+function getMosid(data, context) {
+  if (data.father.mosid) {
+    context.state.registerdata.oaFolderMosid = data.father.mosid
+  } else {
+    getMosid(data.father, context)
+  }
+}
+export function displayRegisterWindow (currentStudioData, context) {
+  let registerData = context.state.registerdata
+  let studioid = registerData.selectedStudioid
+  let timer = registerData.selectTime
+  let rundownid = registerData.selectRundownid
+  let StudioMosid = registerData.selectedStudioMosid
+  // -------------------设置studio数据
+  let isContain = false
+  let StudioDatas = JSON.stringify(currentStudioData)
+  StudioDatas = JSON.parse(StudioDatas)
+  StudioDatas.forEach((item) => {
+    if (studioid === item.studioid) {
+      isContain = true
+    }
+  })
+  let newStudio = []
+  let temStudio = []
+  context.state.registerdata.registerData.forEach(item => {
+    let same = StudioDatas.find(k => item.studioid === k.studioid)
+    if (same) {
+      item.name = same.name
+      item.studiomosid = same.studiomosid
+      item.ischeckedStudio = false
+      newStudio.push(same)
+    } else {
+      temStudio.push(item)
+    }
+  })
+  context.state.registerdata.registerData.remove(...temStudio)
+  StudioDatas.remove(newStudio)
+  StudioDatas.forEach(item => {
+    context.state.registerdata.registerData.push(item)
+  })
+  isContain && context.state.registerdata.registerData.forEach(item => {
+    if (studioid && StudioMosid && studioid === item.studioid && StudioMosid === item.studiomosid) {
+      item.ischeckedStudio = true
+    } else {
+      item.ischeckedStudio = false
+    }
+  })
+  let checkedStudio = context.state.registerdata.registerData.filter((item) => item.ischeckedStudio)
+  // 获取rundown
+  if (studioid && isContain) { // 当前studio存在才打开
+    context.dispatch({
+      type: TYPES.GET_RUNDOWN_LIST,
+      data: studioid
+    }).then((result) => {
+      if (result && result.length > 0) {
+        // ---------------时间
+        // let isEqual = false
+        let equalRundown = false
+        let arr = []
+        // var newArr = []
+        var rundownData = result.map(item => item.FirstPlayDate) || []
+        rundownData.forEach(item => {
+          if (arr.indexOf(item) < 0) arr.push(item)
+        })
+        arr.sort()
+        var defaultArr = [{
+          name: 'Please select time',
+          selected: true,
+          children: []
+        }]
+        if (arr.length > 0) {
+          arr.forEach(item => {
+            let childrenDate = [{
+              studioid: '',
+              name: 'Please select rundown list',
+              FirstPlayDate: '',
+              Rundownid: '',
+              selected: true
+            }]
+            rundownData && rundownData.forEach(i => {
+              if (item === i.FirstPlayDate) {
+                item.selected = false
+                childrenDate.push(item)
+              }
+              if (i.FirstPlayDate === rundownid) {
+                equalRundown = true
+                item.selected = true
+                childrenDate[0].selected = false
+              }
+            })
+            var obj = {
+              name: item,
+              selected: false,
+              children: childrenDate
+            }
+            if (timer && timer === item) {
+              obj.selected = true
+              // isEqual = true
+            }
+            defaultArr.push(obj)
+          })
+        }
+        checkedStudio && (checkedStudio[0].children = [...defaultArr])
+        // 设置event数据
+        if (studioid && rundownid && equalRundown) {
+          context.dispatch({
+            type: TYPES.GET_PROGRAMEINFO_LIST,
+            data: {
+              studioid: studioid,
+              rundownid: rundownid
+            }
+          }).then((result) => {
+            let datas = result
+            if (datas.length > 0) {
+              let programData = JSON.stringify(datas)
+              programData = JSON.parse(programData)
+              let timeDate = checkedStudio && checkedStudio[0].children.filter(item => item.selected)[0].children
+              let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
+              rundownDate && (rundownDate = programData)
+            }
+          }).catch((re) => {
+          })
+        } else {
+          context.state.registerdata.programInfo = []
+          context.state.registerdata.tempProgramInfodata = []
+        }
+      }
+    }).catch((res) => {
+    })
+  }
+  if (context.state.registerdata.registerPath) {
+    let path = context.state.registerdata.registerViewPath.replace(/ \/ /g, '/')
+    if (path.indexOf('OA Material/') >= 0) {
+      path = path.replace('OA Material/', '')
+    }
+    if (path !== 'OA Material / ') {
+      locateFolder(context, path.split('/'), context.state.oaFolder[0], {
+        onlyFolder: true,
+        alwaysGet: true,
+        isCheck: true
+      }).then((res) => {
+      }).catch((res) => {
+        if (res) {
+          let path = res.path.slice(res.path.indexOf('OA Material'))
+          context.state.registerdata.registerViewPath = path.replace(/\//g, ' / ')
+          let firstStr = context.state.registerdata.registerPath.split('/').shift()
+          context.state.registerdata.registerPath = path.slice(path.indexOf(firstStr))
+          res.checked = true
+          context.state.registerdata.oaFolderMosid = res.mosid
+          if (!context.state.registerdata.oaFolderMosid) {
+            getMosid(res, context)
+          }
+        } else {
+          context.state.registerdata.registerViewPath = 'OA Material / '
+          context.state.registerdata.registerPath = ''
+          context.state.registerdata.oaFolderMosid = ''
+        }
+      })
+    }
+  }
+}

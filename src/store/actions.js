@@ -26,7 +26,7 @@ export default {
       Math.max(context.state.signIndex, payload.data),
       context.getters.displayMaterials.length - 1
     )
-    context.state.isFocusTree = false // 切换焦点
+    context.state.isFocusTree = false //  切换焦点
     if (context.state.signIndex === start || !context.state.signIndex) {
       for (let i = start; i <= end; i++) {
         let material = context.getters.displayMaterials[i]
@@ -50,7 +50,6 @@ export default {
   [TYPES.REFRESH_MATERIAL](context, payload) {
     payload.source = payload.source || context.getters.currentNode
     if (payload.source.guid === 1 || payload.source.guid === 2) {
-      //
       return new Promise((resolve, reject) => {
         context
           .dispatch({
@@ -94,7 +93,7 @@ export default {
       })
     }
   },
-  // Intercept request
+  //  Intercept request
   [TYPES.INTERCEPT_AXIOS](context, payload) {
     axios.interceptors.request.use(
       config => {
@@ -120,11 +119,11 @@ export default {
       }
     )
   },
-  // get client ip for login
+  //  get client ip for login
   [TYPES.GET_CLIENT_IP](context, payload) {
     return axios.get(API_CONFIG[TYPES.GET_CLIENT_IP]())
   },
-  // login
+  //  login
   [TYPES.LOGIN](context, payload) {
     return new Promise((resolve, reject) => {
       let url = API_CONFIG[TYPES.LOGIN](payload.data.isDomain)
@@ -162,7 +161,7 @@ export default {
         })
     })
   },
-  // get user info
+  //  get user info
   [TYPES.GET_USERINFOBYID](context, payload) {
     let url = API_CONFIG[TYPES.GET_USERINFOBYID]({
       userid: context.state.userInfo.userid,
@@ -178,7 +177,7 @@ export default {
       })
     })
   },
-  // get user permission
+  //  get user permission
   [TYPES.GET_USERPERMISSION](context, payload) {
     let url = API_CONFIG[TYPES.GET_USERPERMISSION]({
       usertoken: context.state.userInfo.usertoken
@@ -204,7 +203,7 @@ export default {
         })
     })
   },
-  // node click
+  //  node click
   [TYPES.NODE_CLICK](context, payload) {
     let node = payload.data.target
     switch (node.guid) {
@@ -272,7 +271,7 @@ export default {
           })
     }
   },
-  // delete materialas
+  //  delete materialas
   [TYPES.DELETE_MATERIALS](context, payload) {
     let arr = payload.target.slice()
     if (arr.every(item => item.operations.indexOf('Delete') > -1)) {
@@ -332,7 +331,7 @@ export default {
       )
     }
   },
-  // get user tree
+  //  get user tree
   [TYPES.GET_USERTREE](context, payload) {
     return new Promise((resolve, reject) => {
       Promise.all([
@@ -344,14 +343,14 @@ export default {
         })
       ])
         .then(res => {
-          var deptArr = res[1].data.ext
-          var userArr = res[0].data.ext
+          let deptArr = res[1].data.ext
+          let userArr = res[0].data.ext
           context.state.userInfo.depts = util.getcurrentDepts(
             context.state.userInfo.usercode,
             userArr,
             deptArr
           )
-          var curUser = userArr.find(
+          let curUser = userArr.find(
             item => item.usercode === context.state.userInfo.usercode
           )
           if (curUser) {
@@ -370,7 +369,7 @@ export default {
         })
     })
   },
-  // get all user
+  //  get all user
   [TYPES.GET_ALLDEPT](context, payload) {
     let url = API_CONFIG[TYPES.GET_ALLDEPT]({
       usertoken: context.state.userInfo.usertoken
@@ -466,7 +465,7 @@ export default {
       })
     })
   },
-  // 获取member根节点
+  //  获取member根节点
   [TYPES.GET_ACTIONLIST_INFO](context, payload) {
     let url = API_CONFIG[TYPES.GET_ACTIONLIST_INFO]()
     return new Promise((resolve, reject) => {
@@ -572,11 +571,11 @@ export default {
       })
     }
   },
-  // always get new
+  //  always get new
   [TYPES.GET_MATERIALS3](context, payload) {
     payload.showWaiting && util.startLoading(context)
-    var resultArr = []
-    var promiseArr = []
+    let resultArr = []
+    let promiseArr = []
     return new Promise((resolve, reject) => {
       context
         .dispatch({
@@ -589,7 +588,7 @@ export default {
           resultArr = resultArr.concat(
             util.parseData(res.data.ext, payload.source)
           )
-          var totalPage = res.data.totalPage
+          let totalPage = res.data.totalPage
           for (let i = 2; i <= totalPage; i++) {
             promiseArr.push(() =>
               context
@@ -795,25 +794,11 @@ export default {
   },
   [TYPES.OPEN_PUBLISHTOSNS](context, payload) {
     if (payload.target && payload.target.length) {
-      // if (context.state.userInfo.isPublishToSNS) { //具有发布权限
-      // } else { //没有发布权限
-      //   util.Notice.warning("您没有发布权限！", '', 3000);
-      //   return;
-      // }
-      context
-        .dispatch({
-          type: TYPES.GET_SNSCONFIG,
-          data: {}
-        })
-        .then(result => {
-          if (result) {
-            context.state.configSNSid = result
-          } else {
-            context.state.configSNSid = []
-          }
-        })
-      // 显示发布窗口
-      // context.state.ispublish = true;
+      //  if (context.state.userInfo.isPublishToSNS) { // 具有发布权限
+      //  } else { // 没有发布权限
+      //    util.Notice.warning("您没有发布权限！", '', 3000)
+      //    return
+      //  }
       context.state.publishWindow.show()
       context
         .dispatch({
@@ -826,17 +811,31 @@ export default {
         })
         .then(result => {
           let datajson = result.data.ext
-          let streammedia = datajson.streammedia && datajson.streammedia[0]
-          let filPath =
-            (streammedia && (streammedia.filepath || streammedia.filename)) ||
-            ''
+          let clipsize = 0
           if (datajson.entity.subtype === 32) {
-            // 图片
-            context.state.snsviewPath = filPath || datajson.entity.iconfilename
-            context.state.materialSpace =
-              datajson.entity.item.clipfile[0].filesize || 0
+            //  图片
+            if (datajson.streammedia && datajson.streammedia.length > 0) {
+              context.state.snsviewPath =
+                datajson.streammedia[0].filepath ||
+                datajson.streammedia[0].filename
+            } else {
+              context.state.snsviewPath = datajson.entity.iconfilename || ''
+            }
+            clipsize = datajson.entity.item.clipfile[0].filesize
+            context.state.materialSpace = clipsize
           } else {
-            if (!filPath) {
+            if (datajson.entity.item.markpoints.length > 0) {
+              context.state.snsiconfilename =
+                datajson.entity.item.markpoints[0].iconfilename
+            } else {
+              context.state.snsiconfilename = ''
+            }
+
+            if (datajson.streammedia && datajson.streammedia.length > 0) {
+              context.state.snsviewPath =
+                datajson.streammedia[0].filepath ||
+                datajson.streammedia[0].filename
+            } else {
               let pathData =
                 datajson.entity.item &&
                 datajson.entity.item.clipfile &&
@@ -844,22 +843,29 @@ export default {
                   item => item.qualitytype === 1 && item.clipclass === 1
                 )
               pathData = pathData && pathData.length && pathData[0].filename
-              filPath = pathData || ''
+              context.state.snsviewPath = pathData || ''
             }
-            context.state.snsviewPath = filPath
             let highsize = 0
             let lowsize = 0
-            datajson.entity.item.clipfile.forEach(item => {
+            datajson.entity.item.clipfile.forEach(function(item) {
               if (item.qualitytype === 0 && item.clipclass === 1) {
-                highsize += item.filesize
-              } else if (item.qualitytype === 1 && item.clipclass === 1) {
-                lowsize += item.filesize
+                highsize = item.filesize
+              }
+              if (item.qualitytype === 1 && item.clipclass === 1) {
+                lowsize = item.filesize
               }
             })
-            context.state.materialSpace =
-              context.state.SNSPublishQuality === 'high'
-                ? highsize || lowsize
-                : lowsize
+            if (context.state.SNSPublishQuality === 'high') {
+              //  如果是发高质量
+              if (highsize === 0) {
+                //  没有高质量用低质量
+                highsize = lowsize
+              }
+              clipsize = highsize
+            } else {
+              clipsize = lowsize
+            }
+            context.state.materialSpace = clipsize
           }
         })
     }
@@ -894,24 +900,260 @@ export default {
     })
   },
   [TYPES.REGISTER_OA](context, payload) {
-    let url = API_CONFIG[TYPES.PUBLISH_TO_SNS]({})
-    let data = payload.data
-    data.usercode = context.state.userInfo.usercode
-    data.username = context.state.userInfo.username
-    data.replyto = URLCONFIG.TMSERVICE + '/sobey/plat/cmd'
-    data = JSON.stringify(data)
-    return new Promise((resolve, reject) => {
-      axios.post(url, data).then(res => {
-        if (res.data.code === '0') {
-          resolve(res)
-        } else {
-          resolve(res)
-        }
-      })
-    })
+    if (payload.target && payload.target.length) {
+      let data = payload.target[0]
+      context.state.registerMaterial = data
+      let clipName = data.name
+      let clipping = data.clipping
+      let clipstatus = data.capturestatus
+      let wainText = ''
+      let timeIn = context.state.exportInfo.INPOINT
+      let timeOut = context.state.exportInfo.OUTPOINT
+      let registerLength = 0
+      let msger = msger =>
+        util.confirmMessage(
+          'Register to OA',
+          msger || clipName + ' does not support registration to OA'
+        )
+      if (timeIn === -1 && timeOut === -1) {
+        registerLength = 6
+      } else {
+        registerLength = parseInt(timeOut - timeIn) / 10000000
+      }
+      //  trimmer中素材1.3.1暂不支持注册到播出
+      if (clipstatus === 32 || data.clipStatus === 'Create Low') {
+        wainText = "This material can't register to playout!"
+        msger(wainText)
+        return
+      }
+      if (registerLength < 5) {
+        wainText =
+          "Please make sure the material's duration is greater than 5 seconds!"
+        msger(wainText)
+      }
+      context
+        .dispatch({
+          type: TYPES.EXPAND_FOLDER,
+          source: context.state.oaFolder[0],
+          alwaysGet: true
+        })
+        .then(result => {})
+      // 先获取studio 若获取不到就不显示窗口
+      Promise.all([
+        context.dispatch({
+          type: TYPES.GET_STUDIO,
+          data: {}
+        }),
+        context.dispatch({
+          type: TYPES.GET_OBJECT_INFO,
+          data: {
+            contentid: payload.target[0].guid,
+            pathtype: 'unc',
+            type: payload.target[0].typeid
+          }
+        })
+      ])
+        .then(res => {
+          let studioArr = res[0]
+          let objInfo = res[1].data.ext
+          if (studioArr && studioArr.length > 0) {
+            let currentStudioData = studioArr
+            let datajson = objInfo
+            let highgroupstatus = datajson.entity.highgroupstatus || ''
+            let lowgroupstatus = datajson.entity.lowgroupstatus || ''
+            if (clipping && clipstatus !== 32) {
+              // 表示正在采集且不是trim中的素材
+              // 判断采集中的素材是否能注册
+              let capturestatus = datajson.entity.item.capturestatus // 如果为2表示循环采集中不能注册
+              let clipfileArr = datajson.entity.item.clipfile
+              if (capturestatus === 2) {
+                // 表示循环采集中不能注册
+                // IsOnlyTransNot = false
+                wainText =
+                  'Failed to register as this is an loop ingesting clip!'
+                msger(wainText)
+              } else {
+                if (clipfileArr.length > 0) {
+                  // 文件列表存在
+                  let highFilname = ''
+                  let fileLength = 0
+                  let Clipisregister = true
+                  let highgroup = 0
+                  // 判断是否有高质量切是否能注册
+                  for (let j = 0; j < clipfileArr.length; j++) {
+                    if (
+                      clipfileArr[j].qualitytype === 0 &&
+                      clipfileArr[j].clipclass === 1
+                    ) {
+                      // 视频高质量第一段
+                      if (highgroup === 0) {
+                        if (clipfileArr[j].filename) {
+                          highFilname = clipfileArr[j].filename
+                        }
+                        if (clipfileArr[j].length) {
+                          fileLength = clipfileArr[j].length
+                        }
+                      } else {
+                        if (fileLength === 0 && clipfileArr[j].clipin > 0) {
+                          // 高质量第一段长度为0，第二段入点大于0
+                          Clipisregister = false
+                          break
+                        }
+                      }
+                      highgroup++
+                    }
+                  }
+
+                  if (!Clipisregister) {
+                    // 如果素材为不合法
+                    wainText =
+                      'Failed to register because this is an exceptional clip!'
+                    msger(wainText)
+                    return
+                  }
+                  if (highgroup > 0) {
+                    // 表示有高质量
+                    if (highFilname) {
+                      if (timeIn === -1 && timeOut === -1) {
+                        // 采集中素材整段注册 调用播出的接口判断高质量第一段能不能注册
+                        let highFileLength = 0
+                        if (fileLength > 0) {
+                          // 如果入出点都等于0，表示第一段未封口，允许注册
+                          highFileLength = parseInt(fileLength) / 10000000 // 百纳秒转秒--去掉Math.round()
+                          if (highFileLength < 5) {
+                            wainText =
+                              "Please make sure the material's duration is greater than 5 seconds!"
+                            msger(wainText)
+                            return
+                          }
+                        }
+                        context
+                          .dispatch({
+                            type: TYPES.ISONLY_TRANSNOTCODES,
+                            data: {
+                              FileName: highFilname
+                            }
+                          })
+                          .then(result => {
+                            let datas = result
+                            if (datas.Result) {
+                              this.$store.state.RegisterWundow.show()
+                              util.displayRegisterWindow(currentStudioData, context)
+                            } else {
+                              wainText = 'The Format is not support to on-air.' // The High-Res file of clip '" + clipName + "' doesn't not meet the criteria of
+                              msger(wainText)
+                            }
+                          })
+                          .catch(res => {
+                            wainText = 'The Format is not support to on-air.'
+                            msger(wainText)
+                          })
+                      } else {
+                        this.$store.state.RegisterWundow.show()
+                        util.displayRegisterWindow(currentStudioData)
+                      }
+                    } else {
+                      wainText = 'The Format is not support to on-air.'
+                      msger(wainText)
+                    }
+                  } else {
+                    // 没有高质量不能注册
+                    wainText =
+                      'This ingesting clip doesn\'t have High-Res files, It is failed to operate!'
+                    msger(wainText)
+                  }
+                } else {
+                  // 没有文件列表不能注册
+                  wainText =
+                    'The ingesting clip has no clip file! It is failed to operate!'
+                  msger(wainText)
+                }
+              }
+            } else {
+              // 已经完成
+              let clipFileLength = datajson.entity.item.length
+              clipFileLength = parseInt(clipFileLength) / 10000000 // 百纳秒转秒--去掉Math.round()
+              if (clipFileLength < 5) {
+                wainText =
+                  'Please make sure the material\'s duration is greater than 5 seconds!'
+                msger(wainText)
+                return
+              }
+              // IsOnlyTransNot = true
+              if (
+                (highgroupstatus === 'online_deleted' ||
+                  highgroupstatus == null) &&
+                (lowgroupstatus === 'online_deleted' || lowgroupstatus === null)
+              ) {
+                // 高低质量都没有   online_deleted表示删除了   ready表示存在
+                // isHlflag = true
+                wainText =
+                  'Both hi-res and low-res of "' +
+                  clipName +
+                  '" is not available. Fail to continue'
+                msger(wainText)
+              } else if (
+                (highgroupstatus === 'online_deleted' ||
+                  highgroupstatus === null) &&
+                (lowgroupstatus === 'ready' || lowgroupstatus === 'archived')
+              ) {
+                // 只有低质量
+                // alertflag = true
+                util.Model.confirm(
+                  'Register to OA',
+                  'The hi-res part of "' +
+                    clipName +
+                    '" is not available.Do you want to continue?',
+                  () => {
+                    this.$store.state.RegisterWundow.show()
+                    util.displayRegisterWindow(currentStudioData)
+                  },
+                  () => {},
+                  {
+                    large: true,
+                    cancelButton: {
+                      show: true,
+                      type: '',
+                      text: 'Cancel'
+                    },
+                    confirmButton: {
+                      show: true,
+                      type: 'primary',
+                      text: 'Confirm'
+                    }
+                  }
+                )
+              } else {
+                this.$store.state.RegisterWundow.show()
+                util.displayRegisterWindow(currentStudioData)
+              }
+            }
+          } else {
+            // 未获取到studio的情况
+            util.Notice.warning('Studio list can not be found', '', 3000)
+          }
+        })
+        .catch(res => {
+          let msg = ''
+          if (res.data && res.data.code) {
+            // 表示获取元数据失败
+            msg = 'Get object info fail!'
+          } else {
+            try {
+              msg = res.data.E
+            } catch (e) {
+              msg = res.E
+            }
+            if (/^[\u2E80-\u9FFF]+$/g.test(msg)) {
+              msg = 'Studio list can not be found'
+            }
+          }
+          util.Notice.warning(msg, '', 3000)
+        })
+    }
   },
   [TYPES.GET_STUDIO](context, payload) {
-    var data = {
+    let data = {
       FilterGroup: {
         ObjType: 'AttributeConditionType',
         Items: [
@@ -940,7 +1182,8 @@ export default {
             let defultJson = {
               name: 'Please select studio',
               studioid: '',
-              studiomosid: ''
+              studiomosid: '',
+              children: []
             }
             studioArr.push(defultJson)
             studios.forEach(item => {
@@ -948,7 +1191,8 @@ export default {
               let json = {
                 name: item.Name,
                 studioid: item.StudioID,
-                studiomosid: item.StudioMosID
+                studiomosid: item.StudioMosID,
+                children: []
               }
               studioArr.push(json)
             })
@@ -966,8 +1210,8 @@ export default {
     })
   },
   [TYPES.GET_RUNDOWN_LIST](context, payload) {
-    var StudioID = payload.data
-    var data = {
+    let StudioID = payload.data
+    let data = {
       StudioID: payload.data,
       FilterGroup: {
         ObjType: 'AttributeConditionType',
@@ -998,8 +1242,8 @@ export default {
           res.data.Results.length > 0 &&
           !res.data.Errors
         ) {
-          var rundownArr = []
-          var rundownlist = res.data.Results
+          let rundownArr = []
+          let rundownlist = res.data.Results
           rundownlist.forEach(item => {
             item.FirstPlayDate = item.FirstPlayDate.slice(
               0,
@@ -1008,9 +1252,9 @@ export default {
             if (!strDateTime1(item.FirstPlayDate)) {
               item.FirstPlayDate = ''
             }
-            // item.FirstPlayDate = new Date(item.FirstPlayDate).format('yyyy-MM-dd');
+            //  item.FirstPlayDate = new Date(item.FirstPlayDate).format('yyyy-MM-dd')
             if (item.FirstPlayDate) {
-              var json = {
+              let json = {
                 studioid: StudioID,
                 name: item.Name,
                 FirstPlayDate: item.FirstPlayDate,
@@ -1027,8 +1271,8 @@ export default {
     })
   },
   [TYPES.GET_EVENTS](context, payload) {
-    var URL = API_CONFIG[TYPES.GET_EVENTS]({})
-    var data = { StoryID: payload.data.storyID }
+    let URL = API_CONFIG[TYPES.GET_EVENTS]({})
+    let data = { StoryID: payload.data.storyID }
     return new Promise((resolve, reject) => {
       axios.post(URL, JSON.stringify(data)).then(res => {
         if (
@@ -1186,7 +1430,7 @@ export default {
   },
   [TYPES.REGISTER_TO_EVENT](context, payload) {
     let URL = API_CONFIG[TYPES.REGISTER_TO_EVENT]({})
-    var data = {
+    let data = {
       eventId: payload.data.eventId,
       objectGuid: payload.data.objectGuid,
       token: context.state.userInfo.usertoken
@@ -1212,7 +1456,7 @@ export default {
           if (typeof res === 'object') {
             res = 'register to event fail!'
           }
-          var result = {
+          let result = {
             ErrDetail: res
           }
           result = JSON.stringify(result)
@@ -1221,7 +1465,7 @@ export default {
     })
   },
   [TYPES.ISONLY_TRANSNOTCODES](context, payload) {
-    var data = {
+    let data = {
       FileName: payload.data.FileName
     }
     let URL = API_CONFIG[TYPES.ISONLY_TRANSNOTCODES]({})
@@ -1231,6 +1475,120 @@ export default {
           resolve(res.data)
         } else {
           resolve(res.data)
+        }
+      })
+    })
+  },
+  [TYPES.CAN_TRANSCODING](context, payload) {
+    var data = {
+      EventID: payload.data.EventID,
+      RundownID: payload.data.RundownID
+    }
+    let URL = API_CONFIG[TYPES.CAN_TRANSCODING]({})
+    return new Promise((resolve, reject) => {
+      axios.post(URL, JSON.stringify(data)).then(res => {
+        if (res.data.nRet === 0) {
+          resolve(res)
+        } else {
+          resolve(res)
+        }
+      }).catch(res => {
+        reject(res)
+      })
+    })
+  },
+  [TYPES.REGISTER_TO_OAFOLDER](context, payload) {
+    payload.data.relativepath = payload.data.relativepath && encodeURIComponent(payload.data.relativepath)
+    let para = {
+      usertoken: context.state.userInfo.usertoken || '',
+      sourceguid: payload.data.sourceguid,
+      targetmosid: payload.data.targetmosid,
+      targetguid: payload.data.targetguid,
+      relativepath: payload.data.relativepath,
+      broadnotify: '0',
+      mpcnotify: '0',
+      siteCode: context.state.userInfo.sitecode || ''
+    }
+    if (payload.data.isfragment) {
+      para.clipin = payload.data.clipin
+      para.clipout = payload.data.clipout
+    }
+    let url = API_CONFIG[TYPES.REGISTER_TO_OAFOLDER](para)
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data) {
+          resolve(res.data)
+        } else {
+          resolve(res)
+        }
+      })
+    })
+  },
+  [TYPES.FRAGMENT_REGISTER](context, payload) {
+    var iscliping = false
+    var mpcnotify = '1'
+    if (payload.data.iscliping) {
+      iscliping = true
+      mpcnotify = '0' // 采集完成的传1，采集中的传0
+    }
+    payload.data.relativepath = payload.data.relativepath && encodeURIComponent(payload.data.relativepath)
+    let para = {
+      usertoken: context.state.userInfo.usertoken || '',
+      sourceguid: payload.data.sourceguid,
+      targetmosid: payload.data.targetmosid,
+      targetguid: payload.data.targetguid,
+      clipin: payload.data.clipin,
+      clipout: payload.data.clipout,
+      relativepath: payload.data.relativepath,
+      broadnotify: '0',
+      mpcnotify: mpcnotify,
+      siteCode: context.state.userInfo.sitecode || ''
+    }
+    let URL = API_CONFIG[TYPES.FRAGMENT_REGISTER](para)
+    return new Promise((resolve, reject) => {
+      axios.get(URL).then(res => { //
+        if (res.data) {
+          if (iscliping) { // 采集中的自己发消息----CMAPI不支持采集中的帮转发
+            if (res.data.code !== '0') {
+              if (res.data.code === 'RE00001') {
+                util.Notice.warning('Failed to register because this is an exceptional clip!', '', 3000)
+              } else {
+                util.Notice.warning('register to event fail!', '', 3000)
+              }
+            } else {
+              var extXml = res.data.ext.xmlinfo
+              var clipGuid = res.data.ext.guid
+              var notiyP = -1
+              if (extXml.indexOf('<Start>') >= 0) {
+                notiyP = 20 // kafamessage失败
+              } else {
+                notiyP = 10 // 走MPC失败
+              }
+              context.dispatch({
+                type: TYPES.GET_NOTIFYPLAYOUT,
+                data: {
+                  xmlproc: res.data,
+                  notiyP: notiyP
+                }
+              }).then((re) => {
+                var data = re
+                if (data.code === '0') {
+                  data.ext = {
+                    guid: clipGuid
+                  }
+                  resolve(data)
+                } else {
+                  util.Notice.warning('register to event fail!', '', 3000)
+                }
+              }).catch((re) => {
+                util.Notice.warning('register to event fail!', '', 3000)
+              })
+            }
+          } else {
+            resolve(res.data)
+          }
+        } else {
+          resolve(res)
         }
       })
     })
