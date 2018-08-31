@@ -34,7 +34,7 @@ export const ObjectType = {
   ET_ObjType_SenceMark: 0x8000, // Mark Point
   ET_ObjType_File: 0xa000 // windows file
 }
-const ClipSubType = {
+export const ClipSubType = {
   // 素材子类型
   ET_CLIPTYPE_UNKNOW: 0x000000, // 未知素材
   ET_CLIPTYPE_AV: 0x000001, // 普通视音频素材

@@ -214,9 +214,13 @@ export default {
     'material': Material,
     'list-material': ListMaterial,
     'marker-ctrl': Marker,
+<<<<<<< HEAD
     'menu-ctrl': Menu,
     'publish-to-sns': PublishToSNS,
     'regiter-tooa-ctrl': registerToOA
+=======
+    'menu-ctrl': Menu
+>>>>>>> 4da448489f182454d3ad91c77ec60aed93d0357a
   },
   data () {
     return {
@@ -2123,5 +2127,37 @@ export default {
 .list_headers_box {
   overflow: hidden;
   position: relative;
+}
+.preview_switcher {
+  width: 16px;
+  height: 71px;
+  position: absolute;
+  z-index: 10;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  background: url(../assets/images/btn_arrow_02.png) no-repeat;
+}
+#proppreviewDiv {
+  overflow: hidden;
+  position: absolute;
+  top: 50px;
+  right: 0;
+  bottom: 0;
+  width: 640px;
+  z-index: 1;
+  background: #222;
+  transition: all 0.2s;
+  transition-delay: 0.1s;
+}
+.preview_drop_div {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.01);
+  z-index: 2;
 }
 </style>

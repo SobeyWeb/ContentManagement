@@ -8,5 +8,6 @@ export default {
     'http://hive.sobey.com:9029/LoggingSysInternal_ObjectsInterface.asmx',
   PREVIEWMARKPATH: '',
   TMSERVICE: 'http://hive.sobey.com:9047',
-  PLAYOUT: 'http://hive.sobey.com:9035'
+  PLAYOUT: 'http://hive.sobey.com:9035',
+  PREVIEWHTTPS: ''
 }
