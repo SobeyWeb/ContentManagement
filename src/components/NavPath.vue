@@ -135,4 +135,9 @@ export default {
   padding: 10px 5px;
   color: #c0c0c0;
 }
+.history_item a:hover {
+  color: #c0c0c0;
+  background: #444;
+  border-radius: 3px;
+}
 </style>

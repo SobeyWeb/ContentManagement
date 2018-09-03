@@ -61,4 +61,20 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.file_col:hover .copy_btn {
+  display: inline-block;
+}
+
+.copy_btn {
+  left: 0;
+  display: none;
+  position: absolute;
+  width: 36px;
+  height: 19px;
+  top: 3px;
+  line-height: 25px;
+  z-index: 123;
+  cursor: pointer;
+  background: url(../../../assets/images/COPYICON.jpg) no-repeat;
+}
 </style>

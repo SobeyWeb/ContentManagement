@@ -142,4 +142,22 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.list_header_item {
+  line-height: 30px;
+  height: 30px;
+  display: inline-block;
+  text-align: center;
+  text-overflow: ellipsis;
+  /*overflow: hidden;*/
+  background: #464646;
+  border-left: #101010 solid 1px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  width: 200px;
+  position: relative;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>

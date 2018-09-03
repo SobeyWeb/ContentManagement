@@ -14,8 +14,8 @@
       </div>
       <div class="list_material_clipping" v-if="material.clipping"></div>
 
-      <img draggable="false" class="list_material_icon_img drag_icon" :class="{Videodefault:material.type == 'video',fullscreen:(material.is16_9sd && material.type == 'video')}" @load="getImginfo($event,material)" v-if="material.iconfilename" :src="material.iconfilename" onerror="this.src='./images/nostamp.png'">
-      <span class="list_material_icon_span drag_icon" :class="material.icon" v-else :style="{background: 'url(./images/' + material.bgtype + '.png) no-repeat center center'}"></span>
+      <img draggable="false" class="list_material_icon_img drag_icon" :class="{Videodefault:material.type == 'video',fullscreen:(material.is16_9sd && material.type == 'video')}" @load="getImginfo($event,material)" v-if="material.iconfilename" :src="material.iconfilename" @error="imageLoadError">
+      <span class="list_material_icon_span drag_icon" :class="[material.icon, material.bgtype]" v-else></span>
       <!--img draggable="false" v-if="material.type =='video'&&!material.isAudio" class="preview_img" :src="material.previewicon" :style="{top:top+'px'}">
           <div draggable="false" v-if="material.type =='video'&&!material.isAudio" class="preview_cell" :style="{left:left+'px'}"></div-->
       <div class="material_more_icon" @click="more"></div>
@@ -44,16 +44,20 @@ export default {
   },
   data: function () {
     return {
+      nostampUrl: require('../assets/images/nostamp.png'),
       top: 0,
       left: 0
     }
   },
   methods: {
+    imageLoadError (event) {
+      event.target.src = this.nostampUrl
+    },
     getImginfo (event, material) {
       this.$nextTick(() => {
         if (material.imagetype === 4) {
-          var imgH = event.currentTarget.naturalHeight
-          var imgW = event.currentTarget.naturalWidth
+          var imgH = event.currentTarget && event.currentTarget.naturalHeight
+          var imgW = event.currentTarget && event.currentTarget.naturalWidth
           if (imgW > imgH) {
             material.is16_9sd = true
           }
@@ -672,6 +676,48 @@ export default {
   text-align: center;
   background: #2e2e2e;
   width: 90px;
+}
+.list_material_icon_span.folder {
+  background: url(../assets/images/folder.png) no-repeat center center;
+}
+.list_material_icon_span.uploading {
+  background: url(../assets/images/uploading.png) no-repeat center center;
+}
+.list_material_icon_span.audio {
+  background: url(../assets/images/audio.png) no-repeat center center;
+}
+.list_material_icon_span.video {
+  background: url(../assets/images/video.png) no-repeat center center;
+}
+.list_material_icon_span.h5pgm {
+  background: url(../assets/images/h5pgm.png) no-repeat center center;
+}
+.list_material_icon_span.sequence {
+  background: url(../assets/images/sequence.png) no-repeat center center;
+}
+.list_material_icon_span.image {
+  background: url(../assets/images/image.png) no-repeat center center;
+}
+.list_material_icon_span.txtfile {
+  background: url(../assets/images/txtfile.png) no-repeat center center;
+}
+.list_material_icon_span.word {
+  background: url(../assets/images/word.png) no-repeat center center;
+}
+.list_material_icon_span.ppt {
+  background: url(../assets/images/ppt.png) no-repeat center center;
+}
+.list_material_icon_span.excel {
+  background: url(../assets/images/excel.png) no-repeat center center;
+}
+.list_material_icon_span.pdf {
+  background: url(../assets/images/pdf.png) no-repeat center center;
+}
+.list_material_icon_span.project {
+  background: url(../assets/images/project.png) no-repeat center center;
+}
+.list_material_icon_spandrag_icon.other {
+  background: url(../assets/images/other.png) no-repeat center center;
 }
 
 .list_material_icon_container .node_icon {

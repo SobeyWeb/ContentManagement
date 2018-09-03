@@ -4548,7 +4548,7 @@ export function getPreviewInfo(resultArr, materials, type, context) {
       source.push(...lowBitrateArr)
     } else {
       source.push({
-        src: './images/' + (material.type === 'video' ? 'cannotpreview' : material.bgtype) + '.png',
+        src: require('../assets/images/' + (material.type === 'video' ? 'cannotpreview' : material.bgtype) + '.png'),
         name: entity.name,
         text: 'online preview is not supported for this file',
         guid: entity.guid,
@@ -4563,7 +4563,7 @@ export function getPreviewInfo(resultArr, materials, type, context) {
     let material = materials.find(i => i.guid === item.guid)
     if (['mp3', 'mp4', 'mpd', 'png'].indexOf(fileSuffix) === -1 && material.type === 'video') {
       material.canPreview = false
-      item.src = './images/cannotpreview.png'
+      item.src = require('../assets/images/cannotpreview.png')
       item.text = 'online preview is not supported for this file'
     }
     item.index = index

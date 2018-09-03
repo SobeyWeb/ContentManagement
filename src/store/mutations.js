@@ -5,6 +5,7 @@ import $ from 'jquery'
 export default {
   [TYPES.SET_USERINFO](state, payload) {
     state.userInfo = payload.data
+    util.setCookie('userInfo', JSON.stringify(state.userInfo))
   },
   [TYPES.SET_APPDATA](state, payload) {
     state.listSymbol = util.getValue(payload.data.listSymbol, state.listSymbol)
@@ -267,9 +268,6 @@ export default {
         .removeClass('transparentHover')
     }
   },
-  [TYPES.SET_USERINFO](state, payload) {
-    state.userInfo = payload.data
-  },
   [TYPES.GET_SEARCHMODEL](state, payload) {
     var newArr = []
     payload.data.forEach(item => {
@@ -425,8 +423,8 @@ export default {
         : util.getValue(
           payload.data.target && payload.data.target.name,
           payload.data.target &&
-              payload.data.target.map &&
-              payload.data.target.map(item => item.name).join(',')
+            payload.data.target.map &&
+            payload.data.target.map(item => item.name).join(',')
         )
     )
     payload.data.checkbox = {

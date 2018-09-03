@@ -63,14 +63,11 @@ export default {
           }
         }).then(res => {
           let userInfo = res.ext
-          userInfo.sitecode = userInfo.organizations[0] && userInfo.organizations[0].sitecode
+          userInfo.sitecode = userInfo.organizations && userInfo.organizations[0] && userInfo.organizations[0].sitecode
           userInfo.username = userInfo.loginname.replace(/.*\\(.*)/g, '$1') // domain account
           this.$store.commit({
             type: TYPES.SET_USERINFO,
             data: userInfo
-          })
-          this.$store.dispatch({
-            type: TYPES.INTERCEPT_AXIOS
           })
           // can user use cm or plugin
           this.$store.dispatch({
@@ -82,20 +79,31 @@ export default {
           }).then(res => {
             if (res.ext) {
               this.$app.emit(EVENT.LOGINED, [this]) // dispatch login event
-              this.$router.push('/index')
               this.loading = false
               localStorage.setItem('loginName', this.username)
+              this.$store.commit({
+                type: TYPES.SET_USERINFO,
+                data: userInfo
+              })
+              this.$store.dispatch({
+                type: TYPES.INTERCEPT_AXIOS
+              })
               // get user info
               this.$store.dispatch({
                 type: TYPES.GET_USERINFOBYID
               }).then(res => {
-                this.$store.state.userInfo.isAdmin = res.ext.type === 1
-                this.$store.state.userInfo.permission = [] // res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
+                userInfo.isAdmin = res.ext.type === 1
+                userInfo.permission = []// res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
                 if (res.ext.templates && res.ext.templates.length) {
-                  this.$store.state.userInfo.privilege = res.data.ext.templates[0].templatecode
+                  userInfo.privilege = res.ext.templates[0].templatecode
                 } else {
-                  this.$store.state.userInfo.privilege = 'private_' + this.$store.state.userInfo.usercode
+                  userInfo.privilege = 'private_' + userInfo.usercode
                 }
+                this.$store.commit({
+                  type: TYPES.SET_USERINFO,
+                  data: userInfo
+                })
+                this.$router.push('/index')
               }).catch(err => {
                 console.log(err)
               }) // get user permission
@@ -106,7 +114,11 @@ export default {
                   popedomname: 'ETAdministrator'
                 }
               }).then(res => {
-                this.$store.state.userInfo.roletype = res.ext
+                userInfo.roletype = res.ext
+                this.$store.commit({
+                  type: TYPES.SET_USERINFO,
+                  data: userInfo
+                })
               }).catch(err => {
                 console.log(err)
               })
