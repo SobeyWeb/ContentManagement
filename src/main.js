@@ -8,7 +8,7 @@ import store from './store'
 
 import vuexI18n from 'vuex-i18n'
 import translationsEn from './dicts/translationsEn.js'
-
+import hotkeys from 'hotkeys-js'
 import eventPlugin from './plugins/eventPlugin.js'
 import EVENT from './dicts/EventTypes.js'
 import './lib/prototype.js'
@@ -28,6 +28,7 @@ Vue.use(Vue => {
     }
   }
 })
+Vue.prototype.$hotkeys = hotkeys
 Vue.use(eventPlugin)
 Vue.use(RadonUI.RadonInstall, {
   Modal: true,

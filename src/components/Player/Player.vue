@@ -14,7 +14,7 @@ import Video from './Player/Video'
 import Picture from './Player/Picture'
 import Document from './Player/Document'
 import Other from './Player/Other'
-import Property from './Property/Index'
+import Property from './Property/Property'
 export default {
   name: 'player',
   components: {
@@ -1039,5 +1039,29 @@ width: 100%;
 
 .export_title_box span {
   padding-right: 21px;
+}
+#proppreviewDiv.dv_model_view {
+  position: fixed;
+  top: 0;
+  right: 0 !important;
+  width: 100%;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+#proppreviewDiv.dv_model_view .property_container {
+  right: 0;
+  top: 0;
+}
+
+/*#proppreviewDiv.dv_model_view .player {
+  top: 50%;
+  transform: translateY(-50%);
+}*/
+
+#proppreviewDiv.dv_model_view .player_box {
+  right: 640px;
+  position: absolute;
+  left: 0;
 }
 </style>

@@ -345,99 +345,37 @@ export default {
       })
     })
   },
-  //  触发Rename
-  [TYPES.DISPATCH_RENAME](context, payload) {
-    let node = context.state.selectedMaterials[0]
-    if (node.operations.indexOf('Rename') === -1) {
-      util.Notice.warning(
-        'This material is not allowed to be renamed',
-        '',
-        3000
-      )
-      return
-    }
-    if (node.guid === 2) {
-      context.dispatch({
-        type: TYPES.DISPATCH_SAVE_SEARCHRESULT,
-        target: [node]
-      })
-    } else if ([1, 2].indexOf(node.father.guid) > -1) {
-      node.renaming = true
-      context.commit({
-        type: TYPES.GET_NAVPATH,
-        target: node.father,
-        data: []
-      })
-      context.commit({
-        type: TYPES.CLEAR_SELECTEEDITEMS
-      })
-      node.selected = true
-      context.commit({
-        type: TYPES.ADD_SELECTEDITEM,
-        data: node
-      })
-      context.commit({
-        type: TYPES.SET_SIGNMATERIAL,
-        data: context.getters.displayMaterials.indexOf(node)
-      })
+  // 保存SEARCHRESULT搜索模板
+  [TYPES.DISPATCH_SAVE_SEARCHRESULT](context, payload) {
+    if (payload.target && payload.target.length && payload.target[0].guid === 2) {
+      // modify
+      context.state.currentTemplate = payload.target[0]
+      context.state.saveSearchResultFlag = true
+      context.state.saveSearchName = context.state.currentTemplate.name
     } else {
-      if (node.father !== context.getters.currentNode) {
-        let path
-        if (appSetting.USEROOTPATH) {
-          path = node.father.path.split('/')
+      // 保存
+      context.state.currentTemplate = null
+      context.state.saveSearchName = 'Search Result 1'
+      for (let i = 1; i < 6; i++) {
+        if (context.getters.searchResult.searchModel.some(item => item.name === context.state.saveSearchName)) {
+          context.state.saveSearchName = 'Search Result ' + (i + 1)
         } else {
-          path = node.father.path.split('/').slice(1)
+          break
         }
-        util
-          .locateFolder(
-            context,
-            path,
-            {
-              children: context.getters.folderTree
-            },
-            {
-              isShowWaiting: true
-            }
-          )
-          .then(res => {
-            let newNode = getRepository(node.father.guid)
-              .find(item => item.guid === node.guid)
-            newNode.renaming = true
-            context.commit({
-              type: TYPES.GET_NAVPATH,
-              target: node.father,
-              data: []
-            })
-            context.commit({
-              type: TYPES.CLEAR_SELECTEEDITEMS
-            })
-            newNode.selected = true
-            context.commit({
-              type: TYPES.ADD_SELECTEDITEM,
-              data: newNode
-            })
-            context.commit({
-              type: TYPES.SET_SIGNMATERIAL,
-              data: context.getters.displayMaterials.indexOf(newNode)
-            })
-          })
-      } else {
-        let newNode = getRepository(node.father.guid)
-          .find(item => item.guid === node.guid)
-        newNode.renaming = true
-        context.commit({
-          type: TYPES.CLEAR_SELECTEEDITEMS
-        })
-        newNode.selected = true
-        context.commit({
-          type: TYPES.ADD_SELECTEDITEM,
-          data: newNode
-        })
-        context.commit({
-          type: TYPES.SET_SIGNMATERIAL,
-          data: context.getters.displayMaterials.indexOf(newNode)
-        })
       }
+      context.dispatch({
+        type: TYPES.GET_SEARCH_QUERY
+      }).then((res) => {
+        var temp = res.find(item => item.templateName === ('default' + context.state.userInfo.usercode))
+        if (temp) {
+          res.remove(temp)
+        }
+        if (res.length >= 5) {
+          util.Notice.warning('The maximum number of templates is 5', '', 3000)
+        } else {
+          context.state.saveSearchResultFlag = true
+        }
+      }).catch(() => {})
     }
   },
   //  触发Rename

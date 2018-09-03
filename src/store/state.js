@@ -1,4 +1,4 @@
-import { throttle, debounce } from '../lib/util'
+import { throttle, debounce, getCookie } from '../lib/util'
 import treeNode from '../data/treeNode'
 import { emptyMaterial } from '../data/basicData'
 
@@ -176,11 +176,7 @@ export default {
   },
   clipBoard: [],
   clipBoardSymbol: true, // true 为剪贴， false为复制
-  userInfo: {
-    loginName: '',
-    nickName: '',
-    userCode: ''
-  },
+  userInfo: getCookie('userInfo') ? JSON.parse(getCookie('userInfo')) : {},
   previewSymbol: false,
   detailviewSymbol: false,
   dvStyle: {

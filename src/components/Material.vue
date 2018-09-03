@@ -12,7 +12,7 @@
       </div>
     </div>
     <div v-on:mousemove="mousemove" class="material_icon_container" :class="material.cutting ? 'material_cutting' : ''">
-      <img draggable="false" class="material_icon drag_icon" :class="{Videodefault:material.type == 'video',fullscreen:(material.is16_9sd && material.type == 'video')}" @load="getImginfo($event,material)" v-if="material.iconfilename" :src="material.iconfilename" onerror="this.src='@/assets/images/nostamp.png'">
+      <img draggable="false" class="material_icon drag_icon" :class="{Videodefault:material.type == 'video',fullscreen:(material.is16_9sd && material.type == 'video')}" @load="getImginfo($event,material)" v-if="material.iconfilename" :src="material.iconfilename" @error="imageLoadError">
       <span class="drag_icon material_icon_span" :class="[material.icon, material.bgtype]" v-else></span>
       <img draggable="false" v-if="material.type =='video'&&!material.isAudio&&material.previewicon" class="preview_img" :src="material.previewicon" :style="{top:top+'px'}">
       <div draggable="false" v-if="material.type =='video'&&!material.isAudio&&material.previewicon" class="preview_cell" :style="{left:left+'px'}">
@@ -41,17 +41,21 @@ export default {
   },
   data: function () {
     return {
+      nostampUrl: require('../assets/images/nostamp.png'),
       intervalId: -1,
       top: 0,
       left: 0
     }
   },
   methods: {
+    imageLoadError (event) {
+      event.target.src = this.nostampUrl
+    },
     getImginfo (event, material) {
       this.$nextTick(() => {
         if (material.imagetype === 4) {
-          var imgH = event.currentTarget.naturalHeight
-          var imgW = event.currentTarget.naturalWidth
+          var imgH = event.currentTarget && event.currentTarget.naturalHeight
+          var imgW = event.currentTarget && event.currentTarget.naturalWidth
           if (imgW > imgH) {
             material.is16_9sd = true
           }
@@ -913,6 +917,9 @@ export default {
 .material_icon_span.project {
   background: url(../assets/images/project.png) no-repeat center center;
 }
+.material_icon_span.other {
+  background: url(../assets/images/other.png) no-repeat center center;
+}
 .material {
   width: 150px;
   height: 130px;
@@ -941,7 +948,7 @@ export default {
 }
 
 .material .material_cutting {
-  opacity: .3;
+  opacity: 0.3;
 }
 
 .material:hover {

@@ -310,5 +310,167 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
+<style>
+.advance_search_container {
+  width: 578px;
+  background: #222;
+}
+
+.advance_search_top .tab_header_container {
+  position: relative;
+}
+
+.advance_search_top .list_header_item {
+  cursor: pointer;
+  border-left: none;
+  background: #222;
+}
+
+.advance_search_top .list_header_item_checked {
+  border-bottom: 2px solid #f5a623;
+  background: #1b1b1b;
+  color: #fff;
+}
+
+.advance_search_content {
+  height: 550px;
+  background: #1b1b1b;
+  overflow: auto;
+  padding: 0 10px;
+}
+
+.showing_items {
+  width: 240px;
+  height: 500px;
+  background: #464646;
+}
+
+.control_container {
+  width: 58px;
+  height: 500px;
+  position: absolute;
+  top: 0;
+  left: 240px;
+}
+
+.control_config_container {
+  position: relative;
+}
+
+.control_btn {
+  display: block;
+  height: 30px;
+  width: 30px;
+  margin: 100px 14px;
+  cursor: pointer;
+}
+
+.to_left_btn {
+  background: url(../../assets/images/arrow_left.png) 9px 13px no-repeat;
+}
+
+.to_right_btn {
+  background: url(../../assets/images/arrow_right3.png) 9px 13px no-repeat;
+}
+
+.tab_container {
+  position: relative;
+}
+
+.control_text {
+  width: 240px;
+  text-align: center;
+  display: inline-block;
+}
+
+.hide_items {
+  width: 240px;
+  height: 500px;
+  background: #464646;
+}
+
+.advance_config_container {
+  overflow: hidden;
+  position: relative;
+  padding: 10px;
+}
+
+.advance_search_content .dragging_item {
+  height: 30px;
+  line-height: 30px;
+}
+
+.advance_search_content .list_header_item {
+  height: 30px;
+  line-height: 30px;
+}
+
+.from_span {
+  margin: 0 5px;
+}
+
+.from_container {
+  width: 200px;
+  display: inline-block;
+}
+
+.user_selector_container {
+  position: relative;
+}
+
+.user_input {
+  font-size: 0.9rem;
+  line-height: 1.7rem;
+  color: #cfd2d4;
+  background-color: #000;
+  background-image: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+  width: 100%;
+  height: 32px;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+}
+
+.member_selector_container {
+  position: relative;
+}
+
+.rd-textfield-input.search_input {
+  border-top: 1px #3e3e3e solid;
+  background: #222222;
+  border-bottom: 1px #3e3e3e solid;
+}
+
+.member_box {
+  left: 0;
+  bottom: -272px;
+  width: 100%;
+  z-index: 122;
+  overflow: hidden;
+  background: #222222;
+}
+.tab_header_container .list_header_item,
+.advance_search_container .list_header_item {
+  line-height: 38px;
+  height: 38px;
+}
+
+.advance_search_container .list_header_item {
+  padding-left: 18px;
+  text-align: left;
+  border-left: none;
+}
+.advance_search_bottom {
+  line-height: 50px;
+  padding: 0 20px;
+}
+.split_span {
+  display: inline-block;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
 </style>

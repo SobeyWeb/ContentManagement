@@ -159,12 +159,13 @@
         <loading-ctrl :name="'Loading...'" v-show="loading"></loading-ctrl>
         <div class="preview_switcher" :class="{arrow_left :previewSymbol}" @click="switchPreview" @dragenter.stop.prevent="openPreview" @dragover.stop.prevent @dragleave.stop.prevent @contextmenu.prevent.stop></div>
       </div>
-      <div id="proppreviewDiv" :class="{dv_model_view: isDvModel}" :style="{right: previewSymbol? '0':'-640px'}" @mousedown.capture="focusePlayer">
+      <div id="proppreviewDiv" :class="{dv_model_view: detailviewSymbol}" :style="{right: previewSymbol? '0':'-640px'}" @mousedown.capture="focusPlayer">
         <player ref="player"></player>
         <div class="preview_drop_div" @drop="preview" @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent v-show="previewDragSymbol">
         </div>
       </div>
     </div>
+    <iframe class="taskmonitorifm" ref="taskmonitor" :src="taskMonitorUrl"></iframe>
   </div>
 </template>
 
@@ -183,7 +184,7 @@ import { defaultQuery, defaultFulltextSearchCondtion, defaultAdvanceSearchCondti
 import { SortLikeWin } from '../lib/sort.js'
 import $ from 'jquery'
 
-import AdvanceSearch from './AdvanceSearch/Index'
+import AdvanceSearch from './AdvanceSearch/AdvanceSearch'
 import FolderTree from './FolderTree'
 import UserSpace from './UserSpace'
 import QuickLink from './QuickLink'
@@ -191,7 +192,7 @@ import FulltextSearch from './FulltextSearch'
 import NavPath from './NavPath'
 import ListMaterialHeader from './ListMaterialHeader'
 import LocalSearch from './LocalSearch'
-import Player from './Player/Index'
+import Player from './Player/Player'
 import Material from './Material'
 import ListMaterial from './ListMaterial'
 import Marker from './Marker'
@@ -220,10 +221,10 @@ export default {
   },
   data () {
     return {
+      taskMonitorUrl: '',
       tempIndex: 0,
       sortByStatus: false,
       userOperationStatus: false,
-      previewSymbol: false,
       resizeSymbol: false,
       dragSymbol: false,
       folderBlockStatus: true,
@@ -250,7 +251,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['isDvModel', 'previewDragSymbol', 'bakCondition', 'userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'searchType', 'isMarker', 'linkNodes', 'player', 'showSearch', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
+    ...mapState(['detailviewSymbol', 'previewDragSymbol', 'bakCondition', 'userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'isMarker', 'linkNodes', 'player', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
     ...mapGetters(['currentNode', 'selectedNode', 'searchResult', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
     scaleTime: {
       get () {
@@ -259,6 +260,59 @@ export default {
       set (val) {
         this.$store.state.scaleTime = val
       }
+    },
+    previewSymbol: {
+      get () {
+        return this.$store.state.previewSymbol
+      },
+      set (val) {
+        this.$store.state.previewSymbol = val
+      }
+    },
+    showSearch: {
+      get () {
+        return this.$store.state.showSearch
+      },
+      set (val) {
+        this.$store.state.showSearch = val
+      }
+    },
+    advanceCondition () {
+      var c = []
+      this.advanceHeader && this.advanceHeader.keyValues.forEach(item => {
+        if (item.isRange) {
+          var fv = item.from.value || (item.from.value === 0 ? 0 : '*')
+          var tv = item.to.value || (item.to.value === 0 ? 0 : '*');
+          (fv !== '*' || tv !== '*') && c.push(fv + ' TO ' + tv)
+        } else if (item.ctrl === 'rd-select') {
+          if (item.multiple) {
+            item.value && item.value.length && c.push(item.value.map(i => i.value).join('|'))
+          } else {
+            item.value && item.value.value && c.push(item.value.value)
+          }
+        } else {
+          item.value && c.push(item.username || item.value)
+          item.checkedValue && item.checkedValue.length && c.push(item.checkedValue.map(i => i.name).join('|'))
+        }
+      })
+      return c.join(',')
+    },
+    advanceHeader () {
+      return this.currentNode.bakCondition.headers && this.currentNode.bakCondition.headers.filter(item => item.selected)[0]
+    },
+    condtionLeft () {
+      return this.searchType === 3 ? '126px' : '90px'
+    },
+    searchType: {
+      get () {
+        return this.currentNode.bakCondition && this.currentNode.bakCondition.type
+      },
+      set (val) {
+        this.$store.state.searchType = val
+      }
+    },
+    fulltext () {
+      return this.$store.state.fulltextSearchCondition
     },
     focusIndex: {
       get () {
@@ -306,11 +360,131 @@ export default {
         this.listSymbol = false
       }
     },
-    displayMaterials (val) {
+    isShowSearchReuslt (val) {
+      this.$nextTick(() => {
+        setTimeout(() => this.$store.state.containerUpdate++, 300) // animate 300ms
+      })
+    },
+    displayMaterials (val, old) {
       this.$store.getters.currentNode.children = val // make it reactive
+      clearTimeout(this.getIconId)
+      this.getIconId = setTimeout(() => {
+        var nostampMaterials = val.filter(item => !item.hasGetIcon && !item.iconfilename && ['video', 'txtfile', 'word', 'ppt', 'pdf', 'excel', 'image', 'marker'].indexOf(item.type) > -1 && !item.isAudio)
+        if (nostampMaterials.length) {
+          nostampMaterials.forEach(item => item.hasGetIcon = true)
+          var totalTimes = Math.ceil(nostampMaterials.length / 200)
+          for (let i = 0; i < totalTimes; i++) {
+            let materialsRange = nostampMaterials.slice(i * 200, Math.min((i + 1) * 200, nostampMaterials.length))
+            if (materialsRange[0].type === 'marker') {
+              this.$store.dispatch({
+                type: TYPES.GET_MARK_ICONSOURCE,
+                data: materialsRange.map(item => ({
+                  contentid: item.objectguid,
+                  markguid: item.markguid,
+                  keyframeno: item.keyframe
+                }))
+              }).then(res => {
+                res.data.ext.forEach((item, index) => {
+                  var current = materialsRange[index] // materialsRange.find(i => i.guid === item.contentid)
+                  if (current.markguid === item.markguid) {
+                    current.iconfilename = util.getIconFilename(item.filepath)
+                  } else {
+                    current = materialsRange.find(i => i.markguid === item.markguid)
+                    if (current) {
+                      current.iconfilename = util.getIconFilename(item.filepath)
+                    }
+                  }
+                })
+              }).catch(res => {
+                materialsRange.forEach(item => item.hasGetIcon = false)
+              })
+            } else {
+              this.$store.dispatch({
+                type: TYPES.GET_ICONSOURCE,
+                data: materialsRange.map(item => item.guid).join(',')
+              }).then(res => {
+                res.data.ext.forEach((item, index) => {
+                  var current = materialsRange[index] // materialsRange.find(i => i.guid === item.contentid)
+                  if (current.guid === item.contentid) {
+                    current.iconfilename = item.keyframe
+                  } else {
+                    current = materialsRange.find(i => i.guid === item.contentid)
+                    if (current) {
+                      current.iconfilename = item.keyframe
+                    }
+                  }
+                })
+              }).catch(res => {
+                materialsRange.forEach(item => item.hasGetIcon = false)
+              })
+            }
+          }
+        }
+      }, 300)
     }
   },
   methods: {
+    resizeTaskMonitor () {
+      if (this.taskMonitorWindow && this.taskMonitorWindow.visible) {
+        let bw = $($('.h5.window')[0].parentElement).width()
+        let bh = $($('.h5.window')[0].parentElement).height()
+        let h = bh * 0.75
+        let w = bw * 0.6
+
+        if (w > 900) {
+          w = 900
+        }
+        if (w < 688) {
+          w = 688
+        }
+
+        if (h > 650) {
+          h = 650
+        }
+
+        $('.taskmonitorifm').css({
+          width: w,
+          height: h
+        })
+
+        w = $('.h5.window').width()
+        h = $('.h5.window').height()
+        bw = $(window).width()
+        bh = $(window).height()
+
+        $('.h5.window').css({
+          left: (bw - w) / 2 + 'px',
+          top: (bh - h) / 2 + 'px'
+        })
+      }
+    },
+    reSearch: util.debounce(300, function () {
+      this.$store.dispatch({
+        type: TYPES.GET_SEARCHRESULT,
+        source: this.currentNode,
+        condition: this.currentNode.bakCondition
+      })
+    }),
+    saveSeachCondition () {
+      this.$store.dispatch({
+        type: TYPES.DISPATCH_SAVE_SEARCHRESULT,
+        target: [this.currentNode]
+      })
+    },
+    modifySeachCondition () {
+      this.$store.state.isModifyCondtion = true
+      this.$store.state.advanceSearchWindow.show('Edit Search Condition')
+    },
+    timeFilter (t) {
+      var old = t.checked
+      this.currentNode.bakCondition.timeFilter.forEach(i => i.checked = false)
+      t.checked = !old
+      this.reSearch()
+    },
+    typeFilter (t) {
+      t.checked = !t.checked
+      this.reSearch()
+    },
     dragging: util.throttle(50, function (event) {
       if (this.dragSymbol && event.target === this.$refs.dragBed) {
         if (this.listSymbol) {
@@ -381,6 +555,9 @@ export default {
     },
     focusMaterialList (event) {
       this.focusIndex = 1
+    },
+    focusPlayer (event) {
+      this.focusIndex = 2
     },
     preview (event) {
       this.$store.dispatch({
@@ -1040,7 +1217,7 @@ export default {
       }))
       // ctrl + x
       keyEvents.push(new KeyEvent(KEYCODES.x, {
-        ctrl: true,
+        ctrlKey: true,
         action: event => {
           this.$store.dispatch({
             type: TYPES.CUT
@@ -1074,7 +1251,7 @@ export default {
       }))
       // ctrl + c
       keyEvents.push(new KeyEvent(KEYCODES.c, {
-        ctrl: true,
+        ctrlKey: true,
         action: event => {
           this.$store.dispatch({
             type: TYPES.COPY,
@@ -1093,7 +1270,7 @@ export default {
       }))
       // delete
       keyEvents.push(new KeyEvent(KEYCODES.delete, {
-        ctrl: true,
+        ctrlKey: true,
         action: event => {
           this.$store.dispatch({
             type: TYPES.DELETE_MATERIALS,
@@ -1138,9 +1315,11 @@ export default {
         }
       }))
       // register shortcut
-      this.$keydown.on(/keydown-\d+/g, event => {
-        let keycode = event.keycode
-        let events = keyEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === item.ctrlKey && event.shiftKey === item.shiftKey && event.metaKey === item.metaKey)
+      // this.$keydown.on(/keydown-\d+/g, event => {
+      this.$hotkeys('*', event => {
+        console.log(event)
+        let keycode = event.keyCode
+        let events = keyEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === !!item.ctrlKey && event.shiftKey === !!item.shiftKey && event.metaKey === !!item.metaKey)
         if (events.length) {
           events.forEach(item => item.action(event))
         } else if (this.isMLEnable()) {
@@ -1308,6 +1487,7 @@ export default {
       })
     },
     initNativeEvents () {
+      this.registerKeydown()
       window.addEventListener('unload', this.setCookie)
       window.addEventListener('keydown', event => {
         if (document.querySelector('.h5')) {
@@ -1351,7 +1531,7 @@ export default {
                 children.forEach(item => {
                   if (lastVisit.selectedMaterial.indexOf(item.guid) > -1) {
                     item.selected = true
-                    this.store.commit({
+                    this.$store.commit({
                       type: TYPES.ADD_SELECTEDITEM,
                       data: item
                     })
@@ -1443,11 +1623,11 @@ export default {
       this.$store.state.materialBox = document.querySelector('.scrollbar_container')
     },
     initModalWindow () {
-      // this.taskMonitorWindow = new ModalWindow({
-      //   content: this.$refs.taskmonitor || document.querySelector('.taskmonitorifm'),
-      //   title: 'Task Monitor',
-      //   onshow: this.resizeTaskMonitor
-      // })
+      this.taskMonitorWindow = new ModalWindow({
+        content: this.$refs.taskmonitor || document.querySelector('.taskmonitorifm'),
+        title: 'Task Monitor',
+        onshow: this.resizeTaskMonitor
+      })
       this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
       // this.$store.state.saveClipWindow = new ModalWindow({
       //   content: this.$refs.saveClip.$el,
@@ -1863,7 +2043,12 @@ export default {
       }))
     }
   },
-  created () { },
+  created () {
+    if (this.userInfo && this.userInfo.usertoken) {
+    } else {
+      this.$router.push('/login')
+    }
+  },
   mounted () {
     this.initNativeEvents()
     this.initAppData()
@@ -2155,5 +2340,257 @@ export default {
   left: 0;
   background: rgba(0, 0, 0, 0.01);
   z-index: 2;
+}
+.display_filter_text {
+  height: 100%;
+  position: absolute;
+  line-height: 32px;
+  padding: 0 10px 0 20px;
+}
+
+.display_filter_items {
+  position: relative;
+  left: 90px;
+  padding-right: 90px;
+}
+
+.content_filter_container {
+  position: relative;
+}
+
+.display_keyword_span {
+  line-height: 32px;
+  padding: 0 10px 0 20px;
+  width: 60px;
+  display: inline-block;
+}
+
+.display_advance_span {
+  width: 100px;
+}
+
+.display_keyword_input {
+  margin: 0;
+}
+
+.condition_display_container {
+  background: #272727;
+  position: relative;
+  padding: 5px 0;
+}
+
+.display_boolean_item {
+  padding: 0 20px;
+  line-height: 32px;
+}
+
+.display_btn {
+  background-size: 100%;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  outline: none;
+  cursor: pointer;
+  display: inline-block;
+  line-height: 30px;
+  position: relative;
+  text-align: center;
+  margin-left: 5px;
+}
+
+.display_modify_btn {
+  background-image: url(../assets/images/4_1.png);
+}
+
+.display_modify_btn:hover {
+  background-image: url(../assets/images/4_2.png);
+}
+
+.display_excute_btn {
+  background-image: url(../assets/images/2_1.png);
+}
+
+.display_excute_btn:hover {
+  background-image: url(../assets/images/2_2.png);
+}
+
+.display_save_btn {
+  background-image: url(../assets/images/3_1.png);
+}
+
+.display_save_btn:hover {
+  background-image: url(../assets/images/3_2.png);
+}
+
+.search_panel_icon {
+  display: inline-block;
+  border: none;
+  outline: none;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  background-size: 30px 30px;
+  background-repeat: no-repeat;
+  background-position: 4px 4px;
+  background-image: url(../assets/images/1_1.png);
+}
+
+.search_panel_icon_active {
+  background-image: url(../assets/images/1_2.png);
+}
+
+.search_panel_icon:hover {
+  background-image: url(../assets/images/1_2.png);
+}
+
+.dispplay_btn_box {
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 5px 15px;
+}
+.boolean_input {
+  width: 239px;
+  min-width: 239px;
+  line-height: 24px;
+  background-color: #1b1b1b;
+  margin-left: 5px;
+  border: none;
+  border-radius: 0;
+  color: #fff;
+  padding: 0 5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.filter_text {
+  width: 50px;
+  margin: 0 5px 0 10px;
+}
+
+.fulltext_filter_container {
+  background-color: #222222;
+  padding-top: 5px;
+  overflow: hidden;
+}
+
+.check_span {
+  display: inline-block;
+  background-color: #303030;
+  margin: 3px 2px 3px 2px;
+  width: 70px;
+  line-height: 24px;
+  text-align: center;
+  border: 1px solid #303030;
+  cursor: pointer;
+  color: #fff;
+  z-index: 1;
+  position: relative;
+  overflow: hidden;
+  transition: color 0.3s;
+}
+
+.check_span::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  background: #f5a623;
+  -webkit-transition: -webkit-transform 0.3s, opacity 0.3s;
+  transition: transform 0.3s, opacity 0.3s;
+  -webkit-transform: translate3d(-115%, 0, 0) skewX(40deg);
+  transform: translate3d(-115%, 0, 0) skewX(40deg);
+}
+
+.checked_span.check_span::before {
+  opacity: 1;
+  -webkit-transform: translate3d(0, 0, 0) skewX(0deg);
+  transform: translate3d(0, 0, 0) skewX(0deg);
+}
+.refresh_icon {
+  border: none;
+  outline: none;
+  width: 38px;
+  height: 38px;
+  float: right;
+  cursor: pointer;
+  background: url(../assets/images/refresh_normal.jpg) no-repeat;
+}
+
+.refresh_icon:hover {
+  background: url(../assets/images/refresh_over.jpg) no-repeat;
+}
+
+.refresh_icon:active {
+  background: url(../assets/images/refresh_down.jpg) no-repeat;
+}
+.username_show {
+  font-size: 14px;
+  float: right;
+  margin-right: 5px;
+  line-height: 50px;
+  margin-left: 10px;
+}
+
+.xx_icon {
+  display: inline-block;
+  border: none;
+  outline: none;
+  width: 38px;
+  height: 38px;
+  margin-top: 5px;
+  cursor: pointer;
+  background: url(../assets/images/user_ope_normal.png) no-repeat;
+}
+
+.xx_icon:hover {
+  background: url(../assets/images/user_ope_over.png) no-repeat;
+}
+
+.xx_icon:active {
+  background: url(../assets/images/user_ope_down.png) no-repeat;
+}
+.operation_box {
+  position: absolute;
+  top: 45px;
+  background-color: #fff;
+  z-index: 23333;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 27px;
+  padding: 3px 0;
+}
+
+.operation_box.user_operation {
+  right: 5px;
+  width: 75px;
+}
+
+.operation_item {
+  list-style: none;
+  line-height: 27px;
+  padding: 0 7px;
+  color: #1b1b1b;
+  font-weight: 600;
+  text-align: center;
+}
+
+.operation_item:hover {
+  background-color: #f5a623;
+}
+.triangle_top {
+  border: 8px solid transparent;
+  border-bottom: 8px solid #fff;
+  position: absolute;
+}
+
+.triangle_top.user_operation {
+  top: 30px;
+  right: 49px;
 }
 </style>
