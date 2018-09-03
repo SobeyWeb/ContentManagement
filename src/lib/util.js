@@ -2841,7 +2841,7 @@ export function displayRegisterWindow (currentStudioData, context) {
     }
   })
   context.state.registerdata.registerData.remove(...temStudio)
-  StudioDatas.remove(newStudio)
+  StudioDatas.remove(...newStudio)
   StudioDatas.forEach(item => {
     context.state.registerdata.registerData.push(item)
   })
@@ -4845,7 +4845,6 @@ export function encodeUrl (str) {
 export function getTimeCodeInfo (context, material, clipfile, otcIndex, videoStandard, NtscTcMode) {
   return new Promise((resolve, reject) => {
     let url = clipfile.filename
-
     let fileinFrame = parseInt(GetFrameNumByHundredNS(parseInt(clipfile.filein), videoStandard, NtscTcMode))
     let clipinFrame = parseInt(GetFrameNumByHundredNS(parseInt(clipfile.clipin), videoStandard, NtscTcMode))
     let clipoutFrame = parseInt(GetFrameNumByHundredNS(parseInt(clipfile.clipout), videoStandard, NtscTcMode))

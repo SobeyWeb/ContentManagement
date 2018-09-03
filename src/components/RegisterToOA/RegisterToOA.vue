@@ -1,12 +1,6 @@
 <template id="registertoOa_ctrl">
   <div id="registerOAfolderParentDiv">
     <div id="divRegisterWindow" class="windowDiv animated2 zoomIn">
-      <div class="divTitle" @mousedown.stop.capture="mousedown($event)">
-        <span class="textTitle">Register To</span>
-        <button class="closeIcon" @click="cancelRegisterWindow">
-          <div class="icon"></div>
-        </button>
-      </div>
       <p class="PortionTitle">Which Portion</p>
       <div class="selectPortion">
         <input type="radio" name="Portion" checked="">
@@ -22,7 +16,7 @@
       </ul>
       <div id="selectParentDiv">
         <keep-alive>
-          <component :is="currentRegisterView" :data="props"></component>
+          <component :is="currentRegisterView" :data="props" :all-studio="allStudio"></component>
         </keep-alive>
       </div>
       <div class="footer cmfooter">
@@ -35,6 +29,7 @@
 
 <script>
 // let programArr = ['storyTitle', 'eventTitle', 'duration', 'version', 'som', 'eom', 'channel', 'eventStatus']
+// :allTimer="allTimer" :allRundownList="allRundownList" :allProgramInfo="allProgramInfo"
 import * as util from '../../lib/util.js'
 import $ from 'jquery'
 import TYPES from '../../dicts/mutationTypes.js'
@@ -50,11 +45,6 @@ export default {
         registerViewPath: 'OA Material / ',
         registerPath: '',
         oaFolderMosid: '',
-        // studiodata: [],
-        // rundowntimedata: [],
-        // timedata: [],
-        // rundowndata: [],
-        // programInfo: [],
         registerData: [],
         selectedStudioid: '',
         selectedStudioMosid: '',
@@ -67,13 +57,13 @@ export default {
     this.props.studiodata = []
     let usercode = util.getCookie('UserCode')
     let playListData = JSON.parse(localStorage.getItem('registerdata' + usercode))
-    this.props.selectedStudioid = playListData.Studioid || ''
-    this.props.selectTime = playListData.FirstPlayDate || ''
-    this.props.selectRundownid = playListData.rundownid || ''
-    this.props.selectedStudioMosid = playListData.StudioMosid || ''
-    this.props.registerViewPath = playListData.registerViewPath || 'OA Material / '
-    this.props.registerPath = playListData.registerPath || ''
-    this.props.oaFolderMosid = playListData.oaFolderMosid || ''
+    this.props.selectedStudioid = playListData && playListData.Studioid || ''
+    this.props.selectTime = playListData && playListData.FirstPlayDate || ''
+    this.props.selectRundownid = playListData && playListData.rundownid || ''
+    this.props.selectedStudioMosid = playListData && playListData.StudioMosid || ''
+    this.props.registerViewPath = playListData && playListData.registerViewPath || 'OA Material / '
+    this.props.registerPath = playListData && playListData.registerPath || ''
+    this.props.oaFolderMosid = playListData && playListData.oaFolderMosid || ''
     this.$store.state.registerdata = this.props
   },
   mounted: function () { },
@@ -93,6 +83,31 @@ export default {
     }
   },
   computed: {
+    allStudio () {
+      console.log(this.registerData)
+      return this.registerData && this.registerData || []
+    },
+    checkedStudio () {
+      return this.allStudio.find(item => item.ischeckedStudio)
+    },
+    allTimer () {
+      return this.checkedStudio && this.checkedStudio.children || []
+    },
+    checkedTimer () {
+      return this.allTimer.find(item => item.selected)
+    },
+    allRundownList () {
+      return this.checkedTimer && this.checkedTimer.children || []
+    },
+    checkedRundownList () {
+      return this.allRundownList.find(item => item.selected)
+    },
+    allProgramInfo () {
+      return this.checkedRundownList && this.checkedRundownList.children || []
+    },
+    checkedProgramInfo () {
+      return this.allProgramInfo.find(item => item.selected)
+    },
     materials () {
       if (this.$store.state.isplayerRegister) {
         return this.$store.state.exportInfo.material
@@ -103,8 +118,8 @@ export default {
     registertypes () {
       let timeIn = this.$store.state.exportInfo.INPOINT
       let timeOut = this.$store.state.exportInfo.OUTPOINT
-      let clipping = this.materials.clipping || false
-      let clipstatus = this.materials.capturestatus || 0
+      let clipping = this.materials && this.materials.clipping || false
+      let clipstatus = this.materials && this.materials.capturestatus || 0
       if (clipping && timeIn === -1 && timeOut === -1 && clipstatus !== 32) { // 采集中素材整段注册 不显示注册到OA Folder
         return [{
           text: 'Select Event',
@@ -162,16 +177,15 @@ export default {
               type: TYPES.FRAGMENT_REGISTER,
               data: inoutToOaData.registerdata
             }).then((result) => {
-              let datas = result
-              if (datas.code !== '0') {
-                if (datas.code === 'RE00001') {
+              if (result.code !== '0') {
+                if (result.code === 'RE00001') {
                   util.Notice.warning('Failed to register because this is an exceptional clip!', '', 3000)
                 } else {
                   util.Notice.warning('register to event fail!', '', 3000)
                 }
               } else {
-                let newclipid = datas.ext.guid
-                let extXml = datas.ext.xmlinfo || ''
+                let newclipid = result.ext.guid
+                let extXml = result.ext.xmlinfo || ''
                 let msgID = (extXml && extXml.substring(extXml.indexOf('RequestID>') + 10, extXml.indexOf('</RequestID>'))) || ''
                 this.$store.dispatch({
                   type: TYPES.REGISTER_TO_EVENT,
@@ -254,12 +268,10 @@ export default {
         timeOut = parseInt(timeIn) + 1
       }
       if (p === 'registertoevent_ctrl') { // 注册到event
-        let selectedStudio = this.props.registerData.filter((item) => {
-          return item.ischeckedStudio
-        })
-        let selectTime = selectedStudio && selectedStudio.filter((item) => item.selected)[0].children
-        let selectRundown = selectTime && selectTime.filter((item) => item.selected)[0].children
-        let checkInfo = selectRundown && selectRundown.filter((item) => item.selected)[0].childre
+        let selectedStudio = this.props.registerData.filter(item => item.ischeckedStudio)
+        let selectTime = selectedStudio && selectedStudio.filter(item => item.selected)[0].children
+        let selectRundown = selectTime && selectTime.filter(item => item.selected)[0].children
+        let checkInfo = selectRundown && selectRundown.filter(item => item.selected)[0].childre
         let eventmosid = selectedStudio && selectedStudio.length && selectedStudio[0].studiomosid || ''
         let eventId
         let MaterialID = ''
@@ -325,12 +337,8 @@ export default {
               clipout: timeOut
             }
             if (isfragment) { // 素材整段注册到event
-              registerdata = {
-                sourceguid: oldclipGuid, // 素材id
-                targetmosid: eventmosid,
-                relativepath: eventPath,
-                targetguid: ''
-              }
+              delete registerdata.clipin
+              delete registerdata.clipout
             }
             let inoutToOaData = {
               eventmosid: eventmosid || '',
@@ -388,15 +396,9 @@ export default {
             isfragment: 0
           }
           if (!isfragment) { // 片段
-            registerdata = {
-              sourceguid: oldclipGuid, // 素材id
-              targetmosid: this.props.oaFolderMosid,
-              targetguid: '',
-              relativepath: this.props.registerPath,
-              isfragment: 1,
-              clipin: timeIn,
-              clipout: timeOut
-            }
+            registerdata.isfragment = 1
+            registerdata.clipin = timeIn
+            registerdata.clipout = timeOut
           }
           this.$store.dispatch({
             type: TYPES.REGISTER_TO_OAFOLDER,
@@ -521,4 +523,331 @@ export default {
 </script>
 
 <style>
+* {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#registerOAfolderParentDiv {
+  width: 565px;
+  height: 500px;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 110;
+}
+#divRegisterWindow {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-color: #222222;
+  border-bottom: 1px solid #101010;
+  overflow: hidden;
+  color: #fff;
+  z-index: 110;
+  -webkit-box-shadow: 0 0 10px #101010;
+  -moz-box-shadow: 0 0 10px #101010;
+  box-shadow: 0 0 10px #101010;
+  top: calc(50% - 251px);
+  left: calc(50% - 283px);
+  font-family: Arial;
+  font-size: 12px;
+}
+.divTitle {
+  height: 35px;
+  line-height: 27px;
+  border-radius: 4px 4px 0 0;
+  color: #999999;
+  background-color: #222222;
+  border-bottom: 1px solid #101010;
+  padding: 0 11px;
+  cursor: move;
+}
+
+.textTitle {
+  float: left;
+  margin-top: 5px;
+  color: #bcbbbb;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.closeIcon {
+  position: absolute;
+  right: 0.3em;
+  width: 35px;
+  margin: 0;
+  padding-right: 26px;
+  height: 35px;
+  font-size: 0em;
+  background-color: #222222;
+  border: 0;
+  border-left: 1px solid #040404;
+  outline: none;
+}
+.parentDiv {
+  padding: 0.5em 1.3em;
+}
+.parentDiv table {
+  width: 100%;
+}
+.parentTable tr {
+  height: 35px;
+}
+#registerNav {
+  margin: 0;
+  height: 24px;
+  padding: 0;
+  line-height: 24px;
+  width: 100%;
+  border: solid #000000;
+  border-width: 1px 0px 1px 0px;
+}
+#registerNav li {
+  list-style: none;
+  border-right: 1px solid #000000;
+  text-align: center;
+  /* display: inline-block; */
+  float: left;
+  font-size: 14px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+#registerNav li:first-child {
+  padding-left: 22px;
+}
+
+#registerNav .selecter {
+  color: #f5a623;
+}
+
+#registerFolderDiv {
+  width: 96%;
+  height: 294px;
+  border-bottom: 1px solid #000000;
+  padding: 0.5em 1em;
+}
+
+#registerFolderDiv .registerFolderParth {
+  outline: none;
+  height: 24px;
+  background: #111111;
+  border: none;
+  resize: none;
+  font-family: Arial;
+  font-size: 12px;
+  color: #ffffff;
+  border: 1px solid #b3b3b3;
+  width: 446px;
+  margin-top: 10px;
+  padding-left: 4px;
+}
+
+#registerSelectPathDiv {
+  padding: 0;
+  height: 233px;
+  border: 1px solid #b3b3b3;
+  margin-top: 15px;
+  float: right;
+  margin-right: 2px;
+  width: 450px;
+  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+}
+#registerSelectPath {
+  overflow: hidden;
+}
+
+#registerSelectPath .folder {
+  padding-left: 20px;
+  background-image: url(../../assets/images/normal_folder.png);
+  background-position: left;
+  background-repeat: no-repeat;
+  margin-right: 20px;
+}
+
+#registerSelectPathDiv .treebglayer {
+  width: 100%;
+  /*background-color: #f5a623;*/
+  height: 25px;
+  position: absolute;
+  float: left;
+  z-index: 0;
+  left: 0px;
+  margin-top: -20px;
+}
+#registerSelectPath .treehoverlayer {
+  background-color: #5b5a5a;
+}
+
+#registerSelectPath .treeselectedlayer {
+  background-color: #f5a623;
+}
+.parentDiv select {
+  width: 200px;
+  background: #111111;
+  color: #ffffff;
+  border: solid 1px #585858;
+  outline: none;
+  margin-left: 5px;
+}
+
+.parentTable tr td:first-child label {
+  display: inline-block;
+  width: 65px;
+  text-align: right;
+}
+
+.parentTable tr td:nth-child(2) {
+  text-align: right;
+}
+
+#parentListDiv {
+  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: auto;
+  height: 223px;
+  border: solid #000000;
+  border-width: 1px 1px 1px 1px;
+  width: 100%;
+}
+
+#tblRundownList th {
+  height: 24px;
+  background: #2c2c2c;
+  border-right: 1px solid #1d1d1d;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+#tblRundownList tbody td {
+  height: 24px;
+}
+
+#tblRundownList th:last-child {
+  border: none;
+}
+
+#tblRundownList td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+#tblRundownList {
+  width: 756px;
+}
+
+#divRegisterWindow .footer {
+  float: right;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+#divRegisterWindow .cmfooter {
+  margin-right: 172px;
+}
+.footer input[type='button'] {
+  width: 84px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  font-size: 14px;
+  color: White;
+  outline: none;
+  border: 1px solid #101010;
+  background-color: #292929;
+  cursor: pointer;
+}
+.footer input[type='button']:hover {
+  border: 1px solid #f5a623;
+}
+.footer input[type='button']:active {
+  color: #262626;
+  background-color: #f5a623;
+}
+#divRegisterWindow .parentDiv .premireSave {
+  margin-right: 25px;
+}
+#divRegisterWindow .cmSave {
+  margin-right: 65px;
+}
+#tblRundownList tr:nth-child(odd) {
+  background-color: #1f1f1f;
+}
+#tblRundownList tr:nth-child(even) {
+  background-color: #222222;
+}
+tr.row {
+  cursor: pointer;
+}
+#tblRundownList tr.row:hover {
+  background-color: #5c5c5c;
+}
+#tblRundownList tr.row.selectedRow {
+  background-color: #5c5c5c;
+}
+.hide {
+  display: none;
+}
+.folderParthText {
+  margin-left: 25px;
+  margin-right: 25px;
+}
+#selectParentDiv div:first-child {
+  display: block;
+}
+#divRegisterWindow .PortionTitle {
+  margin: 0;
+  margin-left: 12px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+#divRegisterWindow .selectPortion {
+  margin-top: 8px;
+  margin-left: 25px;
+}
+#divRegisterWindow .selectPortion input[type='radio'] {
+  margin-top: 3px;
+  vertical-align: -2px;
+}
+#divRegisterWindow .TargetTitle {
+  margin: 0;
+  border-top: 1px solid #000000;
+  line-height: 24px;
+  padding-left: 12px;
+  margin-top: 6px;
+}
+/*文件路径*/
+#divRegisterWindow #registerSelectPathDiv .top_hitarea {
+  margin-top: 4px;
+  background: url('../../assets/images/arrow_down.png');
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+#divRegisterWindow #registerSelectPathDiv li {
+  list-style: none;
+}
+#divRegisterWindow #registerSelectPathDiv #MaterialIcon {
+  width: 20px;
+  height: 17px;
+  display: inline-block;
+  background: url('../../assets/images/normal_folder.png') no-repeat left;
+  vertical-align: -2px;
+  position: relative;
+  z-index: 2;
+}
+#divRegisterWindow #registerSelectPathDiv .oaMaterial_Directory {
+  position: relative;
+  z-index: 2;
+}
+#divRegisterWindow .selectPortion .Laser {
+  display: none;
+}
+.storyTitle {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>

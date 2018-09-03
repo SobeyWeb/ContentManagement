@@ -197,7 +197,7 @@ import ListMaterial from './ListMaterial'
 import Marker from './Marker'
 import Menu from './Menu'
 import PublishToSNS from './PublishToSNS'
-import registerToOA from './RegidterToOA/Index'
+import registerToOA from './RegisterToOA/RegisterToOA'
 
 export default {
   name: 'AppIndex',
@@ -214,13 +214,9 @@ export default {
     'material': Material,
     'list-material': ListMaterial,
     'marker-ctrl': Marker,
-<<<<<<< HEAD
     'menu-ctrl': Menu,
     'publish-to-sns': PublishToSNS,
     'regiter-tooa-ctrl': registerToOA
-=======
-    'menu-ctrl': Menu
->>>>>>> 4da448489f182454d3ad91c77ec60aed93d0357a
   },
   data () {
     return {

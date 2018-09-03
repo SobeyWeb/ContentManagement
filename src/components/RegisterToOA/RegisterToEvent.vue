@@ -7,14 +7,14 @@
             <td>
               <label class="Studio">Studio</label>
               <select id="ddlStudio" @change="selectStudio($event)">
-                <option :key="studio.studioid" v-for="studio in data.studiodata" :studioId="studio.studioid" v-bind:value="studio.name" :selected="studio.ischeckedStudio">{{ studio.name }}</option>
+                <option :key="studio.studioid" v-for="studio in allStudio" :studioId="studio.studioid" v-bind:value="studio.name" :selected="studio.ischeckedStudio">{{ studio.name }}</option>
                 <!--selected="studio.ischeckedStudio"-->
               </select>
             </td>
             <td>
               <label class="registerDate">Date</label>
               <select id="ddlTime" @change="checkedTime($event)">
-                <option :key="timeoption.name" v-for="timeoption in data.timedata" v-bind:value="timeoption.name" :selected="timeoption.selected">{{ timeoption.name }}</option>
+                <option :key="timeoption.name" v-for="timeoption in allTimer" v-bind:value="timeoption.name" :selected="timeoption.selected">{{ timeoption.name }}</option>
                 <!-- dateArr   selected="studio.ischeckedStudio"-->
               </select>
             </td>
@@ -23,7 +23,7 @@
             <td>
               <label class="registerRundown">Rundown</label>
               <select id="ddlRundown" @change="checkedRundown($event)">
-                <option :key="rundownoption.Rundownid" v-for="rundownoption in data.rundowndata" :Rundownid="rundownoption.Rundownid" v-bind:value="rundownoption.name" :selected="rundownoption.selected">{{ rundownoption.name }}</option>
+                <option :key="rundownoption.Rundownid" v-for="rundownoption in allRundownList" :Rundownid="rundownoption.Rundownid" v-bind:value="rundownoption.name" :selected="rundownoption.selected">{{ rundownoption.name }}</option>
                 <!--selected="rundownoption.selected"-->
               </select>
             </td>
@@ -47,7 +47,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr class="row" :key="studioinfo.MaterialID" v-bind:class="{selectedRow:studioinfo.selected}" @click="selectRow(studioinfo)" v-for="studioinfo in data.programInfo">
+              <tr class="row" :key="studioinfo.MaterialID" v-bind:class="{selectedRow:studioinfo.selected}" @click="selectRow(studioinfo)" v-for="studioinfo in allProgramInfo">
                 <td class="storyTitle" :title="studioinfo.storyTitle">{{studioinfo.storyTitle}}</td>
                 <td class="storyTitle" :title="studioinfo.eventTitle">{{studioinfo.eventTitle}}</td>
                 <td>{{studioinfo.duration}}</td>
@@ -70,27 +70,30 @@ import TYPES from '../../dicts/mutationTypes.js'
 export default {
   name: 'registertoevent',
   props: {
-    data: Object
+    data: Object,
+    allStudio: Array,
+    allTimer: Array,
+    allRundownList: Array,
+    allProgramInfo: Array
+  },
+  created: function () {
+    console.log(this.allStudio)
   },
   methods: {
     selectStudio (event) {
       var studioId = event.target.selectedOptions[0].getAttribute('studioId')
       this.data.registerData.forEach((item) => {
-        if (item.name === event.target.value && item.studioid === studioId) {
+        if (item.name === event.target.value && item.studioid === parseInt(studioId)) {
           item.ischeckedStudio = true
         } else {
           item.ischeckedStudio = false
         }
       })
       if (event.target.value !== 'Please select studio') {
-        this.data.rundowntimedata = []
-        this.data.rundowndata = []
-        this.data.programInfo = []
-        var checkedStudio = this.data.studiodata.filter(function (item) {
-          return item.name === event.target.value
-        })
-        var studioid = (checkedStudio && checkedStudio[0].studioid) || ''
-        this.data.selectedStudioid = (checkedStudio && checkedStudio[0].studioid) || ''
+        console.log(this.checkedStudio)
+        var checkedStudio = this.data.registerData.filter(item => item.name === event.target.value)[0]
+        var studioid = (checkedStudio && checkedStudio.studioid) || ''
+        this.data.selectedStudioid = (checkedStudio && checkedStudio.studioid) || ''
         this.data.selectedStudioMosid = studioid
         if (studioid) {
           this.$store.dispatch({
@@ -120,10 +123,10 @@ export default {
                     Rundownid: '',
                     selected: true
                   }]
-                  rundownData && rundownData.forEach(i => {
-                    if (item === i.FirstPlayDate) {
-                      item.selected = false
-                      childrenDate.push(item)
+                  result.forEach(i => {
+                    if (i.FirstPlayDate && item === i.FirstPlayDate) {
+                      i.selected = false
+                      childrenDate.push(i)
                     }
                   })
                   var obj = {
@@ -134,7 +137,7 @@ export default {
                   defaultArr.push(obj)
                 })
               }
-              checkedStudio && (checkedStudio[0].children = [...defaultArr])
+              checkedStudio && (checkedStudio.children = [...defaultArr])
             }
           }).catch((re) => {
             util.Notice.warning('Rundown list can not be found', '', 3000)
@@ -202,10 +205,11 @@ export default {
       studioinfo.selected = true
     }
   },
-  computed: {},
+  computed: {
+  },
   components: {}
 }
 </script>
 
-<style scoped>
+<style>
 </style>

@@ -64,9 +64,9 @@ export function strDateTime1(str) {
   if (r == null) return false
   var d = new Date(r[1], r[3] - 1, r[4])
   return (
-    d.getFullYear() === r[1] &&
-    d.getMonth() + 1 === r[3] &&
-    d.getDate() === r[4]
+    d.getFullYear() === parseInt(r[1]) &&
+    d.getMonth() + 1 === parseInt(r[3]) &&
+    d.getDate() === parseInt(r[4])
   )
 }
 export function getTimeStringByFrameNum2(lFrameNum, lNtscTcMode) {

@@ -5054,7 +5054,6 @@ export default {
                       highgroup++
                     }
                   }
-
                   if (!Clipisregister) {
                     // 如果素材为不合法
                     wainText =
@@ -5088,7 +5087,7 @@ export default {
                           .then(result => {
                             let datas = result
                             if (datas.Result) {
-                              this.$store.state.RegisterWundow.show()
+                              context.state.RegisterWundow.show()
                               util.displayRegisterWindow(currentStudioData, context)
                             } else {
                               wainText = 'The Format is not support to on-air.' // The High-Res file of clip '" + clipName + "' doesn't not meet the criteria of
@@ -5100,8 +5099,8 @@ export default {
                             msger(wainText)
                           })
                       } else {
-                        this.$store.state.RegisterWundow.show()
-                        util.displayRegisterWindow(currentStudioData)
+                        context.state.RegisterWundow.show()
+                        util.displayRegisterWindow(currentStudioData, context)
                       }
                     } else {
                       wainText = 'The Format is not support to on-air.'
@@ -5156,8 +5155,8 @@ export default {
                     clipName +
                     '" is not available.Do you want to continue?',
                   () => {
-                    this.$store.state.RegisterWundow.show()
-                    util.displayRegisterWindow(currentStudioData)
+                    context.state.RegisterWundow.show()
+                    util.displayRegisterWindow(currentStudioData, context)
                   },
                   () => {},
                   {
@@ -5175,8 +5174,8 @@ export default {
                   }
                 )
               } else {
-                this.$store.state.RegisterWundow.show()
-                util.displayRegisterWindow(currentStudioData)
+                context.state.RegisterWundow.show()
+                util.displayRegisterWindow(currentStudioData, context)
               }
             }
           } else {
@@ -5221,7 +5220,7 @@ export default {
     }
     let URL = API_CONFIG[TYPES.GET_STUDIO]({})
     return new Promise((resolve, reject) => {
-      axios.post(URL, JSON.stringify(data)).then(res => {
+      axios.post(URL, data).then(res => {
         if (
           res.data.Results &&
           res.data.Results.length > 0 &&
@@ -5287,7 +5286,7 @@ export default {
     }
     let URL = API_CONFIG[TYPES.GET_RUNDOWN_LIST]({})
     return new Promise((resolve, reject) => {
-      axios.post(URL, JSON.stringify(data)).then(res => {
+      axios.post(URL, data).then(res => {
         if (
           res.data.Results &&
           res.data.Results.length > 0 &&
@@ -5325,7 +5324,7 @@ export default {
     let URL = API_CONFIG[TYPES.GET_EVENTS]({})
     let data = { StoryID: payload.data.storyID }
     return new Promise((resolve, reject) => {
-      axios.post(URL, JSON.stringify(data)).then(res => {
+      axios.post(URL, data).then(res => {
         if (
           res.data.Results &&
           res.data.Results.length > 0 &&
@@ -5358,7 +5357,7 @@ export default {
     }
     let URL = API_CONFIG[TYPES.GET_PROGRAMEINFO_LIST]({})
     return new Promise((resolve, reject) => {
-      axios.post(URL, JSON.stringify(data)).then(res => {
+      axios.post(URL, data).then(res => {
         if (
           res.data.Results &&
           res.data.Results.length > 0 &&
