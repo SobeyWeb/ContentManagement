@@ -54,8 +54,7 @@ export default {
     }
   },
   created: function () {
-    let usercode = util.getCookie('UserCode')
-    let playListData = JSON.parse(localStorage.getItem('registerdata' + usercode))
+    let playListData = JSON.parse(localStorage.getItem('registerdata' + this.$store.state.userInfo.usercode))
     let registerdata = this.$store.state.registerdata
     registerdata.selectedStudioid = playListData && playListData.Studioid || ''
     registerdata.selectTime = playListData && playListData.FirstPlayDate || ''
@@ -278,13 +277,9 @@ export default {
         // let selectTime = this.checkedTimer
         // let selectRundown = this.checkedRundownList
         let checkInfo = this.checkedProgramInfo
-        let eventmosid = selectedStudio && selectedStudio.length && selectedStudio[0].studiomosid || ''
-        let eventId
-        let MaterialID = ''
-        if (checkInfo.length > 0) {
-          eventId = checkInfo[0].eventId
-          MaterialID = checkInfo[0].MaterialID
-        }
+        let eventmosid = selectedStudio && selectedStudio.length && selectedStudio.studiomosid || ''
+        let eventId = checkInfo && checkInfo.eventId || ''
+        let MaterialID = checkInfo && checkInfo.MaterialID || ''
         if (eventId && this.materials) {
           if (isfragment && !clipping) { // 完成的素材整段注册
             this.$store.dispatch({
@@ -297,7 +292,7 @@ export default {
               let datas = result
               datas = JSON.parse(datas)
               if (datas.Results) { // CM用3 premire用4
-                let selectStudioID = selectedStudio && selectedStudio.length && selectedStudio[0].studioid || ''
+                let selectStudioID = selectedStudio && selectedStudio.length && selectedStudio.studioid || ''
                 util.Notice.success('register to event success.', '', 3000)
                 this.$store.dispatch({
                   type: TYPES.ADD_TASK,
@@ -502,6 +497,7 @@ export default {
     resetDate () {
       this.$store.state.oaFolder[0].children = []
       this.$store.state.oaFolder[0].folders = []
+      this.$store.state.RegisterWundow.hide()
     },
     cancelRegisterWindow () {
       this.currentRegisterView = 'registertoevent_ctrl'
@@ -516,15 +512,16 @@ export default {
       let playListData = JSON.parse(localStorage.getItem('registerdata' + this.$store.state.userInfo.usercode))
       this.$store.state.registerdata =
         {
-          registerViewPath: playListData.registerViewPath || 'OA Material / ',
-          registerPath: playListData.registerPath || '',
-          oaFolderMosid: playListData.oaFolderMosid || '',
-          selectedStudioid: playListData.Studioid || '',
-          selectedStudioMosid: playListData.StudioMosid || '',
-          selectTime: playListData.FirstPlayDate || '',
-          selectRundownid: playListData.rundownid || '',
+          registerViewPath: playListData && playListData.registerViewPath || 'OA Material / ',
+          registerPath: playListData && playListData.registerPath || '',
+          oaFolderMosid: playListData && playListData.oaFolderMosid || '',
+          selectedStudioid: playListData && playListData.Studioid || '',
+          selectedStudioMosid: playListData && playListData.StudioMosid || '',
+          selectTime: playListData && playListData.FirstPlayDate || '',
+          selectRundownid: playListData && playListData.rundownid || '',
           eventData: []
         }
+      this.resetDate()
     }
   }
 }

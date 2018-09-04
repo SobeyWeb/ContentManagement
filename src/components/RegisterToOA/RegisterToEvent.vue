@@ -88,7 +88,7 @@ export default {
         var checkedStudio = this.allStudio.filter(item => item.name === event.target.value)[0]
         var studioid = (checkedStudio && checkedStudio.studioid) || ''
         this.$store.state.registerdata.selectedStudioid = (checkedStudio && checkedStudio.studioid) || ''
-        this.$store.state.registerdata.selectedStudioMosid = studioid
+        this.$store.state.registerdata.selectedStudioMosid = (checkedStudio && checkedStudio.studiomosid) || ''
         if (studioid) {
           this.$store.dispatch({
             type: TYPES.GET_RUNDOWN_LIST,

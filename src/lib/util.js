@@ -2847,12 +2847,12 @@ export function displayRegisterWindow (currentStudioData, context) {
   })
   isContain && context.state.registerdata.eventData.forEach(item => {
     if (studioid && StudioMosid && studioid === item.studioid && StudioMosid === item.studiomosid) {
-      item.ischeckedStudio = true
+      item.selected = true
     } else {
-      item.ischeckedStudio = false
+      item.selected = false
     }
   })
-  let checkedStudio = context.state.registerdata.eventData.filter((item) => item.ischeckedStudio)
+  let checkedStudio = context.state.registerdata.eventData.filter((item) => item.selected)
   // 获取rundown
   if (studioid && isContain) { // 当前studio存在才打开
     context.dispatch({
@@ -2884,14 +2884,14 @@ export function displayRegisterWindow (currentStudioData, context) {
               Rundownid: '',
               selected: true
             }]
-            rundownData && rundownData.forEach(i => {
+            result && result.forEach(i => {
               if (item === i.FirstPlayDate) {
-                item.selected = false
-                childrenDate.push(item)
+                i.selected = false
+                childrenDate.push(i)
               }
-              if (i.FirstPlayDate === rundownid) {
+              if (studioid && rundownid && studioid === i.studioid && rundownid === i.Rundownid) {
                 equalRundown = true
-                item.selected = true
+                i.selected = true
                 childrenDate[0].selected = false
               }
             })
@@ -2902,6 +2902,7 @@ export function displayRegisterWindow (currentStudioData, context) {
             }
             if (timer && timer === item) {
               obj.selected = true
+              defaultArr[0].selected = false
               // isEqual = true
             }
             defaultArr.push(obj)
@@ -2922,8 +2923,8 @@ export function displayRegisterWindow (currentStudioData, context) {
               let programData = JSON.stringify(datas)
               programData = JSON.parse(programData)
               let timeDate = checkedStudio && checkedStudio[0].children.filter(item => item.selected)[0].children
-              let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
-              rundownDate && (rundownDate = programData)
+              let rundownDate = timeDate && timeDate.filter(item => item.selected)
+              rundownDate && (rundownDate[0].children = [...programData])
             }
           }).catch((re) => {
           })
