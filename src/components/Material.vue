@@ -960,4 +960,27 @@ export default {
   /*background-color: rgba(200, 89, 0, 5);*/
   border: 1px solid #ff9000;
 }
+.material_icon_container .my_clip_icon {
+  background: url(../assets/images/myclip_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.material_icon_container .this_week_icon {
+  background: url(../assets/images/week_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.material_icon_container .today_icon {
+  background: url(../assets/images/today_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.material_icon_container .transhcan_icon {
+  background: url(../assets/images/trashcan_icon.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.material .node_icon {
+  background: url(../assets/images/node_icon.png) no-repeat center center !important;
+}
 </style>

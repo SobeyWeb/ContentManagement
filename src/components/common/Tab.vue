@@ -141,7 +141,7 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
+<style>
 .list_header_item {
   line-height: 30px;
   height: 30px;

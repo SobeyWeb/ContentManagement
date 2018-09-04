@@ -819,8 +819,10 @@ export default {
       this.resizeSymbol = true
       this.resizeX = event.x
     },
-    resizing: util.throttle(50, event => {
+    resizing: util.throttle(50, function(event) {
+      console.log(this.resizeSymbol)
       if (this.resizeSymbol) {
+        console.log(123)
         let width = this.leftTreeWidth + event.x - this.resizeX
         this.resizeX += Math.min(APPSETTING.MAXTREEWIDTH || 500, Math.max(APPSETTING.MINTREEWIDTH || 100, width)) - this.leftTreeWidth
         this.leftTreeWidth = Math.min(APPSETTING.MAXTREEWIDTH || 500, Math.max(APPSETTING.MINTREEWIDTH || 100, width))
@@ -2010,6 +2012,9 @@ export default {
   },
   created () {
     if (this.userInfo && this.userInfo.usertoken) {
+      this.$store.dispatch({
+        type: TYPES.INTERCEPT_AXIOS
+      })
     } else {
       this.$router.push('/login')
     }
@@ -2244,7 +2249,7 @@ export default {
   left: 50%;
   transform: translate(-50%);
   height: 38px;
-  line-height: 40px;
+  line-height: 44px;
   background: #333;
   width: 300px;
   padding: 0 5px;
@@ -2557,5 +2562,28 @@ export default {
 .triangle_top.user_operation {
   top: 30px;
   right: 49px;
+}
+.search_icon {
+  cursor: pointer;
+  display: inline-block;
+  width: 30px;
+  height: 38px;
+  text-align: center;
+}
+.close {
+  background: url(../assets/images/close_arrow.png) no-repeat center center;
+}
+
+.close:hover {
+  background: url(../assets/images/close_arrow.png) no-repeat center center
+    #4e4e4e;
+}
+.resize_handle {
+  position: absolute;
+  height: 100%;
+  width: 20px;
+  right: -10px;
+  cursor: w-resize;
+  z-index: 1;
 }
 </style>

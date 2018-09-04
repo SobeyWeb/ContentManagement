@@ -473,4 +473,54 @@ export default {
   left: 50%;
   transform: translateX(-50%);
 }
+.config_btn {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  /* height: 30px; */
+  line-height: 38px;
+}
+.config_btn {
+  display: inline-block;
+  border: none;
+  outline: none;
+  width: 20px;
+  height: 39px;
+  cursor: pointer;
+  background: url(../../assets/images/config_1.png) center center no-repeat;
+  background-size: 100%;
+}
+
+.config_btn:hover {
+  background: url(../../assets/images/config_2.png) center center no-repeat;
+  background-size: 100%;
+}
+
+.config_btn_active {
+  background: url(../../assets/images/config_2.png) center center no-repeat;
+  background-size: 100%;
+}
+.control_text_container {
+  line-height: 30px;
+}
+.control_text {
+  width: 240px;
+  text-align: center;
+  display: inline-block;
+}
+.advance_search_bottom {
+  line-height: 50px;
+  padding: 0 20px;
+}
+.tab_header_container .list_header_item,
+.advance_search_container .list_header_item {
+  line-height: 38px;
+  height: 38px;
+}
+
+.advance_search_container .list_header_item {
+  padding-left: 18px;
+  text-align: left;
+  border-left: none;
+}
 </style>
