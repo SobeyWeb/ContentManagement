@@ -11,6 +11,8 @@
     <rd-loadingbar></rd-loadingbar>
     <rd-preview></rd-preview>
     <menu-ctrl ref="menu"></menu-ctrl>
+    <trim ref="saveClip"></trim>
+    <export ref="export"></export>
     <!--left block-->
     <div class="left_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?0:- leftTreeWidth)+'px', width: leftTreeWidth + 'px'}">
       <div class="resize_handle" @mousedown.stop.prevent.capture="resizeMousedown"></div>
@@ -195,6 +197,8 @@ import Material from './Material'
 import ListMaterial from './ListMaterial'
 import Marker from './Marker'
 import Menu from './Menu'
+import Trim from './Trim'
+import Export from './Export'
 
 export default {
   name: 'AppIndex',
@@ -211,7 +215,9 @@ export default {
     'material': Material,
     'list-material': ListMaterial,
     'marker-ctrl': Marker,
-    'menu-ctrl': Menu
+    'menu-ctrl': Menu,
+    'export': Export,
+    'trim': Trim
   },
   data () {
     return {
@@ -819,7 +825,7 @@ export default {
       this.resizeSymbol = true
       this.resizeX = event.x
     },
-    resizing: util.throttle(50, function(event) {
+    resizing: util.throttle(50, function (event) {
       console.log(this.resizeSymbol)
       if (this.resizeSymbol) {
         console.log(123)
@@ -1625,14 +1631,14 @@ export default {
         onshow: this.resizeTaskMonitor
       })
       this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
-      // this.$store.state.saveClipWindow = new ModalWindow({
-      //   content: this.$refs.saveClip.$el,
-      //   title: 'Save As'
-      // })
-      // this.$store.state.exportWindow = new ModalWindow({
-      //   content: this.$refs.export.$el,
-      //   title: 'Export'
-      // })
+      this.$store.state.saveClipWindow = new ModalWindow({
+        content: this.$refs.saveClip.$el,
+        title: 'Save As'
+      })
+      this.$store.state.exportWindow = new ModalWindow({
+        content: this.$refs.export.$el,
+        title: 'Export'
+      })
       this.$store.dispatch({
         type: TYPES.GET_SEARCH_QUERY
       }).then(res => {

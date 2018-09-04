@@ -60,4 +60,60 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.folder_container .quick_icon {
+  background: url(../../assets/images/link_icon.png) no-repeat center center;
+  height: 25px;
+  width: 21px;
+  float: left;
+}
+
+.folder_container .quick_icon_disabled {
+  background: url(../../assets/images/link_icon_disabled.png) no-repeat center
+    center;
+}
+.folder_container .folder_name {
+  display: inline-block;
+  padding-left: 6px;
+  white-space: pre;
+}
+.folder_container {
+  min-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  background-color: #222;
+  cursor: default;
+  font-weight: normal;
+  height: 30px;
+  line-height: 30px;
+  font-size: 15px;
+  color: #cfd2d4;
+  border: 1px solid #222;
+}
+
+.folder_container:hover .link_icon {
+  display: inline-block;
+}
+
+.folder_selected {
+  background: rgba(248, 155, 57, 0.3);
+  color: #fff;
+}
+
+.folder_checked {
+  background: #393939;
+}
+.folder_container span {
+  cursor: pointer;
+}
+.folder_container .link_icon {
+  display: none;
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  right: 0;
+}
+.folder_container:hover {
+  background-color: #393939;
+  color: #fff;
+}
 </style>

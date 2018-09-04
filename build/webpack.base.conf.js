@@ -82,7 +82,10 @@ module.exports = {
       },
       {
         test: /\.worker\.js$/, // 以.worker.js结尾的文件将被worker-loader加载
-        use: { loader: 'worker-loader' }
+        use: {
+          loader: 'worker-loader',
+          options: { inline: true, fallback: false }
+        }
       }
     ]
   },
