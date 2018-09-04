@@ -5171,7 +5171,8 @@ export default {
               name: 'Please select studio',
               studioid: '',
               studiomosid: '',
-              children: []
+              children: [],
+              selected: false
             }
             studioArr.push(defultJson)
             studios.forEach(item => {
@@ -5180,7 +5181,8 @@ export default {
                 name: item.Name,
                 studioid: item.StudioID,
                 studiomosid: item.StudioMosID,
-                children: []
+                children: [],
+                selected: false
               }
               studioArr.push(json)
             })
@@ -5246,7 +5248,9 @@ export default {
                 studioid: StudioID,
                 name: item.Name,
                 FirstPlayDate: item.FirstPlayDate,
-                Rundownid: item.RundownID
+                Rundownid: item.RundownID,
+                selected: false,
+                children: []
               }
               rundownArr.push(json)
             }
@@ -5333,7 +5337,7 @@ export default {
                     Events: res
                   }
                   programeinfo.push(json)
-                  resolve(programeinfo)
+                  // resolve(programeinfo)
                 })
                 .catch(res => {})
             )

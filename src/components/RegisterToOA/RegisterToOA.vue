@@ -16,7 +16,7 @@
       </ul>
       <div id="selectParentDiv">
         <keep-alive>
-          <component :is="currentRegisterView" :data="props" :all-studio="allStudio"></component>
+          <component :is="currentRegisterView"></component>
         </keep-alive>
       </div>
       <div class="footer cmfooter">
@@ -42,29 +42,30 @@ export default {
       currentRegisterView: 'registertoevent_ctrl',
       studioText: 'Please select studio',
       props: {
-        registerViewPath: 'OA Material / ',
-        registerPath: '',
-        oaFolderMosid: '',
-        registerData: [],
-        selectedStudioid: '',
-        selectedStudioMosid: '',
-        selectTime: '',
-        selectRundownid: ''
+        // registerViewPath: 'OA Material / ',
+        // registerPath: '',
+        // oaFolderMosid: '',
+        // registerData: [],
+        // selectedStudioid: '',
+        // selectedStudioMosid: '',
+        // selectTime: '',
+        // selectRundownid: ''
       }
     }
   },
   created: function () {
-    this.props.studiodata = []
     let usercode = util.getCookie('UserCode')
     let playListData = JSON.parse(localStorage.getItem('registerdata' + usercode))
-    this.props.selectedStudioid = playListData && playListData.Studioid || ''
-    this.props.selectTime = playListData && playListData.FirstPlayDate || ''
-    this.props.selectRundownid = playListData && playListData.rundownid || ''
-    this.props.selectedStudioMosid = playListData && playListData.StudioMosid || ''
-    this.props.registerViewPath = playListData && playListData.registerViewPath || 'OA Material / '
-    this.props.registerPath = playListData && playListData.registerPath || ''
-    this.props.oaFolderMosid = playListData && playListData.oaFolderMosid || ''
-    this.$store.state.registerdata = this.props
+    let registerdata = this.$store.state.registerdata
+    registerdata.selectedStudioid = playListData && playListData.Studioid || ''
+    registerdata.selectTime = playListData && playListData.FirstPlayDate || ''
+    registerdata.selectRundownid = playListData && playListData.rundownid || ''
+    registerdata.selectedStudioMosid = playListData && playListData.StudioMosid || ''
+    registerdata.registerViewPath = playListData && playListData.registerViewPath || 'OA Material / '
+    registerdata.registerPath = playListData && playListData.registerPath || ''
+    registerdata.oaFolderMosid = playListData && playListData.oaFolderMosid || ''
+    // this.$store.state.registerdata = this.props
+    // this.props = registerdata
   },
   mounted: function () { },
   components: {
@@ -73,22 +74,21 @@ export default {
   },
   watch: {
     countArr: function () {
-      let timeIn = this.$store.state.exportInfo.INPOINT
-      let timeOut = this.$store.state.exportInfo.OUTPOINT
-      let clipping = this.materials.clipping || false
-      let clipstatus = this.materials.capturestatus || 0
-      if (clipping && timeIn === -1 && timeOut === -1 && clipstatus !== 32) { // 采集中素材整段注册 不显示注册到OA Folder
+      // let timeIn = this.$store.state.exportInfo.INPOINT
+      // let timeOut = this.$store.state.exportInfo.OUTPOINT
+      // let clipping = this.materials.clipping || false
+      // let clipstatus = this.materials.capturestatus || 0
+      if (this.clipping && this.timeIn === -1 && this.timeOut === -1 && this.clipstatus !== 32) { // 采集中素材整段注册 不显示注册到OA Folder
         this.currentRegisterView = 'registertoevent_ctrl'
       }
     }
   },
   computed: {
     allStudio () {
-      console.log(this.registerData)
-      return this.registerData && this.registerData || []
+      return this.$store.state.registerdata.eventData && this.$store.state.registerdata.eventData || []
     },
     checkedStudio () {
-      return this.allStudio.find(item => item.ischeckedStudio)
+      return this.allStudio.find(item => item.selected)
     },
     allTimer () {
       return this.checkedStudio && this.checkedStudio.children || []
@@ -115,12 +115,20 @@ export default {
         return this.$store.state.selectedMaterials[0]
       }
     },
+    timeIn () {
+      return this.$store.state.exportInfo.INPOINT
+    },
+    timeOut () {
+      return this.$store.state.exportInfo.OUTPOINT
+    },
+    clipping () {
+      return this.materials && this.materials.clipping || false
+    },
+    clipstatus () {
+      return this.materials && this.materials.capturestatus || 0
+    },
     registertypes () {
-      let timeIn = this.$store.state.exportInfo.INPOINT
-      let timeOut = this.$store.state.exportInfo.OUTPOINT
-      let clipping = this.materials && this.materials.clipping || false
-      let clipstatus = this.materials && this.materials.capturestatus || 0
-      if (clipping && timeIn === -1 && timeOut === -1 && clipstatus !== 32) { // 采集中素材整段注册 不显示注册到OA Folder
+      if (this.clipping && this.timeIn === -1 && this.timeOut === -1 && this.clipstatus !== 32) { // 采集中素材整段注册 不显示注册到OA Folder
         return [{
           text: 'Select Event',
           modelname: 'registertoevent_ctrl',
@@ -169,7 +177,7 @@ export default {
           type: TYPES.CAN_TRANSCODING,
           data: {
             EventID: inoutToOaData.eventId,
-            RundownID: this.props.selectRundownid
+            RundownID: this.$store.state.selectRundownid
           }
         }).then(res => {
           if (res.data.nRet === 0) { // 允许注册
@@ -197,7 +205,7 @@ export default {
                   let datas = result
                   datas = JSON.parse(datas)
                   if (datas.Results) {
-                    let selectedStudio = this.props.registerData.filter((item) => item.ischeckedStudio)
+                    let selectedStudio = this.checkedStudio
                     let selectStudioID = selectedStudio && selectedStudio.length && selectedStudio[0].studioid || ''
                     util.Notice.success('register to event success.', '', 3000)
                     this.$store.dispatch({
@@ -245,33 +253,31 @@ export default {
     // 注册
     register () {
       let p = this.currentRegisterView
-      let timeIn = this.$store.state.exportInfo.INPOINT // 百纳秒
-      let timeOut = this.$store.state.exportInfo.OUTPOINT
       let taskType = 3 // CM用3 premire用4
       if (this.$store.state.system) { // premire用4(现task修改枚举值后未5)
         taskType = 5 // 2017-12-21将4改为5
       }
       // 默认不是采集中
-      let clipping = this.materials.clipping || false
+      let clipping = this.clipping
       let oldclipGuid = this.materials.guid || ''
       let oldclipName = this.materials.name || ''
-      let clipstatus = this.materials.capturestatus || 0
-      if (clipstatus === 32) { // 如果是正在trim当成完成的素材注册
+      if (this.clipstatus === 32) { // 如果是正在trim当成完成的素材注册
         clipping = false
       } // true表示正在采集
       let isfragment = false // 默认不是片段
-      if (timeIn === -1 && timeOut === -1) {
+      if (this.timeIn === -1 && this.timeOut === -1) {
         isfragment = true // 整段
       } else {
       }
-      if ((timeIn === timeOut) && (timeOut !== -1)) { // 两个值都为-1表示整段注册其余为打点注册
-        timeOut = parseInt(timeIn) + 1
+      let timeOut = this.timeOut
+      if ((this.timeIn === this.timeOut) && (this.timeOut !== -1)) { // 两个值都为-1表示整段注册其余为打点注册
+        timeOut = parseInt(this.timeIn) + 1
       }
       if (p === 'registertoevent_ctrl') { // 注册到event
-        let selectedStudio = this.props.registerData.filter(item => item.ischeckedStudio)
-        let selectTime = selectedStudio && selectedStudio.filter(item => item.selected)[0].children
-        let selectRundown = selectTime && selectTime.filter(item => item.selected)[0].children
-        let checkInfo = selectRundown && selectRundown.filter(item => item.selected)[0].childre
+        let selectedStudio = this.checkedStudio
+        // let selectTime = this.checkedTimer
+        // let selectRundown = this.checkedRundownList
+        let checkInfo = this.checkedProgramInfo
         let eventmosid = selectedStudio && selectedStudio.length && selectedStudio[0].studiomosid || ''
         let eventId
         let MaterialID = ''
@@ -333,7 +339,7 @@ export default {
               targetmosid: eventmosid,
               targetguid: '',
               relativepath: eventPath,
-              clipin: timeIn,
+              clipin: this.timeIn,
               clipout: timeOut
             }
             if (isfragment) { // 素材整段注册到event
@@ -387,17 +393,17 @@ export default {
           return
         }
       } else { // OA Folder
-        if (this.props.registerPath) {
+        if (this.$store.state.registerdata.registerPath) {
           let registerdata = {
             sourceguid: oldclipGuid, // 素材id
-            targetmosid: this.props.oaFolderMosid,
+            targetmosid: this.$store.state.registerdata.oaFolderMosid,
             targetguid: '',
-            relativepath: this.props.registerPath,
+            relativepath: this.$store.state.registerdata.registerPath,
             isfragment: 0
           }
           if (!isfragment) { // 片段
             registerdata.isfragment = 1
-            registerdata.clipin = timeIn
+            registerdata.clipin = this.timeIn
             registerdata.clipout = timeOut
           }
           this.$store.dispatch({
@@ -452,7 +458,7 @@ export default {
                         messageid: msgID,
                         type: OaFolderTaskType,
                         name: oldclipName,
-                        studioid: this.props.oaFolderMosid
+                        studioid: this.$store.state.registerdata.oaFolderMosid
                       }
                     }).then((res) => {
                       if (res.data.IsSuccess) {
@@ -477,17 +483,18 @@ export default {
         }
       }
       // 储存数据
+      let registerData = this.$store.state.registerdata
       let localJson = {
-        Studioid: this.props.selectedStudioid || '',
-        FirstPlayDate: this.props.selectTime || '',
-        rundownid: this.props.selectRundownid || '',
-        StudioMosid: this.props.selectedStudioMosid || '',
-        registerViewPath: this.props.registerViewPath || '',
-        registerPath: this.props.registerPath || '',
-        oaFolderMosid: this.props.oaFolderMosid || ''
+        Studioid: registerData.selectedStudioid || '',
+        FirstPlayDate: registerData.selectTime || '',
+        rundownid: registerData.selectRundownid || '',
+        StudioMosid: registerData.selectedStudioMosid || '',
+        registerViewPath: registerData.registerViewPath || '',
+        registerPath: registerData.registerPath || '',
+        oaFolderMosid: registerData.oaFolderMosid || ''
       }
       localStorage.setItem('registerdata' + this.$store.state.userInfo.usercode, JSON.stringify(localJson))
-      this.props.programInfo.forEach((item) => {
+      this.allProgramInfo.forEach((item) => {
         item.selected = false
       })
       this.resetDate()
@@ -507,7 +514,7 @@ export default {
       })
       //  取消时 获取comfirm的数据
       let playListData = JSON.parse(localStorage.getItem('registerdata' + this.$store.state.userInfo.usercode))
-      this.props =
+      this.$store.state.registerdata =
         {
           registerViewPath: playListData.registerViewPath || 'OA Material / ',
           registerPath: playListData.registerPath || '',
@@ -515,7 +522,8 @@ export default {
           selectedStudioid: playListData.Studioid || '',
           selectedStudioMosid: playListData.StudioMosid || '',
           selectTime: playListData.FirstPlayDate || '',
-          selectRundownid: playListData.rundownid || ''
+          selectRundownid: playListData.rundownid || '',
+          eventData: []
         }
     }
   }

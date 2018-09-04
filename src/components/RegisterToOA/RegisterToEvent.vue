@@ -7,15 +7,15 @@
             <td>
               <label class="Studio">Studio</label>
               <select id="ddlStudio" @change="selectStudio($event)">
-                <option :key="studio.studioid" v-for="studio in allStudio" :studioId="studio.studioid" v-bind:value="studio.name" :selected="studio.ischeckedStudio">{{ studio.name }}</option>
-                <!--selected="studio.ischeckedStudio"-->
+                <option :key="studio.studioid" v-for="studio in allStudio" :studioId="studio.studioid" v-bind:value="studio.name" :selected="studio.selected">{{ studio.name }}</option>
+                <!--selected="studio.selected"-->
               </select>
             </td>
             <td>
               <label class="registerDate">Date</label>
               <select id="ddlTime" @change="checkedTime($event)">
                 <option :key="timeoption.name" v-for="timeoption in allTimer" v-bind:value="timeoption.name" :selected="timeoption.selected">{{ timeoption.name }}</option>
-                <!-- dateArr   selected="studio.ischeckedStudio"-->
+                <!-- dateArr   selected="studio.selected"-->
               </select>
             </td>
           </tr>
@@ -47,7 +47,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr class="row" :key="studioinfo.MaterialID" v-bind:class="{selectedRow:studioinfo.selected}" @click="selectRow(studioinfo)" v-for="studioinfo in allProgramInfo">
+              <tr class="row" :key="studioinfo.MaterialID" :class="{selectedRow:studioinfo.selected}" @click="selectRow(studioinfo)" v-for="studioinfo in allProgramInfo">
                 <td class="storyTitle" :title="studioinfo.storyTitle">{{studioinfo.storyTitle}}</td>
                 <td class="storyTitle" :title="studioinfo.eventTitle">{{studioinfo.eventTitle}}</td>
                 <td>{{studioinfo.duration}}</td>
@@ -70,31 +70,25 @@ import TYPES from '../../dicts/mutationTypes.js'
 export default {
   name: 'registertoevent',
   props: {
-    data: Object,
-    allStudio: Array,
-    allTimer: Array,
-    allRundownList: Array,
-    allProgramInfo: Array
+    data: Object
   },
   created: function () {
-    console.log(this.allStudio)
   },
   methods: {
     selectStudio (event) {
       var studioId = event.target.selectedOptions[0].getAttribute('studioId')
-      this.data.registerData.forEach((item) => {
+      this.allStudio.forEach((item) => {
         if (item.name === event.target.value && item.studioid === parseInt(studioId)) {
-          item.ischeckedStudio = true
+          item.selected = true
         } else {
-          item.ischeckedStudio = false
+          item.selected = false
         }
       })
       if (event.target.value !== 'Please select studio') {
-        console.log(this.checkedStudio)
-        var checkedStudio = this.data.registerData.filter(item => item.name === event.target.value)[0]
+        var checkedStudio = this.allStudio.filter(item => item.name === event.target.value)[0]
         var studioid = (checkedStudio && checkedStudio.studioid) || ''
-        this.data.selectedStudioid = (checkedStudio && checkedStudio.studioid) || ''
-        this.data.selectedStudioMosid = studioid
+        this.$store.state.registerdata.selectedStudioid = (checkedStudio && checkedStudio.studioid) || ''
+        this.$store.state.registerdata.selectedStudioMosid = studioid
         if (studioid) {
           this.$store.dispatch({
             type: TYPES.GET_RUNDOWN_LIST,
@@ -121,7 +115,8 @@ export default {
                     name: 'Please select rundown list',
                     FirstPlayDate: '',
                     Rundownid: '',
-                    selected: true
+                    selected: true,
+                    children: []
                   }]
                   result.forEach(i => {
                     if (i.FirstPlayDate && item === i.FirstPlayDate) {
@@ -148,24 +143,25 @@ export default {
     },
     checkedTime (event) {
       var currentTime = event.target.value
-      let timeData = this.data.registerData && this.data.registerData.filter(item => item.selected)[0].children
-      timeData && timeData.forEach((item, index) => {
+      // let timeData = this.allTimer && this.allTimer.filter(item => item.selected)[0].children
+      this.allTimer && this.allTimer.forEach((item, index) => {
         if (item.name === currentTime && event.target.selectedIndex === index) {
           item.selected = true
         } else {
           item.selected = false
         }
       })
-      this.data.selectTime = currentTime
+      // this.data.selectTime = currentTime
+      this.$store.state.registerdata.selectTime = currentTime
     },
     checkedRundown () {
       let currentRundown = event.target.value
       let studioID = ''
       let rundowID = ''
       let SelectRundownid = event.target.selectedOptions[0].getAttribute('Rundownid')
-      let timeDate = this.data.registerData.filter(item => item.ischeckedStudio)[0].children
-      let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
-      rundownDate && rundownDate.forEach(function (item) {
+      // let timeDate = this.data.registerData.filter(item => item.selected)[0].children
+      // let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
+      this.allRundownList && this.allRundownList.forEach(function (item) {
         if (currentRundown === item.name && SelectRundownid === item.Rundownid) {
           studioID = item.studioid
           rundowID = item.Rundownid
@@ -174,9 +170,9 @@ export default {
           item.selected = false
         }
       })
-      this.data.selectedStudioid = studioID
-      this.data.selectRundownid = rundowID
-      let curRundown = rundownDate && rundownDate.filter(item => item.selected)[0]
+      // this.data.selectedStudioid = studioID
+      this.$store.state.registerdata.selectRundownid = rundowID
+      let curRundown = this.allRundownList && this.allRundownList.filter(item => item.selected)[0]
       if (studioID && rundowID) {
         this.$store.dispatch({
           type: TYPES.GET_PROGRAMEINFO_LIST,
@@ -186,7 +182,7 @@ export default {
           }
         }).then((result) => {
           if (result.length > 0) {
-            if (rundowID === this.data.selectRundownid) {
+            if (rundowID === this.$store.state.registerdata.selectRundownid) {
               curRundown.children = result
             }
           }
@@ -196,16 +192,40 @@ export default {
       }
     },
     selectRow (studioinfo) {
-      let timeDate = this.data.registerData.filter(item => item.selected)[0].children
-      let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
-      let programInfo = rundownDate && rundownDate.filter(item => item.selected)[0].children
-      programInfo.forEach(function (item) {
+      // let timeDate = this.data.registerData.filter(item => item.selected)[0].children
+      // let rundownDate = timeDate && timeDate.filter(item => item.selected)[0].children
+      // let programInfo = rundownDate && rundownDate.filter(item => item.selected)[0].children
+      this.allProgramInfo.forEach(function (item) {
         item.selected = false
       })
       studioinfo.selected = true
     }
   },
   computed: {
+    allStudio () {
+      return this.$store.state.registerdata.eventData && this.$store.state.registerdata.eventData || []
+    },
+    checkedStudio () {
+      return this.allStudio.find(item => item.selected)
+    },
+    allTimer () {
+      return this.allStudio.find(item => item.selected) && this.allStudio.find(item => item.selected).children || []
+    },
+    checkedTimer () {
+      return this.allTimer.find(item => item.selected)
+    },
+    allRundownList () {
+      return this.checkedTimer && this.checkedTimer.children || []
+    },
+    checkedRundownList () {
+      return this.allRundownList.find(item => item.selected)
+    },
+    allProgramInfo () {
+      return this.checkedRundownList && this.checkedRundownList.children || []
+    },
+    checkedProgramInfo () {
+      return this.allProgramInfo.find(item => item.selected)
+    }
   },
   components: {}
 }

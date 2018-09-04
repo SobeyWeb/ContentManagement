@@ -2829,7 +2829,7 @@ export function displayRegisterWindow (currentStudioData, context) {
   })
   let newStudio = []
   let temStudio = []
-  context.state.registerdata.registerData.forEach(item => {
+  registerData.eventData && registerData.eventData.forEach(item => {
     let same = StudioDatas.find(k => item.studioid === k.studioid)
     if (same) {
       item.name = same.name
@@ -2840,19 +2840,19 @@ export function displayRegisterWindow (currentStudioData, context) {
       temStudio.push(item)
     }
   })
-  context.state.registerdata.registerData.remove(...temStudio)
+  context.state.registerdata.eventData.remove(...temStudio)
   StudioDatas.remove(...newStudio)
   StudioDatas.forEach(item => {
-    context.state.registerdata.registerData.push(item)
+    context.state.registerdata.eventData.push(item)
   })
-  isContain && context.state.registerdata.registerData.forEach(item => {
+  isContain && context.state.registerdata.eventData.forEach(item => {
     if (studioid && StudioMosid && studioid === item.studioid && StudioMosid === item.studiomosid) {
       item.ischeckedStudio = true
     } else {
       item.ischeckedStudio = false
     }
   })
-  let checkedStudio = context.state.registerdata.registerData.filter((item) => item.ischeckedStudio)
+  let checkedStudio = context.state.registerdata.eventData.filter((item) => item.ischeckedStudio)
   // 获取rundown
   if (studioid && isContain) { // 当前studio存在才打开
     context.dispatch({
@@ -2928,8 +2928,8 @@ export function displayRegisterWindow (currentStudioData, context) {
           }).catch((re) => {
           })
         } else {
-          context.state.registerdata.programInfo = []
-          context.state.registerdata.tempProgramInfodata = []
+          // context.state.registerdata.programInfo = []
+          // context.state.registerdata.tempProgramInfodata = []
         }
       }
     }).catch((res) => {

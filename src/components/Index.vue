@@ -1660,10 +1660,9 @@ export default {
         content: this.$refs.registerToOA.$el,
         title: 'Register To',
         onshow: () => {
-
         },
         onhide: () => {
-
+          this.$refs.registerToOA.cancelRegisterWindow
         }
       })
       this.$store.dispatch({

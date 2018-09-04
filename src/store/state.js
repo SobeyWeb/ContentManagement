@@ -133,7 +133,16 @@ export default {
   isFocusTree: true,
   isFocusPlayer: false,
   // isRegister: false,
-  registerdata: {},
+  registerdata: {
+    registerViewPath: 'OA Material / ',
+    registerPath: '',
+    oaFolderMosid: '',
+    eventData: [],
+    selectedStudioid: '',
+    selectedStudioMosid: '',
+    selectTime: '',
+    selectRundownid: ''
+  },
   isplayerRegister: false,
   // highFileLength: 0,
   ispublish: false,
