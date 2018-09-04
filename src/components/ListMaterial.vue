@@ -806,4 +806,28 @@ export default {
 .list_material_content .material_cutting {
   opacity: 0.5;
 }
+.list_material_icon_container .node_icon {
+  background: url(../assets/images/node_icon.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .my_clip_icon {
+  background: url(../assets/images/myclip_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .this_week_icon {
+  background: url(../assets/images/week_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .transhcan_icon {
+  background: url(../assets/images/trashcan_icon.png) no-repeat center center !important;
+  background-size: contain !important;
+}
+
+.list_material_icon_container .today_icon {
+  background: url(../assets/images/today_big.png) no-repeat center center !important;
+  background-size: contain !important;
+}
 </style>

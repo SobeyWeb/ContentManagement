@@ -386,4 +386,31 @@ export default {
   margin-right: 5px;
   float: left;
 }
+.folder_container:hover {
+  background-color: #393939;
+  color: #fff;
+}
+.folder_container .ding_icon {
+  background: url(../assets/images/ding.png) #393939 no-repeat center center;
+}
+.folder_container .link_icon {
+  display: none;
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  right: 0;
+}
+.folder_selected {
+  background: rgba(248, 155, 57, 0.3);
+  color: #fff;
+}
+
+.folder_checked {
+  background: #393939;
+}
+.folder_container .folder_name {
+  display: inline-block;
+  padding-left: 6px;
+  white-space: pre;
+}
 </style>

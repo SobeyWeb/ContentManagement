@@ -60,4 +60,46 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.search_icon {
+  cursor: pointer;
+  display: inline-block;
+  width: 30px;
+  height: 38px;
+  text-align: center;
+}
+
+.last {
+  background: url(../assets/images/top_arrow.png) no-repeat center center;
+  margin-left: 205px;
+}
+
+.last:hover {
+  background: url(../assets/images/top_arrow.png) no-repeat center center
+    #4e4e4e;
+  margin-left: 205px;
+}
+
+.next {
+  background: url(../assets/images/bottom_arrow.png) no-repeat center center;
+}
+
+.next:hover {
+  background: url(../assets/images/bottom_arrow.png) no-repeat center center
+    #4e4e4e;
+}
+
+.total_bar {
+  position: absolute;
+  right: 110px;
+  opacity: 0.7;
+}
+
+.local_search_container {
+  display: inline-block;
+}
+
+.local_search_input {
+  position: absolute;
+  top: 5px;
+}
 </style>
