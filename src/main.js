@@ -98,13 +98,14 @@ Vue.directive('dispose', {
 Vue.config.productionTip = false
 
 /* eslint-disable no-new */
-window.CM = new Vue({
+new Vue({
   el: '#app',
   store,
   router,
   components: { App },
   template: '<App/>',
   created() {
+    window.CM = this
     this.$app.emit(EVENT.CREATED, [this])
   },
   mounted() {

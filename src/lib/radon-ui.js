@@ -1,4 +1,5 @@
 /* eslint-disable */
+import $ from 'jquery'
 !function(e, t) {
     "object" == typeof exports && "object" == typeof module ? module.exports = t() : "function" == typeof define && define.amd ? define("radon-ui", [], t) : "object" == typeof exports ? exports["radon-ui"] = t() : e["radon-ui"] = t()
 }(this, function() {
@@ -13433,7 +13434,7 @@
             watch:{
                 'modal.show': function(value, old){
                     var _this = this
-                    Vue.nextTick(function(){
+                    this.$nextTick(function(){
                         value && _this.$el.querySelector('.rd-modal-wrapper').focus()
                     })
                 }
@@ -13463,7 +13464,7 @@
                     this.modal.show = !1
                     this.modal.modalQueue.shift()
                     var _this = this
-                    Vue.nextTick(function(){
+                    this.$nextTick(function(){
                         if (_this.modal.modalQueue && _this.modal.modalQueue.length) {
                             _this.modal.modalQueue[0]()
                 }
@@ -13474,7 +13475,7 @@
                     this.modal.show = !1
                     this.modal.modalQueue.shift()
                     var _this = this
-                    Vue.nextTick(function(){
+                    this.$nextTick(function(){
                         if (_this.modal.modalQueue && _this.modal.modalQueue.length) {
                             _this.modal.modalQueue[0]()
                 }

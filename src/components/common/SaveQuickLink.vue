@@ -60,6 +60,9 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.tree_base {
+  min-width: 100%;
+}
 .folder_container .quick_icon {
   background: url(../../assets/images/link_icon.png) no-repeat center center;
   height: 25px;

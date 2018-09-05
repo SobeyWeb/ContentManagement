@@ -1131,7 +1131,7 @@ export function parseData(arr, father, option) {
         }
       } else {
       }
-      if (item.type === '4') {
+      if (item.type === 4) {
         item.typeName = 'Scene Mark'
         item.flag = 'smarker'
         item.isSMarker = true
@@ -1144,7 +1144,7 @@ export function parseData(arr, father, option) {
         item.text = item.note
         item.intime = item.keyframe / framerate
         item.outtime = item.endkeyframe / framerate
-      } else if (item.type === '8') {
+      } else if (item.type === 8) {
         item.typeName = 'Essence Mark'
         item.flag = 'emarker'
         item.pos = frameToTime(item.keyframe, framerate)
@@ -1153,7 +1153,7 @@ export function parseData(arr, father, option) {
         item.time = item.keyframe / framerate
         item.guid = '' + (new Date().getTime() + index)
         item.text = item.note
-      } else if (item.type === '65536') {
+      } else if (item.type === 65536) {
         item.typeName = 'Logging Mark'
         item.flag = 'lmarker'
         item.pos = frameToTime(item.keyframe, framerate)
@@ -1192,7 +1192,7 @@ export function parseData(arr, father, option) {
         item._extendinfo.sort((i1, i2) => {
           return i1[0].itemtype - i2[0].itemtype
         })
-      } else if (item.type === '131072') {
+      } else if (item.type === 131072) {
         item.typeName = 'Change Mark'
         item.flag = 'cmarker'
         item.pos = frameToTime(item.keyframe, framerate)
@@ -2289,7 +2289,7 @@ export function updateMarkerList(
       item.endkeyframe,
       videostandard
     ).roundByFrame(frameSec)
-    if (item.type === '4' || item.type === 'scenemark') {
+    if (item.type === 4 || item.type === 'scenemark') {
       item.typeName = 'Scene Mark'
       item.tag = 'scMarker'
       item.flag = 'smarker'
@@ -2302,7 +2302,7 @@ export function updateMarkerList(
       item.text = item.note
       item.intime = inPoint
       item.outtime = outPoint
-    } else if (item.type === '8' || item.type === 'essencemark') {
+    } else if (item.type === 8 || item.type === 'essencemark') {
       item.typeName = 'Essence Mark'
       item.tag = 'esMarker'
       item.flag = 'emarker'
@@ -2311,7 +2311,7 @@ export function updateMarkerList(
       item.time = inPoint
       item.guid = '' + (new Date().getTime() + index)
       item.text = item.note
-    } else if (item.type === '65536' || item.type === 'loggingmark') {
+    } else if (item.type === 65536 || item.type === 'loggingmark') {
       item.correctSF =
         item.keyframe < item.startframe ? item.keyframe : item.startframe
       item.correctEF =
@@ -2361,7 +2361,7 @@ export function updateMarkerList(
       item._extendinfo.sort((i1, i2) => {
         return i1[0].itemtype - i2[0].itemtype
       })
-    } else if (item.type === '131072' || item.type === 'changemark') {
+    } else if (item.type === 131072 || item.type === 'changemark') {
       item.typeName = 'Change Mark'
       item.flag = 'cmarker'
       item.tag = 'chMarker'

@@ -60,7 +60,7 @@ export default {
   },
   methods: {
     initialize () {
-      window.player = this
+      this.$store.state.player = this
     },
     dispose () {
       this.sourceChange(0)

@@ -624,7 +624,7 @@ export default {
       this.editing = false
     },
     initialize () {
-      window.property = this
+      this.$store.state.property = this
     },
     dispose () {
       if (this.editing) {

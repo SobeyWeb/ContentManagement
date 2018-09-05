@@ -335,7 +335,7 @@ export default {
     },
     currentCtrl () {
       if (this.isMarker) {
-        return 'marker'
+        return 'marker-ctrl'
       } else if (this.listSymbol) {
         return 'list-material'
       }
@@ -826,7 +826,6 @@ export default {
       this.resizeX = event.x
     },
     resizing: util.throttle(50, function (event) {
-      console.log(this.resizeSymbol)
       if (this.resizeSymbol) {
         console.log(123)
         let width = this.leftTreeWidth + event.x - this.resizeX
@@ -1516,7 +1515,8 @@ export default {
     },
     initAppData () {
       this.$store.dispatch({
-        type: TYPES.GET_USERTREE
+        type: TYPES.GET_USERTREE,
+        data: -1 // root department id
       }).then(res => {
         let lastVisit = util.getCookie('last_visit' + this.userInfo.usercode)
         if (lastVisit) {
