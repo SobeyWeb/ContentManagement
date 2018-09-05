@@ -62,7 +62,7 @@
 <script>
 import TYPES from '../../../dicts/mutationTypes'
 import * as util from '../../../lib/util'
-
+import EVENT from '../../../dicts/eventTypes'
 export default {
   props: {
     data: Object,
@@ -207,7 +207,7 @@ export default {
       this.$emit('save', this.material)
     },
     dragstart (event) {
-       this.$app.emit(EVENT.MARKER_DRAGSTART, [event,this.material])
+      this.$app.emit(EVENT.MARKER_DRAGSTART, [event, this.material])
     }
   },
   mounted () {
