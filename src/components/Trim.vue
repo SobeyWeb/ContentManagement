@@ -23,8 +23,8 @@
         <div class="save_clip_path_container">
           <vue-nice-scrollbar class="folder_box" :speed="150" id="save_clip_folder_box" style="height: 100%">
             <div class="clearfix">
-              <tree-ctrl5 :data="node" v-for="node in copiedLinkNodes" :callback="callback" :key="node.guid"></tree-ctrl5>
-              <tree-ctrl2 :data="node" v-for="node in saveNodes" :callback="callback" :key="node.guid"></tree-ctrl2>
+              <save-quick-link :data="node" v-for="node in copiedLinkNodes" :callback="callback" :key="node.guid"></save-quick-link>
+              <save-folder-tree :data="node" v-for="node in saveNodes" :callback="callback" :key="node.guid"></save-folder-tree>
             </div>
           </vue-nice-scrollbar>
         </div>
@@ -41,8 +41,8 @@
 import { volidInput, Notice } from '../lib/util'
 import appSetting from '../config/appSetting'
 import Guid from '../lib/Guid'
-import { GetEntityType } from '../../../lib/transform'
-import { GetMillSecondsByFrameNum, GetSkipFrameByVideoStandard } from '../../../lib/format'
+import { GetEntityType } from '../lib/transform'
+import { GetMillSecondsByFrameNum, GetSkipFrameByVideoStandard } from '../lib/format'
 import TYPES from '../dicts/mutationTypes'
 import SaveFolderTree from './common/SaveFolderTree.vue'
 import SaveQuickLink from './common/SaveQuickLink.vue'
@@ -145,7 +145,7 @@ export default {
   },
   components: {
     'save-folder-tree': SaveFolderTree,
-    'save-quick-lin': SaveQuickLink
+    'save-quick-link': SaveQuickLink
   },
   methods: {
     cancel () {

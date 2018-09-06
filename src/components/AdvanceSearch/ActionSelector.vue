@@ -151,4 +151,31 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.logingmarkpar {
+  width: 100%;
+  min-height: 29px;
+  background: rgb(17, 17, 17);
+  overflow: hidden;
+  overflow-x: auto;
+}
+.search_input_container {
+  position: absolute;
+  bottom: -32px;
+  width: 100%;
+  z-index: 122;
+  background: #222222;
+}
+.member_box {
+  left: 0;
+  bottom: -272px;
+  width: 100%;
+  z-index: 122;
+  overflow: hidden;
+  background: #222222;
+}
+.rd-textfield-input.search_input {
+  border-top: 1px #3e3e3e solid;
+  background: #222222;
+  border-bottom: 1px #3e3e3e solid;
+}
 </style>

@@ -91,6 +91,46 @@ export default {
     }
   },
   methods: {
+    saveMarker (type, tempMarker) {
+      var markers = this.markerList
+      if (type !== 'add') {
+        markers = markers.filter(item => item.markguid)
+      } else {
+        markers = markers.filter(item => !item.markguid)
+      }
+      var json = markers.map(item => {
+        var m = {
+          color: item.color,
+          createdate: item.createdate,
+          creator: item.creator,
+          iconframe: item.iconframe,
+          iconlevel: item.iconlevel,
+          keyframe: item.keyframe,
+          modifydate: item.modifydate,
+          name: item.name,
+          startframe: item.startframe,
+          type: item.type,
+          endkeyframe: item.endkeyframe,
+          note: item.note,
+          iconfilename: item.iconfilename
+        }
+        if (item.markguid) {
+          m.markguid = item.markguid
+        }
+        return m
+      })
+      this.$store.dispatch({
+        type: TYPES.UPDATE_MARKERPOINTS,
+        data: {
+          json: json,
+          guid: this.material.guid
+        }
+      }).then(res => {
+        console.log('save success')
+      }).catch(res => {
+        console.log('save failed')
+      })
+    },
     deleteMarker (marker) {
       var markers = this.options.values
       markers.remove(marker)

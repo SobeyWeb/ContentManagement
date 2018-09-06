@@ -716,10 +716,12 @@ export default {
 .list_material_icon_span.project {
   background: url(../assets/images/project.png) no-repeat center center;
 }
-.list_material_icon_spandrag_icon.other {
+.list_material_icon_span.other {
   background: url(../assets/images/other.png) no-repeat center center;
 }
-
+.list_material_icon_span.rar {
+  background: url(../assets/images/rar.png) no-repeat center center;
+}
 .list_material_icon_container .node_icon {
   background: url(../assets/images/node_icon.png) no-repeat center center !important;
   background-size: contain !important;

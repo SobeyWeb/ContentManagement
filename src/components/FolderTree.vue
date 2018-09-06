@@ -7,7 +7,7 @@
       <span class="link_icon ding_icon" title="link" @click.stop.prevent="addLink" v-if="node.operations.some(function(i){return i==='Add to Quick Link'})"></span>
     </div>
     <div v-show="node.open" v-if="[-1,0,2].indexOf(node.guid)<0">
-      <folder-tree :data="n" v-for="n in sortFunc((node.searchModel||node.folders).slice(), 'title', true)" :key="n.guid">
+      <folder-tree :data="n" v-for="(n,index) in sortFunc((node.searchModel||node.folders).slice(), 'title', true)" :key="n.guid===2?index:n.guid">
       </folder-tree>
     </div>
   </div>
@@ -412,5 +412,9 @@ export default {
   display: inline-block;
   padding-left: 6px;
   white-space: pre;
+}
+.folder_container.folder_hover {
+  border: 1px solid rgba(149, 149, 149, 0.5);
+  color: #000;
 }
 </style>

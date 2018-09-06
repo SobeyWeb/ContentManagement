@@ -74,4 +74,73 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.tree_base {
+  min-width: 100%;
+}
+.folder_container {
+  min-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  background-color: #222;
+  cursor: default;
+  font-weight: normal;
+  height: 30px;
+  line-height: 30px;
+  font-size: 15px;
+  color: #cfd2d4;
+  border: 1px solid #222;
+}
+.folder_container span {
+  cursor: pointer;
+}
+.folder_container .folder_icon {
+  background: url(../../assets/images/normal_folder.png) no-repeat center center;
+  height: 25px;
+  width: 21px;
+  float: left;
+}
+.folder_container span {
+  cursor: pointer;
+}
+.triangle_icon {
+  width: 12px;
+  height: 25px;
+  margin-right: 5px;
+  float: left;
+}
+.folder_container:hover {
+  background-color: #393939;
+  color: #fff;
+}
+.folder_selected {
+  background: rgba(248, 155, 57, 0.3);
+  color: #fff;
+}
+
+.folder_checked {
+  background: #393939;
+}
+.folder_container .folder_name {
+  display: inline-block;
+  padding-left: 6px;
+  white-space: pre;
+}
+.folder_container .network_icon {
+  background: url(../../assets/images/network.png) no-repeat center center;
+}
+.folder_selected .triangle_icon_down {
+  background: url(../../assets/images/arrow_down2.png) no-repeat center center;
+}
+
+.folder_selected .triangle_icon_right {
+  background: url(../../assets/images/arrow_right2.png) no-repeat center center;
+}
+
+.triangle_icon_down {
+  background: url(../../assets/images/arrow_down.png) no-repeat center center;
+}
+
+.triangle_icon_right {
+  background: url(../../assets/images/arrow_right.png) no-repeat center center;
+}
 </style>

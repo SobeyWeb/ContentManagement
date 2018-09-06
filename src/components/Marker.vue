@@ -3,7 +3,7 @@
     <div class="marker_icon_box">
       <div class="marker_color" :style="material.bgcolor"></div>
       <div class="marker_icon">
-        <img draggable="false" class="marker_img" :src="material.icon||material.iconfilename||'./images/nostamp.png'" onerror="this.src='./images/nostamp.png'" />
+        <img draggable="false" class="marker_img" :src="material.icon||material.iconfilename||'./images/nostamp.png'" @error="imageLoadError" />
       </div>
       <span class="marker_typename">{{material.typeName}}</span>
     </div>
@@ -51,6 +51,7 @@ import TYPES from '../dicts/mutationTypes'
 import appSetting from '../config/appSetting'
 import * as util from '../lib/util'
 import $ from 'jquery'
+import EVENT from '../dicts/EventTypes.js'
 
 export default {
   props: {
@@ -58,10 +59,14 @@ export default {
   },
   data: function () {
     return {
+      nostampUrl: require('../assets/images/nostamp.png'),
       titles: ['Title', 'Member', 'Action']
     }
   },
   methods: {
+    imageLoadError (event) {
+      event.target.src = this.nostampUrl
+    },
     mouseup (event) {
       if (event.button !== 0 || this.$store.state.dragSymbol) {
         return
@@ -175,91 +180,7 @@ export default {
       }
     },
     dragstart (event) {
-      // for premiere
-      event.dataTransfer.dropEffect = 'copy'
-      event.dataTransfer.effectAllowed = 'copy'
-
-      var isWin = (navigator.platform === 'Win32') || (navigator.platform === 'Windows')
-
-      var _this = this
-      var markers = _this.$store.state.selectedMaterials // .filter(item => item.flag == 'smarker' || item.flag === 'lmarker')
-      // if (markers.length !== _this.$store.state.selectedMaterials.length) {
-      //   //util.Notice.warning('Essence marker(s) or change marker(s) cannot be imported.', '', 3000)
-      //   window.parent.postMessage({
-      //     type: 'showMessage',
-      //     data: {
-      //       content: 'Essence marker(s) or change marker(s) cannot be imported.',
-      //       type: 'warning',
-      //       time: 3000,
-      //     },
-      //     auth: _this.$store.state.userInfo,
-      //   }, '*')
-      // }
-      // if (false) { // 插件采用以前的方式拖拽上bin
-      //   markers.forEach((item, index) => {
-      //     var port = (document.location.protocol == "https:") ? 9065 : 9064,
-      //       url = document.location.protocol + '//localhost:' + port + '/getFcpMarkXml',
-      //       path = isWin ? 'C:\\\\\ProgramData\\Temp\\' + Guid.NewGuid().ToString("N") + '.xml' : '/Volumes/Temp/' + Guid.NewGuid().ToString("N") + '.xml'
-      //     event.dataTransfer.setData("com.adobe.cep.dnd.file." + index, path);
-      //     $.ajax({
-      //       type: "post",
-      //       url: url,
-      //       data: {
-      //         type: item.flag,
-      //         markguid: item.markguid,
-      //         usertoken: _userToken,
-      //         contentid: item.objectguid,
-      //         path: path,
-      //         system: isWin ? 'Windows' : 'Mac'
-      //       },
-      //       dataType: "json",
-      //       async: true,
-      //       success: function (data) {
-      //         if (data.ext) {
-      //           window.parent.postMessage({
-      //             type: 'sceneMarkDragStart',
-      //             data: item,
-      //             ext: data.ext,
-      //             auth: _this.$store.state.userInfo,
-      //           }, '*')
-      //         }
-      //       },
-      //     })
-      //   })
-      // } else {
-      markers.forEach((item, index) => {
-        var url = util.getUrl(appSetting.CMAPI + (isWin ? '/CMApi/api/entity/program/getscenemarkfcp7xmlpath' : '/CMApi/api/entity/program/getscenemarkfcp7xmlpathformac'), {
-          userToken: _this.userInfo.usertoken,
-          guid: item.objectguid,
-          markguid: item.markguid
-        })
-        $.ajax({
-          type: 'post',
-          url: '/Handler/MaterialList.ashx',
-          data: {
-            OperationType: 'ForwardRequest',
-            usertoken: _this.userInfo.usertoken,
-            url: url,
-            type: 'get',
-            body: ''
-          },
-          dataType: 'json',
-          async: false,
-          success: function (data) {
-            if (data.R) {
-              var res = JSON.parse(data.R)
-              event.dataTransfer.setData('com.adobe.cep.dnd.file.' + index, isWin ? res.ext.xmlpath : util.convertPath4Mac(res.ext.xmlpath))
-              window.parent.postMessage({
-                type: 'sceneMarkDragStart',
-                data: item,
-                ext: res.ext,
-                auth: _this.userInfo
-              }, '*')
-            }
-          }
-        })
-      })
-      // }
+      this.$app.emit(EVENT.MARKER_DRAGSTART, [event,this.material])
     }
   },
   computed: {
@@ -274,9 +195,6 @@ export default {
     },
     material () {
       return this.data
-    },
-    dict () {
-      return this.$store.state.dict
     }
   }
 }
@@ -285,4 +203,207 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.marker_container {
+  cursor: pointer;
+  color: #cfd2d4;
+  background: #171717;
+  width: 100%;
+  height: 16px;
+  position: relative;
+  white-space: nowrap;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.list_marker_container {
+  display: flex;
+  color: #cfd2d4;
+  background: #252525;
+  width: 440px;
+  height: 80px;
+  position: relative;
+  white-space: nowrap;
+  border: 1px solid #000;
+  margin: 10px 0px 0px 10px;
+  z-index: 1;
+  float: left;
+  padding: 10px;
+}
+
+.list_marker_container:hover {
+  border: 1px solid #ff9000;
+}
+
+.marker_typename {
+  position: relative;
+  bottom: 2px;
+}
+
+.marker_icon_box {
+  width: 130px;
+  height: 81px;
+  background: #222;
+  text-align: center;
+  display: inline-block;
+}
+
+.marker_color {
+  width: 10px;
+  height: 80px;
+  position: absolute;
+  top: 10px;
+  border: 1px #000 solid;
+}
+
+.marker_icon {
+  margin-top: 4px;
+  height: 60px;
+  line-height: 60px;
+}
+
+.marker_img {
+  max-width: 107px;
+  max-height: 60px;
+  position: relative;
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
+.marker_icon_box span {
+  line-height: 24px;
+}
+
+.marker_comment {
+  overflow: hidden;
+  height: 74px;
+  color: #b3b3b3;
+  background: #1b1b1b;
+  display: inline-block;
+  width: calc(100% - 136px);
+  border: none;
+  resize: none;
+  outline: none;
+  padding: 5px 0px 0px 5px;
+}
+
+.marker_pos {
+  width: 135px;
+  top: -14px;
+  position: relative;
+  background: #222;
+  display: inline-block;
+  display: none;
+}
+
+.markTimeCode {
+  font-size: 12px;
+  color: #7f7f7f;
+  background: #1b1b1b;
+  border: none;
+  resize: none;
+  outline: none;
+  font-family: Arial;
+  text-align: center;
+  width: 75px;
+  margin-left: 5px;
+  height: 25px;
+}
+
+.timeCodeSpan {
+  font-size: 12px;
+  display: inline-block;
+  width: 25px;
+  margin: 0 5px;
+}
+.left_part {
+  height: 75px;
+  text-align: left;
+  width: 140px;
+}
+
+.left_part div {
+  margin-bottom: 3px;
+}
+
+.right_part {
+  width: 160px;
+}
+
+.logging_icon {
+  width: 21px;
+  height: 21px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.logging_input {
+  font-size: 12px;
+  line-height: 16px;
+  color: #cfd2d4;
+  background-color: #1b1b1b;
+  border: none;
+  width: 90px;
+  outline: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.logging_input:read-only {
+  margin-top: 1px;
+  font-size: 14px;
+  line-height: 19px;
+  color: #cfd2d4;
+  background-color: #1b1b1b;
+  border: none;
+  width: 105px;
+  outline: none;
+  height: 21px;
+  margin-left: 5px;
+  padding-left: 5px;
+}
+
+.logging_icon_0 {
+  background: url(../assets/images/General.png) no-repeat;
+  float: left;
+}
+
+.nonebg {
+  top: -3px;
+  background: none;
+  left: 243px;
+}
+
+.logging_icon_1 {
+  background: url(../assets/images/Member.png) no-repeat;
+  float: left;
+}
+
+.logging_icon_2 {
+  background: url(../assets/images/Action.png) no-repeat;
+  float: left;
+}
+
+.logging_comment {
+  height: 42px;
+  width: 155px;
+  font-size: 14px;
+  line-height: 16px;
+  color: #cfd2d4;
+  background-color: #1b1b1b;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 5px 0px 0px 5px;
+  margin-left: 5px;
+}
+
+.logging_creator {
+  width: 155px !important;
+}
+
+.logging_creator_search {
+  width: 155px !important;
+  float: left;
+}
 </style>

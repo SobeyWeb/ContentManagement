@@ -13,6 +13,8 @@
     <rd-loadingbar></rd-loadingbar>
     <rd-preview></rd-preview>
     <menu-ctrl ref="menu"></menu-ctrl>
+    <trim ref="saveClip"></trim>
+    <export ref="export"></export>
     <!--left block-->
     <div class="left_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?0:- leftTreeWidth)+'px', width: leftTreeWidth + 'px'}">
       <div class="resize_handle" @mousedown.stop.prevent.capture="resizeMousedown"></div>
@@ -199,6 +201,8 @@ import Marker from './Marker'
 import Menu from './Menu'
 import PublishToSNS from './PublishToSNS'
 import registerToOA from './RegisterToOA/RegisterToOA'
+import Trim from './Trim'
+import Export from './Export'
 
 export default {
   name: 'AppIndex',
@@ -217,7 +221,9 @@ export default {
     'marker-ctrl': Marker,
     'menu-ctrl': Menu,
     'publish-to-sns': PublishToSNS,
-    'regiter-tooa-ctrl': registerToOA
+    'regiter-tooa-ctrl': registerToOA,
+    'export': Export,
+    'trim': Trim
   },
   data () {
     return {
@@ -825,8 +831,7 @@ export default {
       this.resizeSymbol = true
       this.resizeX = event.x
     },
-    resizing: util.throttle(50, function(event) {
-      console.log(this.resizeSymbol)
+    resizing: util.throttle(50, function (event) {
       if (this.resizeSymbol) {
         console.log(123)
         let width = this.leftTreeWidth + event.x - this.resizeX
@@ -1516,7 +1521,8 @@ export default {
     },
     initAppData () {
       this.$store.dispatch({
-        type: TYPES.GET_USERTREE
+        type: TYPES.GET_USERTREE,
+        data: -1 // root department id
       }).then(res => {
         let lastVisit = util.getCookie('last_visit' + this.userInfo.usercode)
         if (lastVisit) {
@@ -1693,6 +1699,14 @@ export default {
         onhide: () => {
           this.$refs.registerToOA.cancelRegisterWindow
         }
+      })
+      this.$store.state.saveClipWindow = new ModalWindow({
+        content: this.$refs.saveClip.$el,
+        title: 'Save As'
+      })
+      this.$store.state.exportWindow = new ModalWindow({
+        content: this.$refs.export.$el,
+        title: 'Export'
       })
       this.$store.dispatch({
         type: TYPES.GET_SEARCH_QUERY

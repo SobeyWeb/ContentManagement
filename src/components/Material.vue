@@ -920,6 +920,9 @@ export default {
 .material_icon_span.other {
   background: url(../assets/images/other.png) no-repeat center center;
 }
+.material_icon_span.rar {
+  background: url(../assets/images/rar.png) no-repeat center center;
+}
 .material {
   width: 150px;
   height: 130px;
