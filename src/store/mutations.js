@@ -423,8 +423,8 @@ export default {
         : util.getValue(
           payload.data.target && payload.data.target.name,
           payload.data.target &&
-            payload.data.target.map &&
-            payload.data.target.map(item => item.name).join(',')
+              payload.data.target.map &&
+              payload.data.target.map(item => item.name).join(',')
         )
     )
     payload.data.checkbox = {
@@ -512,7 +512,7 @@ export default {
       state.selectedMarkers.push(payload.data)
     }
 
-    state.system && state.markSelectionChangeFunc()
+    state.markSelectionChangeFunc()
   },
   [TYPES.CLEAR_SELECTEEDMARKERS](state, payload) {
     state.selectedMarkers.forEach(item => {
@@ -524,7 +524,7 @@ export default {
   [TYPES.REMOVE_SELECTEDMARKER](state, payload) {
     state.selectedMarkers.remove(payload.data)
 
-    state.system && state.markSelectionChangeFunc()
+    state.markSelectionChangeFunc()
   },
   [TYPES.ADD_SELECTEDITEM](state, payload) {
     state.isFocusTree = false
@@ -538,7 +538,7 @@ export default {
       state.lastRemoveMaterial = null
       state.selectedMaterials.push(payload.data)
     }
-    // state.system === 'PLUGIN' && state.materialSelectionChangeFunc()
+    state.materialSelectionChangeFunc()
     // var lastVisit = util.getCookie('last_visit' + _userCode)
     // if (lastVisit) {
     //   lastVisit = JSON.parse(lastVisit)
@@ -556,7 +556,7 @@ export default {
   [TYPES.REMOVE_SELECTEDITEM](state, payload) {
     state.selectedMaterials.remove(payload.data)
     state.lastRemoveMaterial = payload.data
-    // state.system && state.materialSelectionChangeFunc()
+    state.materialSelectionChangeFunc()
 
     var lastVisit = util.getCookie('last_visit' + state.userInfo.usercode)
     if (lastVisit) {

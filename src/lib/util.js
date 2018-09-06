@@ -1666,7 +1666,6 @@ export function getAllFather(material) {
   return arr
 }
 export function restrictContextMenu(item, node) {
-  console.log(state.userInfo)
   if (state.userInfo.roleType) {
   } else {
     // 回收站的素材
@@ -1846,33 +1845,32 @@ export function ignoreZHFunc(func, context) {
 export const Notice = {
   success() {
     this.success = ignoreZHFunc(
-      window.CM.$Notification.success,
-      window.CM.$Notification
+      window.$Notification.success,
+      window.$Notification
     )
     this.success(...arguments)
   },
   warning() {
     this.warning = ignoreZHFunc(
-      window.CM.$Notification.warning,
-      window.CM.$Notification
+      window.$Notification.warning,
+      window.$Notification
     )
     this.warning(...arguments)
   },
   failed() {
     this.failed = ignoreZHFunc(
-      window.CM.$Notification.failed,
-      window.CM.$Notification
+      window.$Notification.failed,
+      window.$Notification
     )
     this.failed(...arguments)
   }
 }
 export const Model = {
   confirmWithHTML() {
-    window.CM.$Modal.confirmWithHTML(...arguments)
+    window.$Modal.confirmWithHTML(...arguments)
   },
   confirm() {
-    console.log(window.CM, window.CM.$modal)
-    window.CM.$Modal.confirm(...arguments)
+    window.$Modal.confirm(...arguments)
   }
 }
 export function getAdvanceSearchCondition(tab, node) {

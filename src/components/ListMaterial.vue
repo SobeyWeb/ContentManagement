@@ -34,6 +34,7 @@
 <script>
 import * as util from '../lib/util.js'
 import TYPES from '../dicts/mutationTypes.js'
+import EVENT from '../dicts/eventTypes'
 import APPSETTING from '../config/appSetting.js'
 import { getRepository } from '../data/repository'
 import $ from 'jquery'
@@ -360,165 +361,7 @@ export default {
       }
     },
     dragStart (event) {
-      this.$store.state.previewDragSymbol = true
-      this.material.selected = true
-      this.$store.commit({
-        type: TYPES.ADD_SELECTEDITEM,
-        data: this.material
-      })
-      var children = this.$store.getters.displayMaterials
-      this.$store.commit({
-        type: TYPES.SET_SIGNMATERIAL,
-        data: children.indexOf(this.material)
-      })
-      var dragEle = this.$el.querySelector('.drag_icon')
-      event.dataTransfer.setDragImage(dragEle, dragEle.clientWidth / 2, dragEle.clientHeight / 2)
-      if (event.ctrlKey) {
-        event.dataTransfer.dropEffect = 'copy'
-        event.dataTransfer.effectAllowed = 'copy'
-      } else {
-        event.dataTransfer.dropEffect = 'move'
-        event.dataTransfer.effectAllowed = 'move'
-      }
-      // for premiere
-      if (this.$store.state.system) {
-        event.dataTransfer.dropEffect = 'copy'
-        event.dataTransfer.effectAllowed = 'copy'
-        window.parent.postMessage({
-          type: 'dragStart',
-          data: this.$store.getters.selectedMaterialsInfo,
-          auth: this.$store.state.userInfo
-        }, '*')
-        var isWin = (navigator.platform === 'Win32') || (navigator.platform === 'Windows')
-        var i = 0
-        var _this = this
-        // if (false) { //插件采用以前的方式拖拽上bin
-        //   this.$store.state.selectedMaterials.forEach((item, index) => {
-        //     var port = (document.location.protocol == "https:") ? 9065 : 9064,
-        //       url = document.location.protocol + '//localhost:' + port + '/getFcpClipXml',
-        //       type,
-        //       path = isWin ? 'C:\\\\\ProgramData\\Temp\\' + Guid.NewGuid().ToString("N") + '.xml' : '/Volumes/Temp/' + Guid.NewGuid().ToString("N") + '.xml'
-        //     if (item.typeid === 64) { //edl
-        //       type = 'pgmDragStart'
-        //     } else if ([8192, 536870912, 2147483648].indexOf(item.subtype) > -1 && item.typeid === 32) { // txt project
-        //       var extName = '.prproj'
-        //       if (item.subtype === 8192) {
-        //         type = 'txtDragStart'
-        //         extName = '.txt'
-        //       } else {
-        //         type = 'projectDragStart'
-        //         if (item.subtype == 2147483648) {
-        //           extName = '.aep'
-        //         }
-        //       }
-        //       path = isWin ? 'C:\\\\\ProgramData\\Temp\\' + Guid.NewGuid().ToString("N") + extName : '/Volumes/Temp/' + Guid.NewGuid().ToString("N") + extName
-        //       url = document.location.protocol + '//localhost:' + port + '/getFilePath'
-        //     } else {
-        //       type = 'clipDragStart'
-        //     }
-        //     event.dataTransfer.setData("com.adobe.cep.dnd.file." + index, path);
-        //     $.ajax({
-        //       type: "post",
-        //       url: url,
-        //       data: {
-        //         type: item.typeid,
-        //         usertoken: _userToken,
-        //         contentid: item.guid,
-        //         path: path,
-        //         system: isWin ? 'Windows' : 'Mac'
-        //       },
-        //       dataType: "json",
-        //       async: true,
-        //       success: function (data) {
-        //         if (data.ext) {
-        //           window.parent.postMessage({
-        //             type: type,
-        //             data: {
-        //               name: item.name,
-        //               guid: item.guid,
-        //               type: item.type,
-        //               path: item.path,
-        //               subtype: item.subtype,
-        //               typeid: item.typeid
-        //             },
-        //             ext: data.ext,
-        //             auth: _this.$store.state.userInfo,
-        //           }, '*')
-        //         }
-        //       },
-        //     })
-        //   })
-        // } else {
-        this.$store.state.selectedMaterials.forEach((item, index) => {
-          var url,
-            type
-          if (item.typeid === 64) { // edl
-            url = util.getUrl(APPSETTING.CMAPI + (isWin ? '/CMApi/api/entity/program/getjovexmlpath' : '/CMApi/api/entity/program/getjovexmlpathformac'), {
-              userToken: _this.userInfo.usertoken,
-              guid: item.guid
-            })
-            type = 'pgmDragStart'
-          } else if ([8192, 536870912, 2147483648].indexOf(item.subtype) > -1 && item.typeid === 32) { // txt project
-            url = util.getUrl(APPSETTING.CMAPI + (isWin ? '/CMApi/api/entity/program/getfilephysicalpath' : '/CMApi/api/entity/program/getfilephysicalpathformac'), {
-              userToken: _this.userInfo.usertoken,
-              guid: item.guid
-            })
-            if (item.subtype === 8192) {
-              type = 'txtDragStart'
-            } else {
-              type = 'projectDragStart'
-            }
-          } else {
-            url = util.getUrl(APPSETTING.CMAPI + (isWin ? '/CMApi/api/entity/program/getfcp7xmlpath' : '/CMApi/api/entity/program/getfcp7xmlpathformac'), {
-              userToken: _this.userInfo.usertoken,
-              guid: item.guid
-            })
-            type = 'clipDragStart'
-          }
-          $.ajax({
-            type: 'post',
-            url: '/Handler/MaterialList.ashx',
-            data: {
-              OperationType: 'ForwardRequest',
-              usertoken: _this.userInfo.usertoken,
-              url: url,
-              type: 'get',
-              body: ''
-            },
-            dataType: 'json',
-            async: false,
-            success: function (data) {
-              if (data.R) {
-                var res = JSON.parse(data.R)
-                window.parent.postMessage({
-                  type: type,
-                  data: {
-                    name: item.name,
-                    guid: item.guid,
-                    type: item.type,
-                    path: item.path,
-                    subtype: item.subtype,
-                    typeid: item.typeid
-                  },
-                  ext: res.ext,
-                  auth: _this.$store.state.userInfo
-                }, '*')
-                if (item.typeid === 64 || type === 'clipDragStart') {
-                  event.dataTransfer.setData('com.adobe.cep.dnd.file.' + i, isWin ? res.ext.xmlpath : util.convertPath4Mac(res.ext.xmlpath))
-                  i++
-                } else if (item.typeid === 32 && [8192, 536870912, 2147483648].indexOf(item.subtype) > -1) {
-                  var clips = res.ext
-                  clips && clips.forEach && clips.forEach(c => {
-                    event.dataTransfer.setData('com.adobe.cep.dnd.file.' + i, c)
-                    i++
-                  })
-                }
-              }
-            }
-          })
-        })
-        //  }
-      }
+      this.$app.emit(EVENT.MATERIAL_DRAGSTART, event, this.material)
     },
     dragEnd (event) {
       this.$store.state.previewDragSymbol = false
@@ -577,28 +420,7 @@ export default {
       }
     }, true),
     contextMenu (event) {
-      if (!this.material.selected) {
-        this.$store.commit({
-          type: TYPES.CLEAR_SELECTEEDITEMS
-        })
-        this.material.selected = true
-        this.$store.commit({
-          type: TYPES.ADD_SELECTEDITEM,
-          data: this.material
-        })
-        var children = this.$store.getters.displayMaterials
-        this.$store.commit({
-          type: TYPES.SET_SIGNMATERIAL,
-          data: children.indexOf(this.material)
-        })
-      }
-      this.$store.commit({
-        type: TYPES.SET_MENUSTATUS,
-        data: {
-          event: event,
-          status: true
-        }
-      })
+      this.$app.emit(EVENT.MATERIAL_CONTEXTMENU, event, this.material)
     }
   },
   computed: {
