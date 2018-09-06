@@ -484,5 +484,11 @@ export default {
   },
   [TYPES.PRE_SNSPUBLISH](para) {
     return util.getUrl(URLCONFIG.CMAPI + '/CMApi/api/sns/presnspublish', para)
+  },
+  [TYPES.GET_CURRENTUSERINFO](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/account/getcurrentuserinfo',
+      para
+    )
   }
 }

@@ -83,7 +83,6 @@ export default {
 }
 #userStorage {
   width: 100%;
-  height: 60px;
   background-color: #141414;
   margin-bottom: 0px;
   padding-top: 5px;

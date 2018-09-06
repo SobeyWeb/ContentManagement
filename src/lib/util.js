@@ -1666,6 +1666,7 @@ export function getAllFather(material) {
   return arr
 }
 export function restrictContextMenu(item, node) {
+  console.log(state.userInfo)
   if (state.userInfo.roleType) {
   } else {
     // 回收站的素材

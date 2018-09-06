@@ -50,8 +50,7 @@
 import TYPES from '../dicts/mutationTypes'
 import appSetting from '../config/appSetting'
 import * as util from '../lib/util'
-import $ from 'jquery'
-import EVENT from '../dicts/EventTypes.js'
+import EVENT from '../dicts/eventTypes.js'
 
 export default {
   props: {
@@ -180,7 +179,7 @@ export default {
       }
     },
     dragstart (event) {
-      this.$app.emit(EVENT.MARKER_DRAGSTART, [event,this.material])
+      this.$app.emit(EVENT.MARKER_DRAGSTART, [event, this.material])
     }
   },
   computed: {

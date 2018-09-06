@@ -10,7 +10,7 @@ import vuexI18n from 'vuex-i18n'
 import translationsEn from './dicts/translationsEn.js'
 import hotkeys from 'hotkeys-js'
 import eventPlugin from './plugins/eventPlugin.js'
-import EVENT from './dicts/EventTypes.js'
+import EVENT from './dicts/eventTypes.js'
 import './lib/prototype.js'
 
 import './assets/css/rest.css'

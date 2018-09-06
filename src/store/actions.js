@@ -4152,6 +4152,21 @@ export default {
       })
     })
   },
+  //  get function user info
+  [TYPES.GET_CURRENTUSERINFO](context, payload) {
+    let url = API_CONFIG[TYPES.GET_CURRENTUSERINFO]({
+      usertoken: context.state.userInfo.userid
+    })
+    return new Promise((resolve, reject) => {
+      axios.get(url).then(res => {
+        if (res.data.code === '0') {
+          resolve(res.data)
+        } else {
+          reject(res.data)
+        }
+      })
+    })
+  },
   //  get user permission
   [TYPES.GET_USERPERMISSION](context, payload) {
     let url = API_CONFIG[TYPES.GET_USERPERMISSION]({
