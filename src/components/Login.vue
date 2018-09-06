@@ -17,9 +17,9 @@
 </template>
 
 <script>
-// import PERMISSION from '../dicts/permission.js'
+import PERMISSION from '../dicts/permission.js'
 import TYPES from '../dicts/mutationTypes.js'
-import EVENT from '../dicts/EventTypes.js'
+import EVENT from '../dicts/eventTypes.js'
 export default {
   name: 'Login',
   data () {
@@ -93,7 +93,7 @@ export default {
                 type: TYPES.GET_USERINFOBYID
               }).then(res => {
                 userInfo.isAdmin = res.ext.type === 1
-                userInfo.permission = []// res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
+                // userInfo.permission = []// res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
                 if (res.ext.templates && res.ext.templates.length) {
                   userInfo.privilege = res.ext.templates[0].templatecode
                 } else {
@@ -103,7 +103,19 @@ export default {
                   type: TYPES.SET_USERINFO,
                   data: userInfo
                 })
-                this.$router.push('/index')
+                // get user info
+                this.$store.dispatch({
+                  type: TYPES.GET_CURRENTUSERINFO
+                }).then(res => {
+                  userInfo.permission = res.ext.funcPermission.filter(item => PERMISSION.includes(item.permissionName)).map(item => item.permissionName)
+                  this.$store.commit({
+                    type: TYPES.SET_USERINFO,
+                    data: userInfo
+                  })
+                  this.$router.push('/index')
+                }).catch(err => {
+                  console.log(err)
+                })
               }).catch(err => {
                 console.log(err)
               }) // get user permission
@@ -114,7 +126,7 @@ export default {
                   popedomname: 'ETAdministrator'
                 }
               }).then(res => {
-                userInfo.roletype = res.ext
+                userInfo.roleType = res.ext
                 this.$store.commit({
                   type: TYPES.SET_USERINFO,
                   data: userInfo

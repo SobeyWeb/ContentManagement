@@ -443,5 +443,11 @@ export default {
       URLCONFIG.CMAPI + '/CMApi/api/relation/queryonegeneration',
       para
     )
+  },
+  [TYPES.GET_CURRENTUSERINFO](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/account/getcurrentuserinfo',
+      para
+    )
   }
 }
