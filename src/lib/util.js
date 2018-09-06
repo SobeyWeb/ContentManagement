@@ -1868,10 +1868,11 @@ export const Notice = {
 }
 export const Model = {
   confirmWithHTML() {
-    window.CM.$modal.confirmWithHTML(...arguments)
+    window.CM.$Modal.confirmWithHTML(...arguments)
   },
   confirm() {
-    window.CM.$modal.confirm(...arguments)
+    console.log(window.CM, window.CM.$modal)
+    window.CM.$Modal.confirm(...arguments)
   }
 }
 export function getAdvanceSearchCondition(tab, node) {
