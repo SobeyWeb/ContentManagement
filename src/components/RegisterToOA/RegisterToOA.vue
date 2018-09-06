@@ -108,11 +108,7 @@ export default {
       return this.allProgramInfo.find(item => item.selected)
     },
     materials () {
-      if (this.$store.state.isplayerRegister) {
-        return this.$store.state.exportInfo.material
-      } else {
-        return this.$store.state.selectedMaterials[0]
-      }
+      return this.$store.state.registerMaterial
     },
     timeIn () {
       return this.$store.state.exportInfo.INPOINT
@@ -176,7 +172,7 @@ export default {
           type: TYPES.CAN_TRANSCODING,
           data: {
             EventID: inoutToOaData.eventId,
-            RundownID: this.$store.state.selectRundownid
+            RundownID: this.$store.state.registerdata.selectRundownid
           }
         }).then(res => {
           if (res.data.nRet === 0) { // 允许注册
@@ -205,7 +201,7 @@ export default {
                   datas = JSON.parse(datas)
                   if (datas.Results) {
                     let selectedStudio = this.checkedStudio
-                    let selectStudioID = selectedStudio && selectedStudio.length && selectedStudio[0].studioid || ''
+                    let selectStudioID = selectedStudio && selectedStudio.studioid || ''
                     util.Notice.success('register to event success.', '', 3000)
                     this.$store.dispatch({
                       type: TYPES.ADD_TASK,
@@ -277,7 +273,7 @@ export default {
         // let selectTime = this.checkedTimer
         // let selectRundown = this.checkedRundownList
         let checkInfo = this.checkedProgramInfo
-        let eventmosid = selectedStudio && selectedStudio.length && selectedStudio.studiomosid || ''
+        let eventmosid = selectedStudio && selectedStudio.studiomosid || ''
         let eventId = checkInfo && checkInfo.eventId || ''
         let MaterialID = checkInfo && checkInfo.MaterialID || ''
         if (eventId && this.materials) {
@@ -292,7 +288,7 @@ export default {
               let datas = result
               datas = JSON.parse(datas)
               if (datas.Results) { // CM用3 premire用4
-                let selectStudioID = selectedStudio && selectedStudio.length && selectedStudio.studioid || ''
+                let selectStudioID = selectedStudio && selectedStudio.studioid || ''
                 util.Notice.success('register to event success.', '', 3000)
                 this.$store.dispatch({
                   type: TYPES.ADD_TASK,
@@ -323,9 +319,9 @@ export default {
             })
           } else {
             // 片段注册
-            let eventDate = $('#ddlTime').val().replace(/-/g, '/')
+            let eventDate = this.checkedTimer && this.checkedTimer.name && this.checkedTimer.name.replace(/-/g, '/') || '' // $('#ddlTime').val().replace(/-/g, '/')
             eventDate = $.trim(eventDate)
-            let eventFolder = $('#ddlRundown').val()
+            let eventFolder = this.checkedRundownList && this.checkedRundownList.name || ''// $('#ddlRundown').val()
             eventFolder = $.trim(eventFolder)
             let eventPath = eventDate + '/' + eventFolder
             eventPath = $.trim(eventPath)

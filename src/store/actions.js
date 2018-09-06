@@ -4774,20 +4774,7 @@ export default {
       //    util.Notice.warning("您没有发布权限！", '', 3000)
       //    return
       //  }
-      context
-        .dispatch({
-          type: TYPES.GET_SNSCONFIG,
-          data: {}
-        })
-        .then(result => {
-          if (result) {
-            context.state.configSNSid = result
-          } else {
-            context.state.configSNSid = []
-          }
-        })
       //  显示发布窗口
-      //  context.state.ispublish = true
       context.state.publishWindow.show()
       context
         .dispatch({
@@ -4948,8 +4935,8 @@ export default {
           if (studioArr && studioArr.length > 0) {
             let currentStudioData = studioArr
             let datajson = objInfo
-            let highgroupstatus = datajson.entity.highgroupstatus || ''
-            let lowgroupstatus = datajson.entity.lowgroupstatus || ''
+            let highgroupstatus = datajson.entity.highgroupstatus || null
+            let lowgroupstatus = datajson.entity.lowgroupstatus || null
             if (clipping && clipstatus !== 32) {
               // 表示正在采集且不是trim中的素材
               // 判断采集中的素材是否能注册
@@ -5070,7 +5057,7 @@ export default {
               // IsOnlyTransNot = true
               if (
                 (highgroupstatus === 'online_deleted' ||
-                  highgroupstatus == null) &&
+                  highgroupstatus === null) &&
                 (lowgroupstatus === 'online_deleted' || lowgroupstatus === null)
               ) {
                 // 高低质量都没有   online_deleted表示删除了   ready表示存在
@@ -5584,5 +5571,36 @@ export default {
         }
       })
     })
+  },
+  [TYPES.PRE_SNSPUBLISH](context, payload) { // sns预发布
+    let currentData = context.state.selectedMaterials[0]
+    let para = {
+      usertoken: context.state.userInfo.usertoken || '',
+      contentid: currentData.guid || ''
+    }
+    let URL = API_CONFIG[TYPES.PRE_SNSPUBLISH](para)
+    if (currentData.type === 'image') {
+      var target = {
+        path: appSetting.PRESNSPUBLISHPATH,
+        children: []
+      }
+      util.copyObject(context, util.copyNode(currentData), target, true).then((re) => {
+        util.Notice.success('Send clip to Publish folder successfully', '', 3000)
+      }).catch((res) => {
+        util.Notice.failed('Failed to send clip to Publish folder', '', 3000)
+      })
+    } else {
+      return new Promise((resolve, reject) => {
+        axios.get(URL).then(res => {
+          if (res.data.code === '0') {
+            util.Notice.success('Send clip to Publish folder successfully', '', 3000)
+          } else {
+            util.Notice.failed('Failed to send clip to Publish folder', '', 3000)
+          }
+        }).catch(res => {
+          util.Notice.failed('Failed to send clip to Publish folder', '', 3000)
+        })
+      })
+    }
   }
 }

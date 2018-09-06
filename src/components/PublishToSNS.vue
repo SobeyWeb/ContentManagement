@@ -171,12 +171,10 @@ export default {
     })
   },
   watch: {
-    countArr: function () {
-      let configAcount = this.$store.state.configSNSid
-      let tempArr = this.countArr.filter(item => configAcount.some(i => i === item.snsid))
-      if (tempArr && tempArr.length > 0) {
-        tempArr[0].checkAcount = true
-        this.textArae = tempArr[0]
+    snsitems: function () {
+      if (this.snsitems && this.snsitems.length > 0) {
+        this.snsitems[0].checkAcount = true
+        this.textArae = this.snsitems[0]
       }
     }
   },
@@ -202,17 +200,18 @@ export default {
     curentName () {
       return (this.selectedMaterials && this.selectedMaterials[0].name) || ''
     },
-    configSNS () {
-      return this.$store.configSNSid
-    },
-    snsitems () {
-      if (this.$store.state.configSNSid) {
-        let configAcount = this.$store.state.configSNSid
-        let tempArr = this.countArr.filter(item => configAcount.some(i => i === item.snsid))
-        return tempArr
-      } else {
-        return []
-        // util.Notice.warning('', 'Failed to get the SNS account, please check to see if it is configured!', 3000)
+    snsitems: {
+      get () {
+        if (this.$store.state.configSNSid) {
+          let configAcount = this.$store.state.configSNSid
+          let tempArr = this.countArr.filter(item => configAcount.some(i => i === item.snsid))
+          return tempArr
+        } else {
+          return []
+        }
+      },
+      set (val) {
+        this.$store.state.configSNSid = val
       }
     },
     sen () {
@@ -248,7 +247,7 @@ export default {
       return this.formatStorage(this.materialSpace)
     },
     snsfolder () {
-      if (this.$store.getters.currentNode.path === APPSETTING.PRESNSPUBLISHPATH || this.$store.state.selectedMaterials[0].folderpath) {
+      if (this.$store.getters.currentNode.path === APPSETTING.PRESNSPUBLISHPATH || this.selectedMaterials[0].folderpath === APPSETTING.PRESNSPUBLISHPATH) {
         return true
       } else {
         return false
@@ -287,16 +286,6 @@ export default {
       if (this.textArae.requestDate.value) {
         this.textArae.requestDate.value = ''
       }
-      // this.textArae.pageid = ''
-      // this.textArae.acount = ''
-      // this.textArae.maxLength = '65535'
-      // this.textArae.acountType = ''
-      // this.textArae.comments = ''
-      // this.textArae.urlText = ''
-      // this.textArae.headline = ''
-      // this.textArae.requestType = 'Publish Now'
-      // this.textArae.checkAcount = false
-      // this.textArae.checked = false
       this.then = false
       this.isPublishNow = true
     },
@@ -395,7 +384,7 @@ export default {
       return Result
     },
     PublishToSns: function () {
-      let currentNodePath = this.$store.getters.currentNode.path
+      // let currentNodePath = this.$store.getters.currentNode.path
       let snsAcountInfoList = this.snsitems.filter(function (item) {
         return item.checked
       })
@@ -463,7 +452,7 @@ export default {
             util.Notice.warning('The ' + inconformitySnsAcount.join(',') + 'Send time not qualified!', '', 3000)
           }
           if (sendsnsComments.length > 0) {
-            if (((this.materialSpace <= 1024 && this.materialSpace > 512) || (this.materialSpace <= 512 && clipSubtype === 2 && this.materialSpace > 5)) && (currentNodePath === APPSETTING.PRESNSPUBLISHPATH || this.selectedMaterials[0].folderpath)) {
+            if (((this.materialSpace <= 1024 && this.materialSpace > 512) || (this.materialSpace <= 512 && clipSubtype === 2 && this.materialSpace > 5)) && this.snsfolder) {
               sendsnsComments = sendsnsComments.filter((item) => {
                 return item.senType !== 'SendSNS'
               })
@@ -485,13 +474,10 @@ export default {
               }
               delete i.senType
             })
-            let isSendMPC = false
-            if (currentNodePath === APPSETTING.PRESNSPUBLISHPATH || this.selectedMaterials[0].folderpath) { // 如果当前素材是在SNSfolder目录 表示已经预发布过（已经转码）
-              isSendMPC = true
-            }
+            let isSendMPC = this.snsfolder || false// 如果当前素材是在SNSfolder目录 表示已经预发布过（已经转码）
             // clipSubtype 3表示带广告的视屏  4表示带广告的图片
             let publishData = {
-              'taskname': this.taskname,
+              'taskname': this.curentName,
               'isprepublish': isSendMPC, // isSendMPC, // 是否需要转码 true表示不需要转码
               'contentid': this.currrentid,
               'contenttype': parseInt(clipSubtype),
@@ -646,7 +632,7 @@ export default {
 .ToSNSDiv #leftSnsAcounts ul {
   /*margin: 0 10px;*/
   overflow-y: auto;
-  height: 465px;
+  height: 445px;
   width: 100%;
 }
 

@@ -1616,7 +1616,34 @@ export default {
         }
       }).then((res) => {
         if (res.paramvalue) {
-          //  _this.$store.state.SNSPublishQuality = res.paramvalue;
+          //  this.$store.state.SNSPublishQuality = res.paramvalue;
+        }
+      }).catch((res) => {
+
+      })
+      this.$store.dispatch({
+        type: TYPES.GETSYSPARAM,
+        target: {
+          tool: 'DEFAULT',
+          system: 'WEBCM',
+          paramname: 'OAMaterialPath'
+        }
+      }).then((res) => {
+        if (res.paramvalue) {
+          this.$store.state.oaFolder[0].path = res.paramvalue
+        }
+      }).catch((res) => {
+
+      })
+      this.$store.dispatch({
+        type: TYPES.GETSYSPARAM,
+        target: {
+          tool: 'DEFAULT',
+          paramname: 'PreSNSPublishPath'
+        }
+      }).then((res) => {
+        if (res.paramvalue) {
+          APPSETTING.PRESNSPUBLISHPATH = res.paramvalue
         }
       }).catch((res) => {
 

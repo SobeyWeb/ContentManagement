@@ -143,7 +143,8 @@ export default {
     selectTime: '',
     selectRundownid: ''
   },
-  isplayerRegister: false,
+  // isplayerRegister: false,
+  registerMaterial: {},
   // highFileLength: 0,
   ispublish: false,
   publishWindow: {},

@@ -481,5 +481,8 @@ export default {
       URLCONFIG.CMAPI + '/CMApi/api/relation/queryonegeneration',
       para
     )
+  },
+  [TYPES.PRE_SNSPUBLISH](para) {
+    return util.getUrl(URLCONFIG.CMAPI + '/CMApi/api/sns/presnspublish', para)
   }
 }

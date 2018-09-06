@@ -1204,9 +1204,6 @@ export default {
           type: action,
           target: this.ioMaterial ? [this.inoutMaterial] : [this.curMaterial]
         })
-        if (action === TYPES.REGISTER_OA) {
-          this.$store.state.isplayerRegister = true
-        }
       } else {
         util.Notice.warning('The hi-res part of material is not available, Fail to continue!', '', 3000)
       }
