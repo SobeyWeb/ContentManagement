@@ -1728,7 +1728,6 @@ export default {
         title: 'Task Monitor',
         onshow: this.resizeTaskMonitor
       })
-<<<<<<< HEAD
       this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
       // this.$store.state.saveClipWindow = new ModalWindow({
       //   content: this.$refs.saveClip.$el,
@@ -1766,9 +1765,7 @@ export default {
           this.$refs.registerToOA.cancelRegisterWindow
         }
       })
-=======
       this.taskMonitorUrl = urlConfig.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
->>>>>>> 07ef5fea63e6b7898e49510d4aafa5ce307f93a2
       this.$store.state.saveClipWindow = new ModalWindow({
         content: this.$refs.saveClip.$el,
         title: 'Save As'
