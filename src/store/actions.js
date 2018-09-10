@@ -5431,7 +5431,7 @@ export default {
     }
     return new Promise((resolve, reject) => {
       axios
-        .post(URL, JSON.stringify(data))
+        .post(URL, data)
         .then(res => {
           let result
           if (res.data.Results) {
@@ -5464,7 +5464,7 @@ export default {
     }
     let URL = API_CONFIG[TYPES.ISONLY_TRANSNOTCODES]({})
     return new Promise((resolve, reject) => {
-      axios.post(URL, JSON.stringify(data)).then(res => {
+      axios.post(URL, data).then(res => {
         if (res.data) {
           resolve(res.data)
         } else {
@@ -5480,7 +5480,7 @@ export default {
     }
     let URL = API_CONFIG[TYPES.CAN_TRANSCODING]({})
     return new Promise((resolve, reject) => {
-      axios.post(URL, JSON.stringify(data)).then(res => {
+      axios.post(URL, data).then(res => {
         if (res.data.nRet === 0) {
           resolve(res)
         } else {
@@ -5507,7 +5507,8 @@ export default {
       para.clipin = payload.data.clipin
       para.clipout = payload.data.clipout
     }
-    let url = API_CONFIG[TYPES.REGISTER_TO_OAFOLDER](para)
+    // let url = API_CONFIG[TYPES.REGISTER_TO_OAFOLDER](para)
+    let url = API_CONFIG[TYPES.FRAGMENT_REGISTER](para)
     return new Promise((resolve, reject) => {
       axios.get(url).then(res => {
         if (res.data) {

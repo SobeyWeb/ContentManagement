@@ -132,15 +132,16 @@ export default {
   [TYPES.CAN_TRANSCODING](para) {
     return util.getUrl(URLCONFIG.PLAYOUT + '/api/Studio/CanTranscoding')
   },
-  [TYPES.REGISTER_TO_OAFOLDER](para) {
+  // [TYPES.REGISTER_TO_OAFOLDER](para) {
+  //   return util.getUrl(
+  //     URLCONFIG.CMAPI + '/CMApi/api/entity/object/transferclipoanonotify',
+  //     para
+  //   )
+  // },
+  [TYPES.FRAGMENT_REGISTER](para) {
     return util.getUrl(
       URLCONFIG.CMAPI + '/CMApi/api/entity/object/transferclipoanonotify',
       para
-    )
-  },
-  [TYPES.FRAGMENT_REGISTER](para) {
-    return util.getUrl(
-      URLCONFIG.CMAPI + '/CMApi/api/entity/object/transferclipoanonotify'
     )
   },
   [TYPES.GET_CUSTOM_METADATA](para) {

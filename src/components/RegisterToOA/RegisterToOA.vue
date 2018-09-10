@@ -442,6 +442,7 @@ export default {
                     if (this.$store.state.system) { // premire用12(以前都使用的2，现进行区分)
                       OaFolderTaskType = 12 // 2017-12-22将2改为12
                     }
+                    util.Notice.success('register to oa folder success.', '', 3000)
                     this.$store.dispatch({
                       type: TYPES.ADD_TASK,
                       data: {
@@ -453,7 +454,7 @@ export default {
                       }
                     }).then((res) => {
                       if (res.data.IsSuccess) {
-                        util.Notice.success('register to oa folder success.', '', 3000)
+                        // util.Notice.success('register to oa folder success.', '', 3000)
                       } else {
                         util.Notice.warning('Add task fail!', '', 3000)
                       }
