@@ -1,6 +1,7 @@
 import { throttle, debounce, getCookie } from '../lib/util'
 import treeNode from '../data/treeNode'
 import { emptyMaterial } from '../data/basicData'
+import EVENT from '../dicts/eventTypes'
 
 export default {
   system: 'WEBCM',
@@ -16,29 +17,48 @@ export default {
   scrollingV: 0,
   playerHistory: [],
   ws_materials: [],
-  refreshFunc: throttle(3000, () => this.property.refresh(), true),
+  refreshFunc: throttle(
+    3000,
+    function() {
+      this.property.refresh()
+    },
+    true
+  ),
   materialSelectionChangeFunc: debounce(
     300,
-    () => {
-      window.parent.postMessage(
-        {
-          type: 'selectionChanged',
-          data: this.selectedMaterials.map(item => {
-            return {
-              name: item.name,
-              guid: item.guid,
-              type: item.type,
-              path: item.path,
-              subtype: item.subtype,
-              typeid: item.typeid,
-              objectguid: item.objectguid,
-              markguid: item.markguid,
-              marktype: item.flag
-            }
-          }),
-          auth: this.userInfo
-        },
-        '*'
+    function() {
+      window.$app.emit(
+        EVENT.MATERIAL_SELECTED,
+        this.selectedMaterials.map(item => {
+          return {
+            name: item.name,
+            guid: item.guid,
+            type: item.type,
+            path: item.path,
+            subtype: item.subtype,
+            typeid: item.typeid,
+            objectguid: item.objectguid,
+            markguid: item.markguid,
+            marktype: item.flag
+          }
+        })
+      )
+    },
+    false
+  ),
+  markSelectionChangeFunc: debounce(
+    300,
+    function() {
+      window.$app.emit(
+        EVENT.MARKER_SELECTED,
+        this.selectedMarkers.map(item => {
+          return {
+            objectguid: item.objectguid,
+            type: item.flag,
+            markguid: item.markguid,
+            marktype: item.flag
+          }
+        })
       )
     },
     false
@@ -152,10 +172,8 @@ export default {
   SNSPublishQuality: 'high',
   materialSpace: 0,
   isSaveAs: false,
-  modifySearchResultFlag: false,
-  saveSearchResultFlag: false,
+  saveSearchResultWindow: null,
   saveSearchName: '',
-  saveSearchResultNum: '',
   userDept: [],
   userArr: [],
   deptArr: [],

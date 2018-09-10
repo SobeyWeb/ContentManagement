@@ -350,7 +350,7 @@ export default {
     if (payload.target && payload.target.length && payload.target[0].guid === 2) {
       // modify
       context.state.currentTemplate = payload.target[0]
-      context.state.saveSearchResultFlag = true
+      context.state.saveSearchResultWindow.show('Modify Search Result')
       context.state.saveSearchName = context.state.currentTemplate.name
     } else {
       // 保存
@@ -373,7 +373,7 @@ export default {
         if (res.length >= 5) {
           util.Notice.warning('The maximum number of templates is 5', '', 3000)
         } else {
-          context.state.saveSearchResultFlag = true
+          context.state.saveSearchResultWindow.show('Save Search Result')
         }
       }).catch(() => {})
     }

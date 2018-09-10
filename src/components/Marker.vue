@@ -179,7 +179,7 @@ export default {
       }
     },
     dragstart (event) {
-      this.$app.emit(EVENT.MARKER_DRAGSTART, [event, this.material])
+      this.$app.emit(EVENT.MARKER_DRAGSTART, event, this.material)
     }
   },
   computed: {

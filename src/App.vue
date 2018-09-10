@@ -7,6 +7,7 @@
 <script>
 import * as util from './lib/util.js'
 import TYPES from './dicts/mutationTypes.js'
+import EVENT from './dicts/eventTypes'
 import { mapState } from 'vuex'
 export default {
   name: 'App',
@@ -54,8 +55,10 @@ export default {
           type: TYPES.SET_USERINFO,
           data: userInfo
         })
+        // validate then go to index page
+        this.$app.emit(EVENT.LOGINED)
       } else {
-        // this.$router.push('/login')
+        this.$router.push('/login')
       }
     }
   },

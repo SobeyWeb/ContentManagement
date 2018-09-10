@@ -11,13 +11,13 @@ import translationsEn from './dicts/translationsEn.js'
 import hotkeys from 'hotkeys-js'
 import eventPlugin from './plugins/eventPlugin.js'
 import EVENT from './dicts/eventTypes.js'
+import TYPES from './dicts/mutationTypes'
 import './lib/prototype.js'
 
 import './assets/css/rest.css'
 import './assets/css/radon-ui.css'
 import './assets/css/main.css'
 import './assets/css/animate.css'
-
 import ScrollBar from './lib/scrollbar.js'
 const RadonUI = require('./lib/radon-ui.js')['radon-ui']
 
@@ -104,8 +104,79 @@ new Vue({
   router,
   components: { App },
   template: '<App/>',
+  methods: {
+    initPlugn() {
+      window.Vue = Vue
+      window.$Modal = this.$Modal
+      window.$Notification = this.$Notification
+      window.$app = this.$app
+      window.$app.EVENT = EVENT
+      window.$app.userInfo = this.$store.state.userInfo
+    },
+    initDefaultEvent() {
+      this.$app.MATERIAL_DRAGSTART_DEFAULT = this.materialDragStart
+      this.$app.on(EVENT.MATERIAL_DRAGSTART, this.materialDragStart)
+
+      this.$app.MATERIAL_CONTEXTMENU_DEFAULT = this.materialContextMenu
+      this.$app.on(EVENT.MATERIAL_CONTEXTMENU, this.materialContextMenu)
+    },
+    materialDragStart(event, material) {
+      this.$store.state.previewDragSymbol = true
+      material.selected = true
+      this.$store.commit({
+        type: TYPES.ADD_SELECTEDITEM,
+        data: material
+      })
+      var children = this.$store.getters.displayMaterials
+      this.$store.commit({
+        type: TYPES.SET_SIGNMATERIAL,
+        data: children.indexOf(material)
+      })
+      var dragEle = this.$el.querySelector('.drag_icon')
+      event.dataTransfer.setDragImage(
+        dragEle,
+        dragEle.clientWidth / 2,
+        dragEle.clientHeight / 2
+      )
+      if (event.ctrlKey) {
+        event.dataTransfer.dropEffect = 'copy'
+        event.dataTransfer.effectAllowed = 'copy'
+      } else {
+        event.dataTransfer.dropEffect = 'move'
+        event.dataTransfer.effectAllowed = 'move'
+      }
+    },
+    materialContextMenu(event, material) {
+      if (!material.selected) {
+        this.$store.commit({
+          type: TYPES.CLEAR_SELECTEEDITEMS
+        })
+        material.selected = true
+        this.$store.commit({
+          type: TYPES.ADD_SELECTEDITEM,
+          data: material
+        })
+        var children = this.$store.getters.displayMaterials
+        this.$store.commit({
+          type: TYPES.SET_SIGNMATERIAL,
+          data: children.indexOf(material)
+        })
+      }
+      this.$store.commit({
+        type: TYPES.SET_MENUSTATUS,
+        data: {
+          event: event,
+          status: true
+        }
+      })
+    }
+  },
   created() {
-    window.CM = this
+    this.initPlugn()
+    this.initDefaultEvent()
+    this.$app.on(EVENT.LOGINED, e => {
+      console.log('logined')
+    })
     this.$app.emit(EVENT.CREATED, [this])
   },
   mounted() {
