@@ -13,6 +13,7 @@
     <menu-ctrl ref="menu"></menu-ctrl>
     <trim ref="saveClip"></trim>
     <export ref="export"></export>
+    <save-search ref="saveSearch"></save-search>
     <!--left block-->
     <div class="left_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?0:- leftTreeWidth)+'px', width: leftTreeWidth + 'px'}">
       <div class="resize_handle" @mousedown.stop.prevent.capture="resizeMousedown"></div>
@@ -174,10 +175,9 @@ import * as util from '../lib/util.js'
 import TYPES from '../dicts/mutationTypes.js'
 import { mapState, mapGetters } from 'vuex'
 import KEYCODES from '../dicts/keycodes.js'
+import EVENT from '../dicts/eventTypes'
 import KeyEvent from '../lib/KeyEvent.js'
 import MATERIALTYPES from '../dicts/materialTypes.js'
-import APPSETTING from '../config/appSetting.js'
-import URLCONFIG from '../config/urlConfig.js'
 import NODETYPES from '../dicts/guidMaps.js'
 import ModalWindow from '../lib/ModalWindow.js'
 import { defaultQuery, defaultFulltextSearchCondtion, defaultAdvanceSearchCondtion } from '../data/basicData.js'
@@ -199,7 +199,10 @@ import Marker from './Marker'
 import Menu from './Menu'
 import Trim from './Trim'
 import Export from './Export'
-
+import SaveSearchResult from './SaveSearchResult'
+import appSetting from '../config/appSetting.js'
+import axios from 'axios'
+import urlConfig from '../config/urlConfig.js'
 export default {
   name: 'AppIndex',
   components: {
@@ -217,7 +220,8 @@ export default {
     'marker-ctrl': Marker,
     'menu-ctrl': Menu,
     'export': Export,
-    'trim': Trim
+    'trim': Trim,
+    'save-search': SaveSearchResult
   },
   data () {
     return {
@@ -716,20 +720,77 @@ export default {
         }
       })
     },
+    startHeartbeate () {
+      let failedCount = 0
+      this.heartbeateIntervalId = setInterval(() => {
+        let url = util.getUrl(urlConfig.CMAPI + '/CMApi/api/basic/account/heatbeat', {
+          loginInfoID: this.userInfo.logininfoid,
+          systemtype: this.$store.state.system
+        })
+        axios.get(url).then(res => {
+          failedCount = 0
+          console.log(res.data)
+        }).catch(res => {
+          failedCount++
+          if (failedCount > 2) {
+            this.logout()
+          }
+          console.log(res.data)
+        })
+      }, 40 * 1000)
+    },
+    startFLHeartbeate () {
+      let flFailedCount = 0
+      let noUseHandler = util.debounce((appSetting.FLInterval || 20) * 60 * 1000, () => {
+        this.logout()
+        window.removeEventListener('mousemove', noUseHandler)
+        window.removeEventListener('keydown', noUseHandler)
+      })
+      window.addEventListener('mousemove', noUseHandler)
+      window.addEventListener('keydown', noUseHandler)
+      this.flIntervalId = setInterval(() => {
+        axios.get(urlConfig.FL + '/webheart?token=' + this.userInfo.fltoken).then(res => {
+          flFailedCount = 0
+          console.log(res.data)
+        }).catch(res => {
+          flFailedCount++
+          if (flFailedCount > 2) {
+            this.logout()
+          }
+          console.log(res.data)
+        })
+      }, 10 * 1000)
+    },
     logout () {
       var lo = () => {
         this.userOperationStatus = false
-        this.$store.dispatch({
-          type: TYPES.LOGOUT,
-          data: {}
-        }).then((re) => {
-          window.location.href = '../../login.aspx'
+        let url = util.getUrl(urlConfig.CMAPI + '/CMApi/api/basic/account/logout', {
+          loginInfoID: this.userInfo.logininfoid,
+          systemtype: this.$store.state.system
         })
-        this.$store.state.system && window.parent.postMessage({
-          type: 'logout',
-          data: null,
-          auth: null
-        }, '*')
+        axios.get(url).then(res => {
+          console.log(res.data)
+        }).catch(res => {
+          console.log(res.data)
+        })
+        appSetting.USEFL && axios.get(urlConfig.FL + '/webclose?token=' + this.userInfo.fltoken).then(res => {
+          console.log(res.data)
+        }).catch(res => {
+          console.log(res.data)
+          this.logout()
+        })
+        this.$router.push({
+          name: 'login'
+        })
+        this.$store.commit({
+          type: TYPES.SET_USERINFO,
+          data: null
+        })
+        clearInterval(this.flIntervalId)
+        clearInterval(this.heartbeateIntervalId)
+        this.$app.on(EVENT.LOGOUTED, e => {
+          console.log('logouted')
+        })
       }
       if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0) {
         util.Model.confirm('Some Tasks Are Executing', 'Are You Sure to Logout', lo,
@@ -752,7 +813,7 @@ export default {
       }
     },
     oderList () {
-      if (APPSETTING.USEROOTPATH) {
+      if (appSetting.USEROOTPATH) {
         util.locateFolder(
           this.$store, this.$store.getters.orderList.path.split('/'), {
             children: this.$store.getters.folderTree
@@ -771,7 +832,7 @@ export default {
       }
     },
     gotoJove () {
-      var url = util.getUrl(URLCONFIG.JOVE, {
+      var url = util.getUrl(urlConfig.JOVE, {
         token: this.userInfo.usertoken,
         userCode: $.base64.encode(this.userInfo.usercode),
         FolderPath: $.base64.encode(this.$store.getters.currentNode.path),
@@ -829,8 +890,8 @@ export default {
       if (this.resizeSymbol) {
         console.log(123)
         let width = this.leftTreeWidth + event.x - this.resizeX
-        this.resizeX += Math.min(APPSETTING.MAXTREEWIDTH || 500, Math.max(APPSETTING.MINTREEWIDTH || 100, width)) - this.leftTreeWidth
-        this.leftTreeWidth = Math.min(APPSETTING.MAXTREEWIDTH || 500, Math.max(APPSETTING.MINTREEWIDTH || 100, width))
+        this.resizeX += Math.min(appSetting.MAXTREEWIDTH || 500, Math.max(appSetting.MINTREEWIDTH || 100, width)) - this.leftTreeWidth
+        this.leftTreeWidth = Math.min(appSetting.MAXTREEWIDTH || 500, Math.max(appSetting.MINTREEWIDTH || 100, width))
         if (!this.leftTreeWidth) {
           this.folderBlockStatus = false
         } else {
@@ -1188,7 +1249,7 @@ export default {
         action: (event) => {
           let last = this.currentNode.father
           if (last && this.isMLEnable()) {
-            if (APPSETTING.USEROOTPATH) {
+            if (appSetting.USEROOTPATH) {
               util.locateFolder(
                 this.$store,
                 last.path.split('/'),
@@ -1455,7 +1516,7 @@ export default {
             }).catch(err => reject(err))
             break
           default:
-            if (APPSETTING.USEROOTPATH) {
+            if (appSetting.USEROOTPATH) {
               util.locateFolder(
                 this.$store,
                 lastVisit.path.split('/'),
@@ -1625,12 +1686,16 @@ export default {
       this.$store.state.materialBox = document.querySelector('.scrollbar_container')
     },
     initModalWindow () {
+      this.$store.state.saveSearchResultWindow = new ModalWindow({
+        content: this.$refs.saveSearch.$el,
+        title: 'Save Search Result'
+      })
       this.taskMonitorWindow = new ModalWindow({
         content: this.$refs.taskmonitor || document.querySelector('.taskmonitorifm'),
         title: 'Task Monitor',
         onshow: this.resizeTaskMonitor
       })
-      this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
+      this.taskMonitorUrl = urlConfig.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
       this.$store.state.saveClipWindow = new ModalWindow({
         content: this.$refs.saveClip.$el,
         title: 'Save As'
@@ -2021,6 +2086,8 @@ export default {
       this.$store.dispatch({
         type: TYPES.INTERCEPT_AXIOS
       })
+      this.startHeartbeate()
+      appSetting.USEFL && this.startFLHeartbeate()
     } else {
       this.$router.push('/login')
     }

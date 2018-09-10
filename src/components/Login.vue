@@ -20,6 +20,9 @@
 import PERMISSION from '../dicts/permission.js'
 import TYPES from '../dicts/mutationTypes.js'
 import EVENT from '../dicts/eventTypes.js'
+import appSetting from '../config/appSetting.js'
+import urlConfig from '../config/urlConfig.js'
+import axios from 'axios'
 export default {
   name: 'Login',
   data () {
@@ -112,7 +115,33 @@ export default {
                     type: TYPES.SET_USERINFO,
                     data: userInfo
                   })
-                  this.$router.push('/index')
+                  if (appSetting.USEFL) {
+                    let errorCode = {
+                      4099: 'License expired, please re-apply license.',
+                      4098: 'No spare license available, please retry later.',
+                      8193: 'Sorry,Initialization error',
+                      8194: 'Sorry,No response',
+                      61441: 'Sorry,Abnormal system',
+                      error: 'Sorry,Not authorized',
+                      ok: 'Success'
+                    }
+                    axios.get(urlConfig.FL + '/webopen').then(res => {
+                      if (res.data.length === 16) {
+                        userInfo.fltoken = res.data
+                        this.$store.commit({
+                          type: TYPES.SET_USERINFO,
+                          data: userInfo
+                        })
+                        this.$router.push('/index')
+                      } else {
+                        this.errorMsg = errorCode[res.data] || 'Cannot connect to FL server!Please retry later.'
+                      }
+                    }).catch(() => {
+                      this.errorMsg = 'Cannot connect to FL server!Please retry later.'
+                    })
+                  } else {
+                    this.$router.push('/index')
+                  }
                 }).catch(err => {
                   console.log(err)
                 })

@@ -1,6 +1,7 @@
 export default {
   USERSPACEINTERVAL: 60,
   USEROOTPATH: false,
+  USEFL: true,
   OAPATH: 'global_sobey_defaultclass/MaterialList/Public Material/OA Material',
   AUTOPACKEGEPATH:
     'global_sobey_defaultclass/MaterialList/Public Material/AutoPackage',

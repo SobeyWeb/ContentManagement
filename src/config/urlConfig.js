@@ -4,6 +4,7 @@ export default {
   CM: 'http://172.16.168.205:9021',
   TMWEB: '',
   HIVE: 'http://localhost:3130/HIVE',
+  FL: 'http://localhost:3130/FL',
   LOGGINGSERVICE:
     'http://hive.sobey.com:9029/LoggingSysInternal_ObjectsInterface.asmx',
   PREVIEWMARKPATH: '',

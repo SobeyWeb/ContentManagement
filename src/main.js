@@ -18,7 +18,6 @@ import './assets/css/rest.css'
 import './assets/css/radon-ui.css'
 import './assets/css/main.css'
 import './assets/css/animate.css'
-
 import ScrollBar from './lib/scrollbar.js'
 const RadonUI = require('./lib/radon-ui.js')['radon-ui']
 
@@ -107,6 +106,7 @@ new Vue({
   template: '<App/>',
   methods: {
     initPlugn() {
+      window.Vue = Vue
       window.$Modal = this.$Modal
       window.$Notification = this.$Notification
       window.$app = this.$app
