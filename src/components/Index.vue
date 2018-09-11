@@ -1710,7 +1710,7 @@ export default {
         }
       }).then((res) => {
         if (res.paramvalue) {
-          APPSETTING.PRESNSPUBLISHPATH = res.paramvalue
+          appSetting.PRESNSPUBLISHPATH = res.paramvalue
         }
       }).catch((res) => {
 
@@ -1728,7 +1728,7 @@ export default {
         title: 'Task Monitor',
         onshow: this.resizeTaskMonitor
       })
-      this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
+      this.taskMonitorUrl = urlConfig.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
       // this.$store.state.saveClipWindow = new ModalWindow({
       //   content: this.$refs.saveClip.$el,
       //   title: 'Save As'
