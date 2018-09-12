@@ -9,7 +9,7 @@
     <div class="document_container" @mousewheel.stop.prevent="mousewheel" :style="{height:computedHeight+'px'}">
       <span class="player_icon prev_item" title="Previous" @click="prev" v-show="options.source.length>1&&curIndex"></span>
       <span class="player_icon next_item" title="Next" @click="next" v-show="options.source.length>1&&curIndex<options.source.length-1"></span>
-      <embed @contextmenu.stop.prevent @mousewheel.stop v-show="s.index===curIndex" :key="s.src" v-if="alwaysNew" v-for="s in options.source" :src="s.src" :style="{height:computedHeight+'px'}"/>
+      <iframe @contextmenu.stop.prevent @mousewheel.stop v-show="s.index===curIndex" v-for="s in options.source" :key="s.index" :src="previewUrl+encodeURIComponent(s.src)" :style="{height:computedHeight+'px',width:'100%'}"></iframe>
     </div>
     <div class="player-bottom">
       <div class="controls_container fl">
@@ -31,6 +31,7 @@
 <script>
 import appSetting from '../../../config/appSetting'
 import * as util from '../../../lib/util'
+import urlConfig from '../../../config/urlConfig'
 export default {
   template: '#document_ctrl',
   name: 'document_ctrl',
@@ -66,6 +67,9 @@ export default {
     document.addEventListener('webkitfullscreenchange', this.calcHeight)
   },
   computed: {
+    previewUrl () {
+      return urlConfig.CM + '/web/viewer.html?file='
+    },
     isPremiere () {
       return this.$store.state.system
     },

@@ -38,7 +38,7 @@
         <div id="div_fullTextSearch">
           <fulltext-search></fulltext-search>
         </div>
-        <input type="button" class="advance_search" v-on:click="openAdvanceSearch" :value="'Advance Search'" />
+        <input type="button" class="advance_search" v-on:click="openAdvanceSearch" :value="'Advanced Search'" />
         <input type="button" class="task_monitor" :value="'Task Monitor'" v-on:click="taskMonitor" />
         <input type="button" class="task_monitor" :value="'Web Quick Editing'" v-on:click="gotoJove" v-show="!isPremiere" />
         <input type="button" v-if="false" class="task_monitor" value="Order List" v-on:click="oderList" @drop.prevent="add2OderList" @dragenter.prevent @dragover.prevent="dragover" @dragleave.prevent/>
@@ -145,7 +145,7 @@
         <div class="list_headers_box">
           <list-material-header v-show="listSymbol"></list-material-header>
         </div>
-        <vue-nice-scrollbar class="scrollbar_container" :class="{focused: !isFocusTree, blur: loading}" :speed="150" @click="focusMaterialList">
+        <vue-nice-scrollbar ref="materialScollbar" class="scrollbar_container" :class="{focused: !isFocusTree, blur: loading}" :speed="150" @click="focusMaterialList">
           <div ref="materialBox" class="material_box clearfix" :class="{list_material_box:listSymbol, marker_material_box: currentCtrl=='marker-ctrl'}" :style="{marginLeft: thumbPadding + 'px', marginRight: thumbPadding + 'px'}" @click="focusMaterialList" @mousedown="dragStart">
             <div class="searchBox animated2" v-show="showSearch" :class="[showSearch?'zoomIn':'zoomOut']">
               <local-search :data="materials" :callback="searchCallback" @close="showSearch = false" />
@@ -162,7 +162,7 @@
         <loading-ctrl :name="'Loading...'" v-show="loading"></loading-ctrl>
         <div class="preview_switcher" :class="{arrow_left :previewSymbol}" @click="switchPreview" @dragenter.stop.prevent="openPreview" @dragover.stop.prevent @dragleave.stop.prevent @contextmenu.prevent.stop></div>
       </div>
-      <div id="proppreviewDiv" :class="{dv_model_view: detailviewSymbol}" :style="{right: previewSymbol? '0':'-640px'}" @mousedown.capture="focusPlayer">
+      <div id="proppreviewDiv" ref="proppreview" :class="{dv_model_view: detailviewSymbol}" :style="{right: previewSymbol? '0':'-640px'}" @mousedown.capture="focusPlayer">
         <player ref="player"></player>
         <div class="preview_drop_div" @drop="preview" @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent v-show="previewDragSymbol">
         </div>
@@ -581,6 +581,16 @@ export default {
         this.$store.commit({
           type: TYPES.SET_THUMBPADDING
         })
+        setTimeout(() => this.$store.state.containerUpdate++, 300)
+      })
+    },
+    openPreview () {
+      this.previewSymbol = true
+      this.$nextTick(() => {
+        this.$store.commit({
+          type: TYPES.SET_THUMBPADDING
+        })
+        setTimeout(() => this.$store.state.containerUpdate++, 300)
       })
     },
     refreshMaterial () {
@@ -794,9 +804,6 @@ export default {
         })
         clearInterval(this.flIntervalId)
         clearInterval(this.heartbeateIntervalId)
-        this.$app.on(EVENT.LOGOUTED, e => {
-          console.log('logouted')
-        })
       }
       if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0) {
         util.Model.confirm('Some Tasks Are Executing', 'Are You Sure to Logout', lo,
@@ -842,7 +849,8 @@ export default {
         token: this.userInfo.usertoken,
         userCode: $.base64.encode(this.userInfo.usercode),
         FolderPath: $.base64.encode(this.$store.getters.currentNode.path),
-        userid: $.base64.encode(this.userInfo.userid)
+        userid: $.base64.encode(this.userInfo.userid),
+        LoginInfoID: $.base64.encode(this.userInfo.logininfoid)
       })
       window.open(url, '_blank')
     },
@@ -858,6 +866,7 @@ export default {
         this.$store.commit({
           type: TYPES.SET_THUMBPADDING
         })
+        setTimeout(() => this.$store.state.containerUpdate++, 300)
       })
     },
     upload (event) {
@@ -907,6 +916,7 @@ export default {
           this.$store.commit({
             type: TYPES.SET_THUMBPADDING
           })
+          setTimeout(() => this.$store.state.containerUpdate++, 300)
         })
       }
     }, true),
@@ -929,7 +939,9 @@ export default {
     dragEnd () {
       this.dragSymbol = false
       this.resizeSymbol = false
-      util.setCookie('leftWidth' + this.$store.state.userInfo.usercode, this.leftTreeWidth)
+      if (this.leftTreeWidth !== parseInt(util.getCookie('leftWidth' + this.$store.state.userInfo.usercode))) {
+        util.setCookie('leftWidth' + this.$store.state.userInfo.usercode, this.leftTreeWidth)
+      }
       this.mousePosition = {
         x: 0,
         y: 0
@@ -1554,31 +1566,42 @@ export default {
         }
       })
     },
-    initNativeEvents () {
+    keydown (event) {
+      if (document.querySelector('.h5')) {
+        // use state
+      } else {
+        let keycode = event.keyCode
+        let tag = event.target.tagName.toUpperCase()
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          this.$keydown.emit('keydown-' + keycode, [event])
+        }
+      }
+    },
+    keyup (event) {
+      if (document.querySelector('.h5')) {
+        // use state
+      } else {
+        let keycode = event.keyCode
+        let tag = event.target.tagName.toUpperCase()
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          this.$keydown.emit('keyup-' + keycode, [event])
+        }
+      }
+    },
+    bindNativeEvents () {
       this.registerKeydown()
-      window.addEventListener('unload', this.setCookie)
-      window.addEventListener('keydown', event => {
-        if (document.querySelector('.h5')) {
-          // use state
-        } else {
-          let keycode = event.keyCode
-          let tag = event.target.tagName.toUpperCase()
-          if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
-            this.$keydown.emit('keydown-' + keycode, [event])
-          }
-        }
-      })
-      window.addEventListener('keyup', event => {
-        if (document.querySelector('.h5')) {
-          // use state
-        } else {
-          let keycode = event.keyCode
-          let tag = event.target.tagName.toUpperCase()
-          if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
-            this.$keydown.emit('keyup-' + keycode, [event])
-          }
-        }
-      })
+      window.addEventListener('unload', this.saveCookie)
+      window.addEventListener('keydown', this.keydown)
+      window.addEventListener('keyup', this.keyup)
+    },
+    removeKeydown () {
+      this.$hotkeys.unbind('*')
+    },
+    removeNativeEvents () {
+      this.removeKeydown()
+      window.removeEventListener('unload', this.saveCookie)
+      window.removeEventListener('keydown', this.keydown)
+      window.removeEventListener('keyup', this.keyup)
     },
     initAppData () {
       this.$store.dispatch({
@@ -1710,7 +1733,7 @@ export default {
         }
       }).then((res) => {
         if (res.paramvalue) {
-          APPSETTING.PRESNSPUBLISHPATH = res.paramvalue
+          appSetting.PRESNSPUBLISHPATH = res.paramvalue
         }
       }).catch((res) => {
 
@@ -1728,8 +1751,7 @@ export default {
         title: 'Task Monitor',
         onshow: this.resizeTaskMonitor
       })
-<<<<<<< HEAD
-      this.taskMonitorUrl = URLCONFIG.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
+      this.taskMonitorUrl = urlConfig.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
       // this.$store.state.saveClipWindow = new ModalWindow({
       //   content: this.$refs.saveClip.$el,
       //   title: 'Save As'
@@ -1766,9 +1788,7 @@ export default {
           this.$refs.registerToOA.cancelRegisterWindow
         }
       })
-=======
       this.taskMonitorUrl = urlConfig.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
->>>>>>> 07ef5fea63e6b7898e49510d4aafa5ce307f93a2
       this.$store.state.saveClipWindow = new ModalWindow({
         content: this.$refs.saveClip.$el,
         title: 'Save As'
@@ -1795,36 +1815,101 @@ export default {
           if (temp.condition.booleanCondition) {
             this.$store.state.fulltextSearchCondition.booleanCondition = temp.condition.booleanCondition
           }
-          temp.condition.headers.forEach(item => {
-            util.packegeCustomSearchData(item.keyValues)
-            util.packegeCustomSearchData(item.hideKeyValues)
-          })
-          this.$store.state.advanceSearchHeaders = temp.condition.headers
+          if (temp.condition.headers && temp.condition.headers.length) {
+            temp.condition.headers.forEach(item => {
+              util.packegeCustomSearchData(item.keyValues)
+              util.packegeCustomSearchData(item.hideKeyValues)
+            })
+            this.$store.state.advanceSearchHeaders = temp.condition.headers
+          }
           res.remove(temp)
+          this.$store.dispatch({
+            type: TYPES.GET_USERTREE,
+            data: -1 // root department id
+          }).then(res => {
+            let cookieLastVisited = JSON.parse(util.getCookie('last_visit' + this.userInfo.usercode))
+            var lastVisit = temp.condition.lastVisit
+            if (lastVisit || cookieLastVisited) {
+              lastVisit = Object.assign(cookieLastVisited || {}, lastVisit || {})
+              // 同步数据
+              temp.condition.archiveFiters && (this.$store.state.archiveFiters = Object.assign(this.$store.state.archiveFiters, temp.condition.archiveFiters))
+              temp.condition.listHeaders && (this.$store.state.headers = util.mergeHeader(temp.condition.listHeaders, this.$store.state.headers), util.setCookie('item_headers' + this.$store.state.userInfo.usercode, JSON.stringify(this.$store.state.headers)))
+              temp.condition.treeWidth && (this.leftTreeWidth = util.getValue(temp.condition.treeWidth, this.leftTreeWidth), util.setCookie('leftWidth' + this.$store.state.userInfo.usercode, this.leftTreeWidth))
+              temp.condition.scaleTime && (this.$store.state.scaleTime = util.getValue(temp.condition.scaleTime, this.$store.state.scaleTime), util.setCookie('scale_time' + this.$store.state.userInfo.usercode, this.$store.state.scaleTime))
+              temp.condition.lastCheckedHeaderName && (this.$store.state.lastCheckedHeaderName = util.getValue(temp.condition.lastCheckedHeaderName, this.$store.state.lastCheckedHeaderName))
+              this.listSymbol = lastVisit.listSymbol // side effects , 最后执行
+              util.setCookie('last_visit' + this.userInfo.usercode, JSON.stringify(lastVisit))
+              this.$store.commit({
+                type: TYPES.SET_APPDATA,
+                data: lastVisit
+              })
+              this.locateFolder(lastVisit).then(res => {
+                if (lastVisit.selectedMaterial && lastVisit.selectedMaterial.length) {
+                  // check in material
+                  this.$nextTick(() => {
+                    var children = this.displayMaterials
+                    children.forEach(item => {
+                      if (lastVisit.selectedMaterial.indexOf(item.guid) > -1) {
+                        item.selected = true
+                        this.$store.commit({
+                          type: TYPES.ADD_SELECTEDITEM,
+                          data: item
+                        })
+                        this.$store.commit({
+                          type: TYPES.SET_SIGNMATERIAL,
+                          data: children.indexOf(item)
+                        })
+                      }
+                    })
+                  })
+                }
+              })
+            } else {
+              this.$store.dispatch({
+                type: TYPES.GET_MATERIALS,
+                source: this.nodes[0]
+              }).then(() => {
+                this.$store.commit({
+                  type: TYPES.EXPAND_FOLDER,
+                  target: this.nodes[0],
+                  data: []
+                })
+                this.$store.commit({
+                  type: TYPES.GET_NAVPATH,
+                  target: this.nodes[0],
+                  data: []
+                })
+              })
+            }
+          })
         }
         // 获取所有的自定义元数据字段，存在的更新  不存在的remove  新增的加到后面
         this.$store.dispatch({
           type: TYPES.GET_CUSTOM_SEARCH_CONDTION
         }).then(res => {
-          let flag = false
-          console.log(flag)
+          var tempCustomData = JSON.parse(JSON.stringify(res.data.ext))
+          tempCustomData.forEach(item => item.extraData && (item.extraData = JSON.parse(item.extraData)))
+          this.$store.state.customKeys = tempCustomData.filter(item => item.extraData && item.extraData.isShowInList && item.fieldvisable && item.tabvisable).groupBy('id').map((item) => {
+            return item[0]
+          })
+          this.$store.commit({
+            type: TYPES.SET_CUSTOM_HEADERS,
+            data: this.$store.state.customKeys
+          })
+          this.$store.state.hightLight.push(...res.data.ext.filter(item => item.isHighLight && item.fieldvisable && item.tabvisable)) // 获取所有需要高亮的自定义字段
           this.$store.state.advanceSearchHeaders.forEach(item => {
-            let kvs = item.keyValues
-            let hkvs = item.hideKeyValues
-            let query = defaultQuery[item.name]
+            var kvs = item.keyValues
+            var hkvs = item.hideKeyValues
+            var query = defaultQuery[item.name]
             if (query) {
-              let customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && item.fieldvisable && item.tabvisable && query.some(i => i.value === item.entitytype)))
+              var customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && item.fieldvisable && item.tabvisable && query.some(i => i.value === item.entitytype)).sort((i1, i2) => {
+                return query.map(item => item.value).indexOf(i1.entitytype) - query.map(item => item.value).indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
+              }))
               if (item.name === 'Clip') {
-                let ckvsGroup = customKvs.groupBy('id')
-                let distinctArr = []
+                var ckvsGroup = customKvs.groupBy('id')
+                var distinctArr = []
                 ckvsGroup.forEach(item => {
-                  if (item.length > 1) {
-                    distinctArr.push(item.sort((i1, i2) => {
-                      return query.indexOf(i1.entitytype) - query.indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
-                    })[0])
-                  } else {
-                    distinctArr.push(item[0])
-                  }
+                  distinctArr.push(item[0])
                 })
                 customKvs = distinctArr
               }
@@ -1836,7 +1921,6 @@ export default {
                   tempKvs.push(k)
                 } else if (k.isCustom) { // 如果找到same 就在所有的自定义字段中remove掉这项避免重复
                   // if (k.name !== same.name || k.ctrl !== same.ctrl) {
-                  flag = true
                   if (k.ctrl === same.ctrl) {
                     if (k.ctrl === 'rd-select') {
                       if (same.multiple) {
@@ -1863,7 +1947,6 @@ export default {
                   tempHkvs.push(k)
                 } else if (k.isCustom) {
                   // if (k.name !== same.name || k.ctrl !== same.ctrl) {
-                  flag = true
                   if (k.ctrl === same.ctrl) {
                     if (k.ctrl === 'rd-select') {
                       if (same.multiple) {
@@ -1923,7 +2006,7 @@ export default {
       this.$store.state.fulltextSearchCondition = defaultFulltextSearchCondtion
       this.$store.state.advanceSearchWindow = new ModalWindow({
         content: this.$refs.advanceSearch.$el,
-        title: 'Advance Search',
+        title: 'Advanced Search',
         onhide: () => {
           if (this.$store.state.isModifyCondtion) {
             this.$store.state.isModifyCondtion = false // 暂时不处理被编辑了的高级搜索条件
@@ -2008,18 +2091,14 @@ export default {
                 var hkvs = item.hideKeyValues
                 var query = defaultQuery[item.name]
                 if (query) {
-                  var customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && query.some(i => i.value === item.entitytype)))
+                  var customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && item.fieldvisable && item.tabvisable && query.some(i => i.value === item.entitytype)).sort((i1, i2) => {
+                    return query.map(item => item.value).indexOf(i1.entitytype) - query.map(item => item.value).indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
+                  }))
                   if (item.name === 'Clip') {
                     var ckvsGroup = customKvs.groupBy('id')
                     var distinctArr = []
                     ckvsGroup.forEach(item => {
-                      if (item.length > 1) {
-                        distinctArr.push(item.sort((i1, i2) => {
-                          return query.indexOf(i1.entitytype) - query.indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
-                        })[0])
-                      } else {
-                        distinctArr.push(item[0])
-                      }
+                      distinctArr.push(item[0])
                     })
                     customKvs = distinctArr
                   }
@@ -2152,7 +2231,41 @@ export default {
         sortSymbol: state.sortSymbol,
         selectedMaterial: state.selectedMaterials.map(item => item.guid)
       }))
+    },
+    saveCookie () {
+      var lastVisit = util.getCookie('last_visit' + this.$store.state.userInfo.usercode)
+      var listHeaders = util.getCookie('item_headers' + this.$store.state.userInfo.usercode)
+      var treeWidth = util.getCookie('leftWidth' + this.$store.state.userInfo.usercode)
+      var scaleTime = util.getCookie('scale_time' + this.$store.state.userInfo.usercode)
+      var condition = this.$store.state.templateCondition || {}
+      lastVisit && (condition.lastVisit = JSON.parse(lastVisit))
+      listHeaders && (condition.listHeaders = JSON.parse(listHeaders))
+      treeWidth && (condition.treeWidth = JSON.parse(treeWidth))
+      scaleTime && (condition.scaleTime = JSON.parse(scaleTime))
+      condition.archiveFiters = this.$store.state.archiveFiters
+      this.$store.dispatch({
+        type: TYPES.MODIFY_SEARCH_QUERY,
+        data: {
+          templateID: this.$store.state.templateID,
+          json: {
+            templateName: 'default' + this.$store.state.userInfo.usercode,
+            condition: condition
+          }
+        }
+      }).then(res => console.log(res)).catch(res => {
+        util.Notice.failed('Failed to save search template', '', 3000)
+      })
+    },
+    bindEvents () {
+      this.$app.on(EVENT.SAVE_STATUS, this.saveCookie)
+    },
+    removeEvents () {
+      this.$app.off(EVENT.SAVE_STATUS, this.saveCookie)
     }
+  },
+  destroyed () {
+    this.removeEvents()
+    this.removeNativeEvents()
   },
   created () {
     if (this.userInfo && this.userInfo.usertoken) {
@@ -2161,12 +2274,13 @@ export default {
       })
       this.startHeartbeate()
       appSetting.USEFL && this.startFLHeartbeate()
+      this.bindEvents()
     } else {
       this.$router.push('/login')
     }
   },
   mounted () {
-    this.initNativeEvents()
+    this.bindNativeEvents()
     this.initAppData()
     this.initModalWindow()
   }

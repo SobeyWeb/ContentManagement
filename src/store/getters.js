@@ -142,7 +142,20 @@ export default {
     let box = state.materialBox || {}
     let itemHeight = getters.itemHeight
     let length = getters.displayMaterials.length
-    if (state.listSymbol) {
+    if (!length) {
+      return {
+        index: 0,
+        range: 1,
+        height: 0,
+        leftHeight: 0,
+        containerHeight: box.clientHeight,
+        containerWidth: box.clientWidth,
+        totalHeight: 1,
+        cellPercent: 0,
+        rowCount: 1,
+        el: box
+      }
+    } else if (state.listSymbol) {
       let totalHeight = itemHeight * length
       let screenRows = Math.ceil(box.clientHeight / itemHeight) + 1
       let cellPercent = (itemHeight * 100) / totalHeight
@@ -166,7 +179,10 @@ export default {
     } else {
       let rowCount = state.isMarker
         ? Math.floor(box.clientWidth / getters.itemWidth)
-        : Math.round((box.clientWidth - 2 * state.thumbPadding) / getters.itemWidth)
+        : Math.round(
+          (box.clientWidth - 2 * state.thumbPadding) / getters.itemWidth
+        )
+      rowCount = Math.max(1, rowCount)
       let totalHeight = Math.ceil(length / rowCount) * itemHeight
       let screenRows = Math.ceil(box.clientHeight / itemHeight) + 1
       let cellPercent = (itemHeight * 100) / totalHeight
@@ -220,5 +236,11 @@ export default {
     } else {
       return /.*/
     }
+  },
+  isHighLight(state, getters) {
+    return [1, 2].indexOf(getters.currentNode.guid) > -1
+  },
+  templateCondition(state, getters) {
+    return state.templateCondition
   }
 }

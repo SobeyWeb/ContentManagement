@@ -112,7 +112,10 @@ export default {
               condition: condition
             }
           }
-        }).then(res => console.log(res)).catch(res => {
+        }).then(res => {
+          this.$store.state.templateCondition = condition
+          console.log(res)
+        }).catch(res => {
           util.Notice.failed('Failed to save search template', '', 3000)
         })
       })
@@ -172,7 +175,10 @@ export default {
               condition: condition
             }
           }
-        }).then(res => console.log(res)).catch(res => {
+        }).then(res => {
+          this.$store.state.templateCondition = condition
+          console.log(res)
+        }).catch(res => {
           util.Notice.failed('Failed to save search template', '', 3000)
         })
       })

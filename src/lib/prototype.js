@@ -1,5 +1,5 @@
 /* eslint-disable no-extend-native */
-Array.prototype.remove = function (item) {
+Array.prototype.remove = function(item) {
   var args = arguments
   ;[].forEach.call(args, item => {
     var idx = this.indexOf(item)
@@ -8,7 +8,7 @@ Array.prototype.remove = function (item) {
     }
   })
 }
-Array.prototype.add = function () {
+Array.prototype.add = function() {
   var args = arguments
   ;[].forEach.call(args, item => {
     var idx = this.indexOf(item)
@@ -18,7 +18,7 @@ Array.prototype.add = function () {
   })
 }
 
-Array.prototype.find = function (condition, attr) {
+Array.prototype.find = function(condition, attr) {
   if (typeof condition === 'function') {
     return this.filter(condition)[0]
   } else if (attr !== undefined) {
@@ -27,7 +27,7 @@ Array.prototype.find = function (condition, attr) {
     return this.filter(item => item === condition)[0]
   }
 }
-Array.prototype.findAll = function (condition, attr) {
+Array.prototype.findAll = function(condition, attr) {
   if (typeof condition === 'function') {
     return this.filter(condition)[0]
   } else if (attr !== undefined) {
@@ -36,7 +36,7 @@ Array.prototype.findAll = function (condition, attr) {
     return this.filter(item => item === condition)[0]
   }
 }
-Array.prototype.unique = function () {
+Array.prototype.unique = function() {
   let n = {}
   let r = []
   for (var i = 0; i < this.length; i++) {
@@ -47,7 +47,7 @@ Array.prototype.unique = function () {
   }
   return r
 }
-Array.prototype.groupBy = function (attr) {
+Array.prototype.groupBy = function(attr) {
   var newArrObj = {}
   this.forEach(item => {
     var objAttr = attr + '_' + item[attr]
@@ -64,7 +64,7 @@ Array.prototype.groupBy = function (attr) {
   }
   return newArr
 }
-Array.prototype.group = function (condition) {
+Array.prototype.group = function(condition) {
   var newArrObj = {}
   this.forEach(item => {
     var objAttr = condition(item)
@@ -81,7 +81,7 @@ Array.prototype.group = function (condition) {
   }
   return newArr
 }
-Date.prototype.format = function (format) {
+Date.prototype.format = function(format) {
   var o = {
     'M+': this.getMonth() + 1, // month
     'd+': this.getDate(), // day
@@ -107,7 +107,7 @@ Date.prototype.format = function (format) {
   }
   return format
 }
-String.prototype.formatDate = function () {
+String.prototype.formatDate = function() {
   if (/:/g.test(this)) return this.replace('/["\']/g', '')
   var sec = this.match(/\d+/g)
   var dt = new Date()
@@ -126,13 +126,13 @@ String.prototype.formatDate = function () {
     dt.getSeconds().fixZero()
   )
 }
-Number.prototype.fixZero = function () {
+Number.prototype.fixZero = function() {
   if (this < 10) {
     return '0' + this
   }
   return this
 }
-Number.prototype.floorByFrame = function (f, frame) {
+Number.prototype.floorByFrame = function(f, frame) {
   return (
     (f &&
       (
@@ -143,7 +143,7 @@ Number.prototype.floorByFrame = function (f, frame) {
   ) //
   // return f && (Math.floor(this * frame) / frame).round(4) || this
 }
-Number.prototype.roundByFrame = function (f, frame) {
+Number.prototype.roundByFrame = function(f, frame) {
   return (
     (f &&
       (
@@ -154,7 +154,7 @@ Number.prototype.roundByFrame = function (f, frame) {
   ) //
   // return f && (Math.floor(this * frame) / frame).round(4) || this
 }
-String.prototype.fixZero = function () {
+String.prototype.fixZero = function() {
   if (/^\d{1}$/.test(this)) {
     return '0' + this
   } else if (!this.length) {
@@ -162,9 +162,16 @@ String.prototype.fixZero = function () {
   }
   return this.toString()
 }
-Number.prototype.fix = function (num) {
+Number.prototype.fix = function(num) {
   return num ? Math.floor(this * Math.pow(10, num)) / Math.pow(10, num) : this
 }
-Number.prototype.round = function (num) {
+Number.prototype.round = function(num) {
   return num ? Math.round(this * Math.pow(10, num)) / Math.pow(10, num) : this
 }
+Promise.prototype.silentCatch = function(callback) {
+  return this.catch(reason =>
+    this.constructor.resolve(callback(reason)).then(() => {
+      throw reason
+    })
+  )
+} // for premiere plugin

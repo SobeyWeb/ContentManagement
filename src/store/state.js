@@ -4,6 +4,7 @@ import { emptyMaterial } from '../data/basicData'
 import EVENT from '../dicts/eventTypes'
 
 export default {
+  lastCheckedHeaderName: '',
   system: 'WEBCM',
   player: null,
   property: null,
@@ -93,9 +94,9 @@ export default {
   siteList: [],
   archiveFiters: {
     // Archived: true,
-    double: false,
-    HDD: false,
-    ODA: false,
+    double: true,
+    HDD: true,
+    ODA: true,
     Online: true,
     [undefined]: true,
     '': true
@@ -109,6 +110,7 @@ export default {
     text: 'Remember'
   },
   templateID: '',
+  templateCondition: {},
   searchNode: {},
   searchType: 1,
   fulltextSearchCondition: {},
@@ -225,6 +227,21 @@ export default {
   eventArray: {},
   excutingTask: [],
   complateTask: [],
+  hightLight: [
+    {
+      name: 'Title',
+      attr: 'name'
+    },
+    {
+      name: 'Comments',
+      attr: 'note'
+    },
+    {
+      name: 'Rights',
+      attr: 'rights'
+    }
+  ],
+  customKeys: [],
   headers: [
     {
       name: 'Tittle',
@@ -243,13 +260,6 @@ export default {
     {
       name: 'Creation Date',
       attr: 'formatDate',
-      width: 130,
-      dragging: false,
-      checked: true
-    },
-    {
-      name: 'Recording Date',
-      attr: 'recordingDate',
       width: 130,
       dragging: false,
       checked: true
@@ -354,7 +364,7 @@ export default {
     },
     {
       name: 'Comments',
-      attr: 'comments',
+      attr: 'note',
       width: 200,
       dragging: false,
       checked: true
@@ -370,6 +380,20 @@ export default {
       name: 'HD/SD',
       attr: 'hsd',
       width: 70,
+      dragging: false,
+      checked: true
+    },
+    {
+      name: 'Recording Date',
+      attr: 'recordingDate',
+      width: 130,
+      dragging: false,
+      checked: true
+    },
+    {
+      name: 'Proxy Status',
+      attr: 'proxyStatus',
+      width: 130,
       dragging: false,
       checked: true
     }

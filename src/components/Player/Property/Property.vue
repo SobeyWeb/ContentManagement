@@ -81,14 +81,32 @@ export default {
     lastCheckedHeaderName () {
       return this.$store.state.lastCheckedHeaderName
     },
+    isHighLight () {
+      return this.$store.getters.isHighLight
+    },
     curTab () {
       var lastHeader
       var header = this.headers && this.headers.filter(item => item.selected)[0]
+      var flag
       if (!header && this.headers && this.headers.length && this.$refs.propertyHeader) {
-        lastHeader = this.headers.find(item => item.name === this.lastCheckedHeaderName)
+        if (this.isHighLight) {
+          for (let i = 0, l = this.headers.length; i < l; i++) {
+            if (this.headers[i].keyValues.some && this.headers[i].keyValues.some(item => {
+              let key = item.keys && item.keys.slice(-1)[0] + '_hl'
+              return this.curMaterial[key]
+            })) {
+              lastHeader = this.headers[i]
+              flag = true
+              break
+            }
+          }
+        }
+        if (!lastHeader) {
+          lastHeader = this.headers.find(item => item.name === this.lastCheckedHeaderName)
+        }
         if (lastHeader) {
           header = lastHeader
-          this.$refs.propertyHeader.selectHeader(this.headers.indexOf(header))
+          this.$refs.propertyHeader.selectHeader(this.headers.indexOf(header), flag)
         } else {
           this.$refs.propertyHeader.selectHeader(0, true)
           this.$refs.propertyHeader.init()

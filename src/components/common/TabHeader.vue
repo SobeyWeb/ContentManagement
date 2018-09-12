@@ -74,19 +74,19 @@ export default {
       this.leftIndex = 0
       this.marginLeft = 0 // 暂时置为0吧
     },
-    selectHeader (index) {
+    selectHeader (index, silent) {
       this.headers.forEach(h => h.selected = false)
       if (this.headers[index]) {
         this.checkedHeader = this.headers[index]
         this.checkedHeader.selected = true
         if (this.leftIndex + 6 < index || this.leftIndex > index) {
-          this.leftIndex = Math.max(0, index - 6)
+          this.leftIndex = Math.max(0, index - 5)
           this.marginLeft = 0
           for (let i = 0; i < this.leftIndex; i++) {
             this.marginLeft += this.headers[this.leftIndex].width
           }
         }
-        this.$emit('headerClick', this.headers[index])
+        !silent && this.$emit('checked', this.headers[index])
       }
     },
     leftMove () {
@@ -234,6 +234,7 @@ export default {
         curHeader: _this.dragItem,
         headers: _this.headers
       })
+      _this.$emit('checked', _this.dragItem)
       window.removeEventListener('mousemove', _this.mousemove)
       window.removeEventListener('mouseup', _this.mouseup)
     }

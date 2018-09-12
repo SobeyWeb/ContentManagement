@@ -43,7 +43,9 @@ import {
 import ltcRepository from '../data/ltcRepository'
 import vitcRepository from '../data/vitcRepository'
 import { defaultQuery } from '../data/basicData'
+import EVENT from '../dicts/eventTypes'
 import Guid from './Guid'
+import $ from 'jquery'
 export function getUrl(url, para, ifNotEnc) {
   if (para) {
     let q = ''
@@ -108,9 +110,11 @@ export function getCookie(name) {
     else return null
   }
 }
+export const saveCookie = debounce(1000, () => window.$app.emit(EVENT.SAVE_STATUS)) //
 export function setCookie(name, value) {
   if (localStorage && localStorage.setItem) {
     localStorage.setItem(name, value)
+    saveCookie()
   } else {
     let Days = 30
     let exp = new Date()
@@ -621,19 +625,14 @@ export function throttleAjax(ajaxArr, maxCount, cantCancel) {
       if (count < maxCount && ajaxArr.length > 0) {
         count++
         let action = ajaxArr.shift()
-        promiseArr.push(
-          action()
-            .then(() => count--)
-            .catch(() => count--)
-        )
+        promiseArr.push(action().then(() => count--).silentCatch(res => count--))
       }
-      if (!ajaxArr.length) {
+      if (ajaxArr.length === 0) {
         clearInterval(id)
-        Promise.all(promiseArr).then(() => resolve())
+        Promise.all(promiseArr).then(() => resolve()).catch(res => reject(res))
       }
     }, 100)
-    if (!cantCancel) {
-      // 部分请求不能中断
+    if (!cantCancel) { // 部分请求不能中断
       throttleAjaxId = id
     }
   })
@@ -738,6 +737,13 @@ export function getMaterialType(material) {
   return ctype
 }
 export function extendData(sdata, node) {
+  node.highLight = sdata.entity && sdata.entity.highlight || []
+  if (node.highLight) {
+    node.highLight.forEach(item => {
+      let keys = item.key.split('.')
+      node[keys.pop() + '_hl'] = item.value
+    }) // REGISTER highliht
+  }
   let clipData = sdata.entity || sdata.etobject
   let _framerate = 25
   let _filestatus = clipData.item && clipData.item.filestatus
@@ -901,11 +907,15 @@ export function extendData(sdata, node) {
     node.tobedel = clipData.deleteflag === 1 ? '✓' : ''
   }
   node.comments = clipData.note
+  node.note = clipData.note
   node.modificationDate =
     clipData.modifydate && clipData.modifydate.formatDate()
   // node.clipStatus = GetClipStatus(clipData.status);
   node.rights = clipData.rights
-
+  let customer = clipData.customer || {}
+  state.customKeys.forEach(item => {
+    node[item.fieldName] = item.dataType === 'date' ? customer[item.fieldName] && customer[item.fieldName].split(/\s/g)[0] : (item.dataType === 'time' ? customer[item.fieldName] && customer[item.fieldName].split(/\s/g)[1] : customer[item.fieldName])
+  })
   if (node.type === 'image') {
     node.totalDuration = GetTimeStringByFrameNum(
       GetFrameNumByHundredNS(863999600000, _videostandard, _ntsctcmode),
@@ -1140,7 +1150,7 @@ export function parseData(arr, father, option) {
         item.name = '4'
         item.color = 'rgb(100,100,100)'
         item.time = item.keyframe / framerate
-        item.guid = '' + (new Date().getTime() + index)
+        item.guid = Guid.NewGuid().ToString('N')
         item.text = item.note
         item.intime = item.keyframe / framerate
         item.outtime = item.endkeyframe / framerate
@@ -1151,7 +1161,7 @@ export function parseData(arr, father, option) {
         item.name = '5'
         item.color = 'rgb(150,150,100)'
         item.time = item.keyframe / framerate
-        item.guid = '' + (new Date().getTime() + index)
+        item.guid = Guid.NewGuid().ToString('N')
         item.text = item.note
       } else if (item.type === 65536) {
         item.typeName = 'Logging Mark'
@@ -1161,7 +1171,7 @@ export function parseData(arr, father, option) {
         item.isLMarker = true
         item.color = 'rgb(150,100,150)'
         item.time = item.keyframe / framerate
-        item.guid = '' + (new Date().getTime() + index)
+        item.guid = Guid.NewGuid().ToString('N')
         item.text = item.note
         item.creatorName = getUserNameByUserCode(item.creator)
         item.extendinfo = item.extendinfo || []
@@ -1203,11 +1213,11 @@ export function parseData(arr, father, option) {
           background: 'rgb(159,0,11)'
         }
         item.time = item.keyframe / framerate
-        item.guid = '' + (new Date().getTime() + index)
+        item.guid = Guid.NewGuid().ToString('N')
         item.text = item.note
       }
       item.name = item.note
-      item.iconfilename = getIconFilename(item.iconfilename)
+      item.iconfilename = item.iconfilename // getIconFilename(item.iconfilename)
       item.selected = false
       item.type = 'marker'
       item.operations = []
@@ -1225,6 +1235,8 @@ export function parseData(arr, father, option) {
       arr.forEach(item => {
         let node = {}
         node.updateId = 0 // add for resiponsive
+        node.proxyStatus = ''
+        node.isseparation = item.entity.isseparation
         node.formatDate = item.entity.createdate // item.entity.createdate //.formatDate()
         node.createdate = new Date(item.entity.createdate).getTime() // .match(/\d+/g).join('')
         node.typeid = item.entity.type
@@ -1304,6 +1316,7 @@ export function parseData(arr, father, option) {
         } else {
           node.previewType = 'other'
         }
+        node.item = item.entity.item || {}
         extendData(item, node)
         try {
           node.capturestatus = item.entity.item.capturestatus
@@ -1472,6 +1485,7 @@ export function getContextMenu(sdata, node) {
     state.userInfo.roleType ||
     ((node.clipStatus === 'Normal' || !node.clipStatus) &&
       node.onlinstatus !== 'Archived')
+  let canModify = state.userInfo.roleType || !node.readonly
   // 回收站的素材
   if (node.father.guid === 0) {
     // 文件夹
@@ -1495,6 +1509,9 @@ export function getContextMenu(sdata, node) {
     node.operations = ['Preview', 'Detail View']
     if (node.type === 'folder') {
       node.operations.push('Open', 'Add to Quick Link')
+    }
+    if (!node.isseparation && node.canGenerateProxy && canModify && node.clipStatus === 'Normal') {
+      node.operations.push('Generate Proxy')
     }
   } else if (
     node.path === appSetting.SNSPUBLISHPATH ||
@@ -1570,6 +1587,9 @@ export function getContextMenu(sdata, node) {
     if (node.hsd === 'SD') {
       node.operations.push('16:9')
     }
+    if (!node.isseparation && node.canGenerateProxy && canModify && node.clipStatus === 'Normal') {
+      node.operations.push('Generate Proxy')
+    }
     if (!node.clipping) {
       // 采集中
       if (
@@ -1593,6 +1613,8 @@ export function getContextMenu(sdata, node) {
         node.operations.push('To Publish Folder') //, 'Auto Package'
       }
     } else {
+      node.operations.remove('Cut') // 采集中素材不允许复制剪贴
+      node.operations.remove('Copy')
       // if (node.capturestatus === 2) {
       //   node.operations.remove('Register to OA')
       // }
@@ -1649,6 +1671,9 @@ export function getContextMenu(sdata, node) {
   if ([292, 293, 294].indexOf(node.subtype) > -1) {
     node.operations = ['Open']
   }
+  if (node.type !== 'folder') {
+    node.operations.push('One Generation')
+  }
   /* if (node.type == 'folder' && node.guid.length > 1 && node.father.guid !== 0) {
     node.operations.unshift('Open')
     } */
@@ -1699,10 +1724,13 @@ export function restrictContextMenu(item, node) {
 }
 
 export function locateFolder(store, folderList, fNode, opt) {
+  if (opt.isCheck) {
+    store.state.lastSeletedNode.checked = false
+  }
   return new Promise((resolve, reject) => {
     if (folderList.length === 0) {
       if (opt.isCheck) {
-        store.state.lastSeletedNode.checked = false
+        // store.state.lastSeletedNode.checked = false
         store.state.lastSeletedNode = fNode
         fNode.checked = true
       } else {
@@ -2298,7 +2326,7 @@ export function updateMarkerList(
       item.outPoint = outtime
       item.type = 4
       item.time = inPoint
-      item.guid = '' + (new Date().getTime() + index)
+      item.guid = Guid.NewGuid().ToString('N')
       item.text = item.note
       item.intime = inPoint
       item.outtime = outPoint
@@ -2309,7 +2337,7 @@ export function updateMarkerList(
       item.pos = intime
       item.type = 8
       item.time = inPoint
-      item.guid = '' + (new Date().getTime() + index)
+      item.guid = Guid.NewGuid().ToString('N')
       item.text = item.note
     } else if (item.type === 65536 || item.type === 'loggingmark') {
       item.correctSF =
@@ -2330,7 +2358,7 @@ export function updateMarkerList(
         videostandard
       )
       item.time = inPoint
-      item.guid = '' + (new Date().getTime() + index)
+      item.guid = Guid.NewGuid().ToString('N')
       item.text = item.note
       item.creatorName = getUserNameByUserCode(item.creator)
       item.extendinfo = item.extendinfo || []
@@ -2371,7 +2399,7 @@ export function updateMarkerList(
         background: 'rgb(159,0,11)'
       }
       item.time = inPoint
-      item.guid = '' + (new Date().getTime() + index)
+      item.guid = Guid.NewGuid().ToString('N')
       item.text = item.note
     }
     if (item.iconfilename) {
@@ -2474,6 +2502,9 @@ export function updateMaterial(arr, data, store) {
           let markers = item.markers
           let name = item.name
           let guid = item.guid
+          let checked = item.checked
+          let folders = item.folders
+          let open = item.open
           if (
             item.folderpath &&
             item.folderpath !== res.data.ext.entity.folderpath
@@ -2507,6 +2538,11 @@ export function updateMaterial(arr, data, store) {
           // if (store.state.previewOptions.materials.some(i => i.guid === item.guid)) {
           //   property.refresh()
           // }
+          if (folders && folders.length) {
+            item.folders = folders
+          }
+          item.checked = checked
+          item.open = open
           item.renaming = renaming
           item.selected = selected
           if (
@@ -2630,6 +2666,9 @@ export function initData(file, father) {
   node.iconfilename = undefined
   node.previewicon = undefined
   node.HQ = node.LQ = node.WA = node.DB = node.clipping = node.onlinstatus = undefined
+  node.createdate = +new Date()
+  node.formatDate = node.modificationDate = new Date().format('yyyy-MM-dd hh:mm:ss')
+  node.creatorName = node.modifierName = getUserNameByUserCode(state.userInfo.usercode) || state.userInfo.nickname || state.userInfo.loginname.replace(/.*\\(.*)/g, '$1')
   return node
 }
 export function sync(promArr) {
@@ -3086,7 +3125,7 @@ export function copyObject(context, item, target, ignoreName) {
       obj.subtype = item.subtype
       let type = GetEntityType(obj.type, obj.subtype)
       obj.modifyterminal = context.state.userInfo.ip
-      obj.item = {}
+      obj.item = item.item || {}
       if (item.type === 'video' && item.onlinstatus === 'Archived') {
         item.filestatus &= ~FileStatus.ET_Obj_FS_HV_ALL
         item.filestatus &= ~FileStatus.ET_Obj_FS_HA_ALL
@@ -4344,7 +4383,7 @@ export function getMarkers (entity, material, type, order, context, httpEntity) 
   let groupname = 'videogroup'
   material.markers.values.filter(item => !item.icon).forEach(item => {
     let fileguid = ''
-    let keytime = item.keyframe / material.framerate * 10000000
+    var keytime = GetMillSecondsByFrameNum(item.keyframe, material.videostandard) * 10000000 // item.keyframe / material.framerate * 10000000
     for (let i = 0, len = clipfile.length; i < len; i++) {
       if (keytime >= clipfile[i].clipin && keytime <= clipfile[i].clipout) {
         fileguid = clipfile[i].strfileguid
@@ -5010,4 +5049,70 @@ export function getTimeCodeInfo (context, material, clipfile, otcIndex, videoSta
       reject(res)
     })
   })
+}
+let uploadingCount = 0
+export function cellUpload(url, path, file, name, osspath, onsucces, onerror) {
+  let failedCount = 0
+  let fileArr = []
+
+  function Upload(file) {
+    if (failedCount < 50) {
+      var form = new FormData()
+      form.append('data', file.data)
+      form.append('name', file.name)
+      form.append('total', file.total)
+      form.append('index', file.index)
+      form.append('uploadPath', path)
+      form.append('temp', appSetting.TEMPPATH)
+      if (osspath) {
+        form.append('osspath', osspath)
+      }
+      $.ajax({
+        url: url,
+        type: 'POS',
+        data: form,
+        async: true, // 异步
+        processData: false, // 很重要，告诉jquery不要对form进行处理
+        contentType: false, // 很重要，指定为false才能形成正确的Content-Type
+        success: function(idx) {
+          onsucces(file)
+          uploadingCount--
+        },
+        error: function() {
+          failedCount++
+          Upload(file)
+        }
+      })
+    } else {
+      onerror(file)
+    }
+  }
+  if (file instanceof Object) {
+    let size = file.size
+    let shardSize = 4 * 1024 * 1024
+    let shardCount = Math.ceil(size / shardSize)
+    if (!shardSize) {
+      onerror(file)
+    }
+    for (var i = 0; i < shardCount; i++) {
+      let start = i * shardSize
+      let end = Math.min(size, start + shardSize)
+      fileArr.push({
+        data: file.slice(start, end),
+        name: name,
+        total: shardCount,
+        index: i + 1
+      })
+    }
+    let intervalId = setInterval(function() {
+      if (uploadingCount < 5 && fileArr.length > 0) {
+        uploadingCount++
+        let file = fileArr.shift()
+        Upload(file)
+      }
+      if (fileArr.length === 0) {
+        clearInterval(intervalId)
+      }
+    }, 50)
+  }
 }

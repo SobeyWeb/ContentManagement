@@ -1,12 +1,12 @@
 <template>
   <div class="time_code_container" @mousedown.stop>
-    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="hour" @keydown.enter="setTime" @keydown.stop="hKeydown" @mousedown.stop="mousedown" @blur="editing=false" @focus="editing=!option.readonly">{{!editing?displayHour:displayH}}</span>
+    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="hour" @keydown.enter="setTime" @keydown.stop="hKeydown" @mousedown.stop="mousedown" @blur="blur" @focus="focus">{{!editing?displayHour:displayH}}</span>
     <span tabindex="-1" class="point_flag player_timecode">:</span>
-    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="minute" @keydown="mKeydown" @keydown.stop.enter="setTime" @mousedown.stop="mousedown" @blur="editing=false" @focus="editing!=option.readonly">{{!editing?displayMinute:displayM}}</span>
+    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="minute" @keydown="mKeydown" @keydown.stop.enter="setTime" @mousedown.stop="mousedown" @blur="blur" @focus="focus">{{!editing?displayMinute:displayM}}</span>
     <span tabindex="-1" class="point_flag player_timecode">{{option.isSkipFrame?'.':':'}}</span>
-    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="second" @keydown="sKeydown" @keydown.stop.enter="setTime" @mousedown.stop="mousedown" @blur="editing=false" @focus="editing=!option.readonly">{{!editing?displaySecond:displayS}}</span>
+    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="second" @keydown="sKeydown" @keydown.stop.enter="setTime" @mousedown.stop="mousedown" @blur="blur" @focus="focus">{{!editing?displaySecond:displayS}}</span>
     <span tabindex="-1" class="point_flag player_timecode">:</span>
-    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="frame" @keydown="fKeydown" @keydown.stop.enter="setTime" @mousedown.stop="mousedown" @blur="editing=false" @focus="editing=!option.readonly">{{!editing?displayFrame:displayF}}</span>
+    <span tabindex="-1" class="inputclass player_timecode" :class="{ro_inputclass:option.readonly}" ref="frame" @keydown="fKeydown" @keydown.stop.enter="setTime" @mousedown.stop="mousedown" @blur="blur" @focus="focus">{{!editing?displayFrame:displayF}}</span>
   </div>
 </template>
 
@@ -88,6 +88,12 @@ export default {
     }
   },
   methods: {
+    blur () {
+      this.editing = false
+    },
+    focus () {
+      this.editing = !this.option.readonly
+    },
     hKeydown (event) {
       var code = String.fromCharCode(event.keyCode >= 96 ? event.keyCode - 48 : event.keyCode)
       if (this.hour.index === 1) {
