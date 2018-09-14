@@ -231,6 +231,7 @@ export default {
   },
   data () {
     return {
+      noUseHandler: () => { },
       taskMonitorUrl: '',
       tempIndex: 0,
       sortByStatus: false,
@@ -244,6 +245,7 @@ export default {
       listSymbol: false,
       leftTreeWidth: 200,
       resizeX: 0,
+      blackList: [],
       dragData: {
         left: 0,
         top: 0,
@@ -333,7 +335,7 @@ export default {
       }
     },
     isPremiere () {
-      return this.$store.state.system === 'PREMIEREPLUGIN'
+      return this.$store.state.system !== 'WEBCM'
     },
     searchNode: {
       get () {
@@ -757,13 +759,13 @@ export default {
     },
     startFLHeartbeate () {
       let flFailedCount = 0
-      let noUseHandler = util.debounce((appSetting.FLInterval || 20) * 60 * 1000, () => {
+      this.noUseHandler = util.debounce((appSetting.FLInterval || 20) * 60 * 1000, () => {
         this.logout()
-        window.removeEventListener('mousemove', noUseHandler)
-        window.removeEventListener('keydown', noUseHandler)
+        window.removeEventListener('mousemove', this.noUseHandler)
+        window.removeEventListener('keydown', this.noUseHandler)
       })
-      window.addEventListener('mousemove', noUseHandler)
-      window.addEventListener('keydown', noUseHandler)
+      window.addEventListener('mousemove', this.noUseHandler)
+      window.addEventListener('keydown', this.noUseHandler)
       this.flIntervalId = setInterval(() => {
         axios.get(urlConfig.FL + '/webheart?token=' + this.userInfo.fltoken).then(res => {
           flFailedCount = 0
@@ -1588,9 +1590,25 @@ export default {
         }
       }
     },
+    resizeCallback: util.throttle(100, function (e) {
+      console.log(this)
+      var status = document.isFullScreen || document.webkitIsFullScreen || document.mozIsFullScreen || document.msIsFullScreen
+      if (this.fullscreenSymbol && !status) {
+        this.$store.state.player && this.$store.state.player.exitFullscreen()
+      }
+      this.$store.state.containerUpdate++
+      this.$store.commit({
+        type: TYPES.SET_THUMBPADDING
+      })
+      this.$store.commit({
+        type: TYPES.SET_DVPADDING
+      })
+      this.resizeTaskMonitor()
+    }, true),
     bindNativeEvents () {
       this.registerKeydown()
       window.addEventListener('unload', this.saveCookie)
+      window.addEventListener('resize', this.resizeCallback)
       window.addEventListener('keydown', this.keydown)
       window.addEventListener('keyup', this.keyup)
     },
@@ -1600,6 +1618,7 @@ export default {
     removeNativeEvents () {
       this.removeKeydown()
       window.removeEventListener('unload', this.saveCookie)
+      window.removeEventListener('resize', this.resizeCallback)
       window.removeEventListener('keydown', this.keydown)
       window.removeEventListener('keyup', this.keyup)
     },
@@ -1738,7 +1757,94 @@ export default {
       }).catch((res) => {
 
       })
+      // get upload black list
+      this.$store.dispatch({
+        type: TYPES.GETSYSPARAM,
+        target: {
+          tool: 'DEFAULT',
+          system: 'WEBCM',
+          paramname: 'Blacklist'
+        }
+      }).then((res) => {
+        if (res.paramvalue) {
+          this.blackList = res.paramvalue.toLowerCase().split(';')
+        }
+      }).catch((res) => {
 
+      })
+      // 获取网管配置的参数LOGGING MARK的language路径
+      this.$store.dispatch({
+        type: TYPES.GET_USERPARAM,
+        data: {
+          system: null,
+          paramname: 'LOGGING_LANGUAGE_DEFAULT'
+        }
+      }).then((res) => {
+        if (res.data.ext.paramvalue) {
+          this.$store.state.lmLanguage = parseInt(/\d+/g.exec(res.data.ext.paramvalue)[0])
+          this.$store.state.defaultLanguage = this.$store.state.lmLanguage
+          var promiseArr = []
+          for (let i = 1; i <= this.$store.state.lmLanguage; i++) {
+            promiseArr.push(this.$store.dispatch({
+              type: TYPES.GETSYSPARAM,
+              target: {
+                tool: 'DEFAULT',
+                paramname: 'LOGGING_LANGUAGE_ID' + i
+              }
+            }).then(res => {
+              var value = {
+                value: res.paramvalue,
+                id: i,
+                selected: i === this.$store.state.lmLanguage
+              }
+              this.languageOption.options.push(value)
+            }))
+          }
+          let gl = (index) => {
+            this.$store.dispatch({
+              type: TYPES.GETSYSPARAM,
+              target: {
+                tool: 'DEFAULT',
+                paramname: 'LOGGING_LANGUAGE_ID' + index
+              }
+            }).then(res => {
+              var value = {
+                value: res.paramvalue,
+                id: index,
+                selected: false
+              }
+              this.languageOption.options.push(value)
+              gl(++index)
+            })
+          }
+          Promise.all(promiseArr).then(res => {
+            this.languageOption.options.sort((i1, i2) => {
+              return i1.id - i2.id
+            })
+            gl(this.$store.state.lmLanguage + 1)
+          })
+        }
+      }).catch((res) => {
+      })
+      // 获取网管配置的参数 自动登出时间
+      this.$store.dispatch({
+        type: TYPES.GETSYSPARAM,
+        target: {
+          tool: 'DEFAULT',
+          system: 'WEBCM',
+          paramname: 'FLHeartbeatInterval'
+        }
+      }).then((res) => {
+        if (res.paramvalue) {
+          if (appSetting.FLInterval === parseInt(res.paramvalue)) {
+          } else {
+            appSetting.FLInterval = parseInt(res.paramvalue)
+          }
+        }
+        appSetting.USEFL && this.startFLHeartbeate()
+      }).catch((res) => {
+        appSetting.USEFL && this.startFLHeartbeate()
+      })
       this.$store.state.materialBox = document.querySelector('.scrollbar_container')
     },
     initModalWindow () {
@@ -1752,14 +1858,6 @@ export default {
         onshow: this.resizeTaskMonitor
       })
       this.taskMonitorUrl = urlConfig.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
-      // this.$store.state.saveClipWindow = new ModalWindow({
-      //   content: this.$refs.saveClip.$el,
-      //   title: 'Save As'
-      // })
-      // this.$store.state.exportWindow = new ModalWindow({
-      //   content: this.$refs.export.$el,
-      //   title: 'Export'
-      // })
       this.$store.state.publishWindow = new ModalWindow({
         content: this.$refs.publishtoSNS.$el,
         title: 'Publish to SNS',
@@ -2266,6 +2364,7 @@ export default {
   destroyed () {
     this.removeEvents()
     this.removeNativeEvents()
+    clearInterval(this.checkTaskId)
   },
   created () {
     if (this.userInfo && this.userInfo.usertoken) {
@@ -2273,8 +2372,17 @@ export default {
         type: TYPES.INTERCEPT_AXIOS
       })
       this.startHeartbeate()
-      appSetting.USEFL && this.startFLHeartbeate()
       this.bindEvents()
+      this.checkTaskId = setInterval(() => {
+        if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0 || (this.$store.state.property && this.$store.state.property.editing)) {
+          window.onbeforeunload = window.onbeforeunload || function (e) {
+            return 'Some Task are Excuting...'
+          }
+          this.noUseHandler() // delay fl
+        } else {
+          window.onbeforeunload = null
+        }
+      }, 500)
     } else {
       this.$router.push('/login')
     }
@@ -2845,5 +2953,21 @@ export default {
   right: -10px;
   cursor: w-resize;
   z-index: 1;
+}
+.auto_center {
+  position: relative;
+  top: 50%;
+  background: #222;
+  transform: translateY(-50%);
+  max-height: 100%;
+}
+.fullScreen_container {
+  position: fixed;
+  background: #000;
+  height: 100%;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
 }
 </style>

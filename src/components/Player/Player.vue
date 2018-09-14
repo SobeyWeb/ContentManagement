@@ -34,7 +34,7 @@ export default {
   },
   computed: {
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     dvStyle () {
       return this.$store.state.detailviewSymbol ? this.$store.state.dvStyle : {}

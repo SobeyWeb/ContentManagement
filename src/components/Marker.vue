@@ -187,7 +187,7 @@ export default {
       return this.$store.state.userInfo
     },
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     lmLanguage () {
       return this.$store.state.lmLanguage

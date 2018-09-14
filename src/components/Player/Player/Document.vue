@@ -68,10 +68,10 @@ export default {
   },
   computed: {
     previewUrl () {
-      return urlConfig.CM + '/web/viewer.html?file='
+      return urlConfig.PROXY + '/static/web/viewer.html?file='
     },
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     isDvModel: {
       get () {

@@ -18,6 +18,7 @@ const createLintingRule = () => ({
     emitWarning: !config.dev.showEslintErrorsInOverlay
   }
 })
+const TransferWebpackPlugin = require('transfer-webpack-plugin')
 
 module.exports = {
   context: path.resolve(__dirname, '../'),
@@ -39,6 +40,12 @@ module.exports = {
       '@': resolve('src')
     }
   },
+  plugins: [
+    new TransferWebpackPlugin(
+      [{ from: 'web', to: 'web' }, { from: 'print-template', to: 'print' }],
+      path.join(__dirname, '../src')
+    )
+  ],
   module: {
     rules: [
       ...(config.dev.useEslint ? [createLintingRule()] : []),
@@ -61,7 +68,7 @@ module.exports = {
         loader: 'url-loader',
         options: {
           limit: 10000,
-          name: utils.assetsPath('img/[name].[hash:7].[ext]')
+          name: utils.assetsPath('img/[name].[ext]')
         }
       },
       {
@@ -69,7 +76,7 @@ module.exports = {
         loader: 'url-loader',
         options: {
           limit: 10000,
-          name: utils.assetsPath('media/[name].[hash:7].[ext]')
+          name: utils.assetsPath('media/[name].[ext]')
         }
       },
       {
@@ -77,7 +84,7 @@ module.exports = {
         loader: 'url-loader',
         options: {
           limit: 10000,
-          name: utils.assetsPath('fonts/[name].[hash:7].[ext]')
+          name: utils.assetsPath('fonts/[name].[ext]')
         }
       },
       {

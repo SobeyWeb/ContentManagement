@@ -491,5 +491,11 @@ export default {
       URLCONFIG.CMAPI + '/CMApi/api/basic/account/getcurrentuserinfo',
       para
     )
+  },
+  [TYPES.GET_USERPARAM](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/basic/config/getuserparam',
+      para
+    )
   }
 }

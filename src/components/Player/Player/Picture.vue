@@ -50,7 +50,7 @@ export default {
   },
   computed: {
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     isDvModel: {
       get () {

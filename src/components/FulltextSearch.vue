@@ -352,4 +352,9 @@ export default {
 .btn_container {
   line-height: 32px;
 }
+.checked_span.check_span::before{
+  opacity: 1;
+  -webkit-transform: translate3d(0,0,0) skewX(0deg);
+  transform: translate3d(0,0,0) skewX(0deg);
+}
 </style>

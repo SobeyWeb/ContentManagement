@@ -28,6 +28,214 @@ import $ from 'jquery'
 let md5 = require('../lib/md5.min.js').md5
 
 export default {
+  // 获取用户参数
+  [TYPES.GET_USERPARAM](context, payload) {
+    let url = API_CONFIG[TYPES.GET_USERPARAM](
+      {
+        usertoken: context.state.userInfo.usertoken
+      }
+    )
+    return new Promise((resolve, reject) => {
+      axios.post(url, {
+        loginname: context.state.userInfo.loginname,
+        system: payload.data.system,
+        tool: 'DEFAULT',
+        paramname: payload.data.paramname,
+        paramvalue: null
+      }).then(res => { //
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.UPLOAD_FILES](context, payload) {
+    var URL1 = URLCONFIG.CM + '/Handler/WebLargeFileUploadService.aspx'
+
+    var files = payload.data.files
+    console.log(files)
+
+    var father = payload.source || context.getters.currentNode
+    var nasPath = context.state.uploadPath + 'cmupload' + '/' + new Date().format('yyyy-MM-dd')
+
+    var uploadPath
+    if (/\\\\.*?\\/.test(nasPath)) { // 匹配unc路径
+      uploadPath = (appSetting.uploadPath + nasPath.split(/\\\\.*?\\/)[1]).replace(/\\/g, '/')
+    } else {
+      util.Notice.warning('There is not enough user space to upload', '', 3000)
+      return
+    }
+    if (context.state.sumSpace !== -1 && [].reduce.call(files, (i1, i2) => {
+      return {
+        size: i1.size + i2.size
+      }
+    }).size > (context.state.sumSpace - context.state.useSpace)) {
+      util.Notice.warning('There is not enough user space to upload', '', 3000)
+      return
+    }
+    uploadFolders(files, father)
+    function uploadFolders(files, father) {
+      upload([].filter.call(files, item => !item.children), father);
+      [].forEach.call(files, item => {
+        if (item.children) {
+          uploadFolders(item.children, father)
+        }
+      })
+    }
+    function upload(files, father) {
+      [].filter.call(files, i => i.size).forEach(item => {
+        var material = util.initData(item, father)
+        if (/image/.test(item.type)) {
+          material.type = 'image'
+          material.iconfilename = URL.createObjectURL(item)
+        } else if (/video/.test(item.type)) {
+          material.type = 'video'
+          var video = document.createElement('video')
+          video.setAttribute('src', URL.createObjectURL(item))
+          video.playbackRate = 0
+          video.mute = true
+          video.crossOrigin = 'anonymous'
+          video.currentTime = 0
+          video.oncanplay = function() {
+            video.play()
+          }
+          video.onplaying = function() {
+            var canvas = document.createElement('canvas')
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            var ct = canvas.getContext('2d')
+            ct.drawImage(video, 0, 0)
+            var icon = canvas.toDataURL('image/jpeg', 0.5)
+            material.iconfilename = icon
+            video.onplaying = null
+            video.pause()
+            video = null
+            canvas = null
+            ct = null
+          }
+        } else {
+          material.type = 'other'
+        }
+        var index = 0
+        var symbol = Symbol('upload')
+        context.commit({
+          type: TYPES.PUSH_EVENT,
+          data: {
+            type: TYPES.UPLOAD_FILES,
+            target: material
+          },
+          symbol: symbol
+        })
+        var fileSuffix = material.name.substring(material.name.lastIndexOf('.'), material.name.lastIndexOf('?') > -1 ? material.name.lastIndexOf('?') : undefined)
+        var name = Guid.NewGuid().ToString('N') + (fileSuffix === material.name ? '' : fileSuffix) // + material.name
+        var osspath = context.state.s3Path.replace('?', '/cmupload/' + new Date().format('yyyy-MM-dd') + '/' + name + '?') || null
+        util.cellUpload(URL1, uploadPath, material.file, name, osspath, (data) => {
+          index++
+          material.percent = Math.round(index / data.total * 100, 2)
+          if (index === data.total) {
+            // 此处可优化为发起拼接，防止多节点的情况下不拼接
+            $.ajax({
+              type: 'post',
+              url: URLCONFIG.CM + '/Handler/MaterialList.ashx',
+              data: {
+                OperationType: 'CombineFiles',
+                usertoken: context.userInfo.usercode,
+                name: data.name,
+                total: data.total,
+                path: uploadPath,
+                temp: appSetting.TEMPPATH,
+                osspath: osspath
+              },
+              dataType: 'json',
+              async: true,
+              complete: function() {
+                save()
+              },
+              success: function(data) {
+                if (data.R) {
+                  // resolve(data)
+                }
+              }
+            })
+            var retryTimes = 0
+            var filePath = ''
+            if (osspath) {
+              filePath = osspath
+            } else {
+              filePath = (nasPath + '\\' + data.name).replace(/\//g, '\\')
+            }
+            material.name = material.name.substring(0, material.name.lastIndexOf('.') === -1 ? undefined : material.name.lastIndexOf('.')) // qu houzui
+            let save = () => {
+              retryTimes++
+              context.dispatch({
+                type: TYPES.SAVE_OBJECTINFO,
+                data: {
+                  name: material.name,
+                  folderPath: father.path,
+                  filePath: filePath,
+                  fileType: material.file.type
+                },
+                source: material
+              }).then((res) => {
+                material.guid = res.data.ext.contentid
+                material.uploading = false
+                // 获取信息
+                util.updateMaterial(getRepository(father.guid), {
+                  guid: material.guid
+                }, context)
+                // 删除事件
+                context.commit({
+                  type: TYPES.DELETE_EVENT,
+                  symbol: symbol
+                })
+              }).catch((res) => {
+                // 提示上传失败 是否删除material？ 或者支持重新上传或者入库 暂时只支持单个素材上传的重试
+                if (retryTimes < 1) { // 先自己重试3次
+                  save()
+                } else {
+                  util.Model.confirm(material.name + ' save object failed，try again?', '', save,
+                    () => {
+                      context.commit({
+                        type: TYPES.RECOVERY_EVENT,
+                        symbol: symbol
+                      })
+                    },
+                    {
+                      large: true, // Boolean
+                      cancelButton: {
+                        show: true, // Boolean
+                        type: '', // String 请参考 Button
+                        text: 'Cancel' // String
+                      },
+                      confirmButton: {
+                        show: true,
+                        type: 'primary',
+                        text: 'Confirm'
+                      }
+                    })
+                }
+              })
+            }
+          }
+        // 更新进度
+        // 此处应push event  失败再回退，成功则更新material
+        // 入库
+        }, () => {
+          // 上传失败
+          util.Notice.failed('Failed to upload clip', '', 3000)
+          context.commit({
+            type: TYPES.RECOVERY_EVENT,
+            symbol: symbol
+          })
+        })
+        material.uploading = true
+        getRepository(father.guid).push(material)
+        util.forceUpdate(father.guid)
+      })
+    }
+  },
   [TYPES.GET_SEARCHMODEL](context, payload) {
     return context
       .dispatch({

@@ -203,7 +203,7 @@ export default {
       return this.$store.state.userInfo.permission && this.$store.state.userInfo.permission.indexOf(PERMISSION.EXPORT) > -1
     },
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     previewStatus () {
       return this.$store.getters.previewStatus
@@ -1334,9 +1334,7 @@ export default {
       })
       document.querySelector('.auto_center').appendChild(this.$el)
       this.$store.state.fullscreenSymbol = true
-      this.$nextTick(() => {
-        util.enterFullscreen()
-      })
+      util.enterFullscreen()
     },
     exitFullscreen () {
       this.options.source.forEach(item => {

@@ -289,7 +289,7 @@ export default {
       return this.$store.state.isMarker
     },
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     position () {
       var p = {}

@@ -4439,7 +4439,7 @@ export function getFileList (entity, material, type, order) {
     item.displayOut = getTimeString(item.clipout, videostandard, ntsctcmode, framerate)
     item.displayEOF = getTimeString(item.fileout, videostandard, ntsctcmode, framerate)
     item.displaySOF = getTimeString(item.filein, videostandard, ntsctcmode, framerate)
-    if ([ET_CLIP_CLASS_CC, ET_CLIP_CLASS_KEY, ET_CLIP_CLASS_TC, ET_CLIP_CLASS_G, ET_CLIP_CLASS_CLIP].indexOf(item.clipclass) > -1 || material.type === 'image') {
+    if ([ET_CLIP_CLASS_CC, ET_CLIP_CLASS_KEY, ET_CLIP_CLASS_TC, ET_CLIP_CLASS_G, ET_CLIP_CLASS_CLIP].indexOf(item.clipclass) > -1) {
       item.displayQuality = ''
     // item.displayPassage = ''
     }

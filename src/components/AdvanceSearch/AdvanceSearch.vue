@@ -90,7 +90,7 @@ export default {
       return this.$store.state.advanceSearchHeaders
     },
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     curTab () {
       var header = this.headers && this.headers.filter(item => item.selected)[0]

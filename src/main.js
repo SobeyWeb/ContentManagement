@@ -12,6 +12,7 @@ import hotkeys from 'hotkeys-js'
 import eventPlugin from './plugins/eventPlugin.js'
 import EVENT from './dicts/eventTypes.js'
 import TYPES from './dicts/mutationTypes'
+import urlConfig from './config/urlConfig'
 import './lib/prototype.js'
 
 import './assets/css/rest.css'
@@ -112,6 +113,7 @@ new Vue({
       window.$app = this.$app
       window.$app.EVENT = EVENT
       window.$app.userInfo = this.$store.state.userInfo
+      window.URL_CONFIG = urlConfig
     },
     initDefaultEvent() {
       this.$app.MATERIAL_DRAGSTART_DEFAULT = this.materialDragStart

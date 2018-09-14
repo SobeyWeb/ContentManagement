@@ -51,7 +51,7 @@ export default {
   },
   computed: {
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     readonly () {
       return this.materials.some(item => (item.subtype === 256 || util.getAllFather(item).some(i => i.subtype === 256) || item.floor === 1 || (item.father && item.father.guid === 0) || item.readonly)) // OA  第一级的folders
