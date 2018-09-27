@@ -42,7 +42,11 @@ module.exports = {
   },
   plugins: [
     new TransferWebpackPlugin(
-      [{ from: 'web', to: 'web' }, { from: 'print-template', to: 'print' }],
+      [
+        { from: 'web', to: 'web' },
+        { from: 'build', to: 'build' },
+        { from: 'print-template', to: 'print' }
+      ],
       path.join(__dirname, '../src')
     )
   ],

@@ -68,7 +68,7 @@ export default {
   },
   computed: {
     previewUrl () {
-      return urlConfig.PROXY + '/static/web/viewer.html?file='
+      return urlConfig.PROXY + '/web/viewer.html?file='
     },
     isPremiere () {
       return this.$store.state.system !== 'WEBCM'
