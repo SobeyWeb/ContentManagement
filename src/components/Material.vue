@@ -1,7 +1,7 @@
 <template>
   <div class="material fl" :class="[material.type, material.clipping ? 'material_clipping' : '', material.selected ? 'material_selected' : '', material.dragOvering ? 'material_dragOver' : '']" @dblclick="dblclick" @touchstart="dblclick" @dragstart.stop="dragStart" @dragend.stop="dragEnd" @mousedown.stop.capture="mousedown" @mouseup="mouseup" @contextmenu.stop.prevent="contextMenu" @drop.prevent.stop="drop" @dragover.stop.prevent="dragover" @dragenter.prevent="dragenter" @dragleave.prevent="dragleave" :data-id="material.guid" :style="thumbnailStyle" :draggable="material.selected&&!material.renaming&&(material.operations.some(function(item){return ['Cut', 'Copy', 'Delete'].indexOf(item)>-1})||isPremiere)">
     <div class="material_status">
-      <div v-if="material.type =='video'">
+      <div v-if="material.type==='video'||material.type==='image'">
         <span class="status_item hq" :class="{hq1:!material.HQ}" v-show="material.HQ"></span>
         <span class="status_item lq" :class="{lq1:!material.LQ}" v-show="material.LQ"></span>
         <span class="status_item i" :class="{i1:!material.I}" :title="material.Ititle" v-if="material.I&&!material.isAudio" v-show="material.I"></span>
@@ -24,7 +24,7 @@
     </div>
     <div class="material_info" @dragstart.stop>
       <span class="material_name_span" v-if="!material.renaming" @dblclick.stop.left="activeInput" :title="material.name" v-html="showSearch?material.name.replace(regExp, search?'<mark>$&</mark>':'$&'):isHighLight && material.name_hl && material.name === material.name_hl.replace(/<[^>]+>/g, '') ? material.name_hl : material.name"></span>
-      <input class="rename_input" v-focus :val="material.name" maxlength="255" v-else type="text" @keyup="volidInput" @keydown.enter.stop="rename" @blur.stop.prevent="rename" @dblclick.stop @contextmenu.stop @dragstart.stop @selectstart.stop @mousedown.stop @keydown.tab.prevent/>
+      <input class="rename_input" v-focus :val="material.name" maxlength="255" v-else type="text" @keyup="volidInput" @keydown.enter.stop="rename" @blur.stop.prevent="rename" @dblclick.stop @contextmenu.stop @dragstart.stop @selectstart.stop @mousedown.stop @keydown.tab.prevent />
     </div>
   </div>
 </template>

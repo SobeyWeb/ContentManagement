@@ -34,9 +34,9 @@
       <span class="list_sort_btn btn_up" v-if="!listOrder.disabled&&listOrder.symbol&&(header.attr===listOrder.type||(['totalDuration', 'length', 'trimin', 'trimout'].indexOf(header.attr) > -1 && 'f' + header.attr === listOrder.type))"></span>
       <span class="list_sort_btn btn_down" v-if="!listOrder.disabled&&!listOrder.symbol&&(header.attr===listOrder.type||(['totalDuration', 'length', 'trimin', 'trimout'].indexOf(header.attr) > -1 && 'f' + header.attr === listOrder.type))"></span>
       <span class="drag_area fr" v-on:mousedown.stop="resize($event, header)"></span>
-      <!-- <rd-select :select="header.option"></rd-select> -->
-      <!-- <date-time-filter :header="header"></date-time-filter> -->
-      <!-- <enum-filter :header="header"></enum-filter> -->
+      <span v-if="['totalDuration', 'length', 'trimin', 'triminout'].indexOf(header.attr>-1)" @mousedown.stop="filterClick($event, header)" class="filter-icon">
+        <i style="line-height:30px;" class="el-select__caret" :class="(!$store.state.operatingFilterData.visible||header.attr!==$store.state.operatingFilterData.header.attr)&&$store.state.filterHeaders.find(item=>item.attr===header.attr)&&$store.state.filterHeaders.find(item=>item.attr===header.attr).values.length?'el-icon-check':'el-icon-search'"></i>
+      </span>
       <span>{{header.name}}</span>
     </div>
     <div class="list_header_item dragging_item" v-show="dragging" :style="{left: x + 'px', width: dragItem.width + 'px'}">
@@ -83,6 +83,14 @@ export default {
     }
   },
   methods: {
+    filterClick (event, header) {
+      this.$store.state.operatingFilterData.header = this.$store.state.filterHeaders.find(item => item.attr === header.attr)
+      this.$store.state.operatingFilterData.position = {
+        x: event.x,
+        y: event.y
+      }
+      this.$store.state.operatingFilterData.visible = !this.$store.state.operatingFilterData.visible
+    },
     moveScrollbar (event) {
       if (event.deltaY < 0) {
         this.$parent.$refs.materialScollbar.normalizeHorizontal(this.$parent.$refs.materialScollbar.left - 100)
@@ -331,7 +339,7 @@ export default {
   white-space: nowrap;
   width: 200px;
   position: relative;
-  cursor: default;
+  cursor: pointer5p;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -356,40 +364,46 @@ export default {
   /*隐藏文字，仿windows*/
 }
 
+.list_header_item_clicking:hover {
+  background-color: #363636;
+  border-left: 1px solid #1b1b1b;
+  box-shadow: 0 1px 8px #101010;
+  color: #fff;
+  /*隐藏文字，仿windows*/
+}
+
 .list_header_item_checked {
   background: #363636;
   box-shadow: 0 1px 4px #1b1b1b;
 }
 
 .list_sort_btn {
-  opacity: 0;
   width: 0;
   height: 0;
   border: 5px solid transparent;
   cursor: pointer;
   position: absolute;
+  left: 50%;
+  margin-left: -5px;
 }
 
 .btn_up {
   border-bottom: 5px solid #ffffff;
-  top: 0;
-  right: 8px;
+  top: -3px;
 }
 
 .btn_down {
   border-top: 5px solid #ffffff;
-  top: 15px;
-  right: 8px;
-}
-
-.list_header_item:hover .list_sort_btn {
-  opacity: 1;
+  top: 2px;
 }
 
 .btn_up:hover {
   border-bottom: 5px solid #f89b39;
 }
 
+.btn_down:hover {
+  border-top: 5px solid #f89b39;
+}
 .btn_down:hover {
   border-top: 5px solid #f89b39;
 }
@@ -418,5 +432,12 @@ export default {
   position: absolute;
   cursor: pointer;
   background: url(../assets/images/sort_icon.png) no-repeat center center;
+}
+.filter-icon {
+  position: absolute;
+  right: 3px;
+  top: 0;
+  width: 20px;
+  height: 30px;
 }
 </style>

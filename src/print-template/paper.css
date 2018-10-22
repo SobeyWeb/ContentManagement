@@ -27,12 +27,12 @@ body.A3.landscape .sheet {
 
 body.A4 .sheet {
   width: 210mm;
-  height: 296mm
+  /* height: 296mm */
 }
 
 body.A4.landscape .sheet {
   width: 297mm;
-  height: 209mm
+  /* height: 209mm */
 }
 
 body.A5 .sheet {

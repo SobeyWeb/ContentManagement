@@ -194,6 +194,10 @@ export default {
               }
             } else if (!k.readonly) {
               k.bakValue = k.value
+              k.bakDisplayValue = k.displayValue
+              if (k.options) { // duoji xiala
+                k.bakOptions = JSON.stringify(k.options)
+              }
               k.bakChecked = k.checked
               if (k.multiplable) {
                 k.multiOption.bakChecked = k.multiOption.checked
@@ -282,6 +286,10 @@ export default {
               }
             } else if (!k.readonly) {
               k.value = k.bakValue
+              k.displayValue = k.bakDisplayValue
+              if (k.options) { // duoji xiala
+                k.options = JSON.parse(k.bakOptions)
+              }
               k.checked = k.bakChecked
               if (k.multiplable) {
                 k.multiOption.checked = k.multiOption.Bakchecked

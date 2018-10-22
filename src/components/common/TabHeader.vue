@@ -288,7 +288,7 @@ export default {
   white-space: nowrap;
   width: 200px;
   position: relative;
-  cursor: default;
+  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

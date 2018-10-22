@@ -16,6 +16,12 @@
     <trim ref="saveClip"></trim>
     <export ref="export"></export>
     <save-search ref="saveSearch"></save-search>
+    <component :is="printTemplate" ref="printer"></component>
+    <div class="relation-container" ref="relationsTable">
+      <vue-nice-scrollbar style="height: 800px;" :speed="150">
+        <relation-table :dept="dept" :data="relations" :source="selectedMaterials[0]||{}"></relation-table>
+      </vue-nice-scrollbar>
+    </div>
     <!--left block-->
     <div class="left_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?0:- leftTreeWidth)+'px', width: leftTreeWidth + 'px'}">
       <div class="resize_handle" @mousedown.stop.prevent.capture="resizeMousedown"></div>
@@ -41,7 +47,7 @@
         <input type="button" class="advance_search" v-on:click="openAdvanceSearch" :value="'Advanced Search'" />
         <input type="button" class="task_monitor" :value="'Task Monitor'" v-on:click="taskMonitor" />
         <input type="button" class="task_monitor" :value="'Web Quick Editing'" v-on:click="gotoJove" v-show="!isPremiere" />
-        <input type="button" v-if="false" class="task_monitor" value="Order List" v-on:click="oderList" @drop.prevent="add2OderList" @dragenter.prevent @dragover.prevent="dragover" @dragleave.prevent/>
+        <input type="button" v-if="false" class="task_monitor" value="Order List" v-on:click="oderList" @drop.prevent="add2OderList" @dragenter.prevent @dragover.prevent="dragover" @dragleave.prevent />
         <div class="fr">
           <div class="hidden_bar">
             <span class="xx_icon fr" v-show="false" @click="localTaskStatus = !localTaskStatus">
@@ -139,11 +145,14 @@
               <span class="display_excute_btn display_btn" v-show="searchType!==1" title="Research" @click.prevent="reSearch"></span>
               <span class="display_modify_btn display_btn" v-show="searchType===1" title="Modify search condition" @click.prevent="modifySeachCondition"></span>
               <span class="display_save_btn display_btn" title="Save search template" @click.prevent="saveSeachCondition"></span>
+              <span class="display_save_btn display_btn" title="Save search template" @click.prevent="printSearchResult"></span>
             </div>
           </div>
         </transition>
         <div class="list_headers_box">
           <list-material-header v-show="listSymbol"></list-material-header>
+          <header-filter ref="listFilter" v-show="listSymbol"></header-filter>
+          <div style="width:100%;height:100%;background-color:#000;position:fixed;;top:0;left:0;z-index:10049;opacity:0;" v-if="$store.state.operatingFilterData.visible" @mousedown="$store.state.operatingFilterData.visible=false"></div>
         </div>
         <vue-nice-scrollbar ref="materialScollbar" class="scrollbar_container" :class="{focused: !isFocusTree, blur: loading}" :speed="150" @click="focusMaterialList">
           <div ref="materialBox" class="material_box clearfix" :class="{list_material_box:listSymbol, marker_material_box: currentCtrl=='marker-ctrl'}" :style="{marginLeft: thumbPadding + 'px', marginRight: thumbPadding + 'px'}" @click="focusMaterialList" @mousedown="dragStart">
@@ -169,6 +178,7 @@
       </div>
     </div>
     <iframe class="taskmonitorifm" ref="taskmonitor" :src="taskMonitorUrl"></iframe>
+    <iframe id="printer"></iframe>
   </div>
 </template>
 
@@ -203,7 +213,10 @@ import PublishToSNS from './PublishToSNS'
 import registerToOA from './RegisterToOA/RegisterToOA'
 import Trim from './Trim'
 import Export from './Export'
+import RelationTable from './RelationTable'
 import SaveSearchResult from './SaveSearchResult'
+import HeaderFilter from './HeaderFilter/HeaderFilter'
+import SearchTemplate from './Print/Search'
 import appSetting from '../config/appSetting.js'
 import axios from 'axios'
 import urlConfig from '../config/urlConfig.js'
@@ -227,11 +240,15 @@ export default {
     'regiter-tooa-ctrl': registerToOA,
     'export': Export,
     'trim': Trim,
-    'save-search': SaveSearchResult
+    'save-search': SaveSearchResult,
+    'relation-table': RelationTable,
+    'search-template': SearchTemplate,
+    'header-filter': HeaderFilter
   },
   data () {
     return {
       noUseHandler: () => { },
+      printTemplate: 'search-template',
       taskMonitorUrl: '',
       tempIndex: 0,
       sortByStatus: false,
@@ -263,7 +280,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['detailviewSymbol', 'previewDragSymbol', 'bakCondition', 'userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'isMarker', 'linkNodes', 'player', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
+    ...mapState(['dept', 'relations', 'detailviewSymbol', 'previewDragSymbol', 'bakCondition', 'userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'isMarker', 'linkNodes', 'player', 'loading', 'thumbnailStyle', 'scaleTime', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
     ...mapGetters(['currentNode', 'selectedNode', 'searchResult', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
     scaleTime: {
       get () {
@@ -272,6 +289,9 @@ export default {
       set (val) {
         this.$store.state.scaleTime = val
       }
+    },
+    thumbPadding () {
+      return this.currentCtrl === 'material-ctrl' ? this.$store.state.thumbPadding : 0
     },
     previewSymbol: {
       get () {
@@ -354,7 +374,7 @@ export default {
       return 'material'
     },
     materials () {
-      return this.$store.getters.displayMaterials
+      return this.$store.getters.filteredMaterials
     },
     stand () {
       return this.$store.getters.thumbDisplay
@@ -436,6 +456,11 @@ export default {
     }
   },
   methods: {
+    printSearchResult () {
+      this.$open('A4', {
+        REPLACEMENT_CONTENT: this.$refs.printer.$el.innerHTML
+      })
+    },
     resizeTaskMonitor () {
       if (this.taskMonitorWindow && this.taskMonitorWindow.visible) {
         let bw = $($('.h5.window')[0].parentElement).width()
@@ -807,7 +832,7 @@ export default {
         clearInterval(this.flIntervalId)
         clearInterval(this.heartbeateIntervalId)
       }
-      if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0) {
+      if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0 || Object.getOwnPropertyNames(this.$store.state.eventArray).length > 1) {
         util.Model.confirm('Some Tasks Are Executing', 'Are You Sure to Logout', lo,
           () => {
           }, {
@@ -1895,6 +1920,10 @@ export default {
         content: this.$refs.export.$el,
         title: 'Export'
       })
+      this.$store.state.relationsWindow = new ModalWindow({
+        content: this.$refs.relationsTable,
+        title: 'One Generation'
+      })
       this.$store.dispatch({
         type: TYPES.GET_SEARCH_QUERY
       }).then(res => {
@@ -2374,7 +2403,7 @@ export default {
       this.startHeartbeate()
       this.bindEvents()
       this.checkTaskId = setInterval(() => {
-        if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0 || (this.$store.state.property && this.$store.state.property.editing)) {
+        if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0 || (this.$store.state.property && this.$store.state.property.editing) || Object.getOwnPropertyNames(this.$store.state.eventArray).length > 1) {
           window.onbeforeunload = window.onbeforeunload || function (e) {
             return 'Some Task are Excuting...'
           }
@@ -2434,6 +2463,7 @@ export default {
   top: 0;
   bottom: 0;
   right: 0;
+  z-index: 3;
 }
 .right_container .top_box {
   height: 49px;
@@ -2969,5 +2999,15 @@ export default {
   left: 0;
   top: 0;
   width: 100%;
+}
+.relation-container {
+  height: 800px;
+  width: 1000px;
+  background: #222;
+  padding: 20px;
+}
+.filter-container {
+  position: fixed;
+  z-index: 10050;
 }
 </style>

@@ -1,9 +1,26 @@
-import { throttle, debounce, getCookie } from '../lib/util'
+import {
+  throttle,
+  debounce,
+  getCookie
+} from '../lib/util'
 import treeNode from '../data/treeNode'
-import { emptyMaterial } from '../data/basicData'
+import {
+  emptyMaterial
+} from '../data/basicData'
 import EVENT from '../dicts/eventTypes'
 
 export default {
+  operatingFilterData: {
+    visible: false,
+    header: {
+      width: 0
+    },
+    position: {
+      x: 0,
+      y: 0
+    }
+  },
+  filterHeaders: [],
   lastCheckedHeaderName: '',
   system: 'WEBCM',
   player: null,
@@ -20,14 +37,14 @@ export default {
   ws_materials: [],
   refreshFunc: throttle(
     3000,
-    function() {
+    function () {
       this.property.refresh()
     },
     true
   ),
   materialSelectionChangeFunc: debounce(
     300,
-    function() {
+    function () {
       window.$app.emit(
         EVENT.MATERIAL_SELECTED,
         this.selectedMaterials.map(item => {
@@ -49,7 +66,7 @@ export default {
   ),
   markSelectionChangeFunc: debounce(
     300,
-    function() {
+    function () {
       window.$app.emit(
         EVENT.MARKER_SELECTED,
         this.selectedMarkers.map(item => {
@@ -131,6 +148,9 @@ export default {
   },
   exportWindow: {},
   markerExportWindow: null,
+  dept: 'to',
+  relations: [],
+  relationsWindow: null,
   exportInfo: {
     isSaveFrame: false,
     isUseDefault: true,
@@ -227,8 +247,7 @@ export default {
   eventArray: {},
   excutingTask: [],
   complateTask: [],
-  hightLight: [
-    {
+  hightLight: [{
       name: 'Title',
       attr: 'name'
     },
@@ -242,8 +261,7 @@ export default {
     }
   ],
   customKeys: [],
-  headers: [
-    {
+  headers: [{
       name: 'Tittle',
       attr: 'name',
       width: 200,

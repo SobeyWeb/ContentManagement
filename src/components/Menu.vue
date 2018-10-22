@@ -180,8 +180,11 @@ export default {
         name: 'Generate Proxy',
         action: TYPES.DISPATCH_GENERATE_PROXY
       }, {
-        name: 'One Generation',
+        name: 'Next One Generation',
         action: TYPES.DISPATCH_ONE_GENERATION
+      }, {
+        name: 'Previous One Generation',
+        action: TYPES.DISPATCH_PREVIOUS_ONE_GENERATION
       }
       ]
     }

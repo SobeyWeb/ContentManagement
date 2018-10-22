@@ -6,9 +6,9 @@ export default {
     return URLCONFIG.PROXY + '/ip'
   },
   [TYPES.LOGIN](isDomain) {
-    return isDomain
-      ? URLCONFIG.CMAPI + '/CMApi/api/v2/basic/account/login'
-      : URLCONFIG.CMAPI + '/CMApi/api/basic/account/login'
+    return isDomain ?
+      URLCONFIG.CMAPI + '/CMApi/api/v2/basic/account/login' :
+      URLCONFIG.CMAPI + '/CMApi/api/basic/account/login'
   },
   [TYPES.GET_USERINFOBYID](para) {
     return util.getUrl(
@@ -37,7 +37,7 @@ export default {
   [TYPES.GET_NASPATH](para) {
     return util.getUrl(
       URLCONFIG.CMAPI +
-        '/CMApi/api/basic/user/getcurrentusercanwritepathbycondition',
+      '/CMApi/api/basic/user/getcurrentusercanwritepathbycondition',
       para
     )
   },
@@ -89,8 +89,8 @@ export default {
   [TYPES.GET_SNSCONFIG](para) {
     return util.getUrl(
       URLCONFIG.CMAPI +
-        '/CMApi/api/basic/account/getuserextendattributes/' +
-        para.userid
+      '/CMApi/api/basic/account/getuserextendattributes/' +
+      para.userid
     )
   },
   [TYPES.GET_OBJECT_INFO](para) {
@@ -339,7 +339,7 @@ export default {
   [TYPES.GET_TRASHCAN_OBJECT_INFO](para) {
     return util.getUrl(
       URLCONFIG.CMAPI +
-        '/CMApi/api/entity/object/recycleresourcesearchbycontentid',
+      '/CMApi/api/entity/object/recycleresourcesearchbycontentid',
       para
     )
   },
@@ -495,6 +495,12 @@ export default {
   [TYPES.GET_USERPARAM](para) {
     return util.getUrl(
       URLCONFIG.CMAPI + '/CMApi/api/basic/config/getuserparam',
+      para
+    )
+  },
+  [TYPES.GET_GENERATION](para) {
+    return util.getUrl(
+      URLCONFIG.CMAPI + '/CMApi/api/relation/queryonegeneration',
       para
     )
   }

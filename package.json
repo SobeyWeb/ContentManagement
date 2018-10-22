@@ -15,7 +15,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "element-theme-chalk": "^2.4.6",
-    "element-ui": "^2.4.6",
+    "element-ui": "^2.4.8",
     "hotkeys-js": "^3.3.7",
     "jquery": "^3.3.1",
     "npm": "^6.4.1",

@@ -1,8 +1,15 @@
-import { SortLikeWin, SortLikeWinBy } from './sort.js'
+import {
+  SortLikeWin,
+  SortLikeWinBy
+} from './sort.js'
 import {
   getclipclassType,
   getChannelType,
-  ET_CLIP_CLASS_CC, ET_CLIP_CLASS_KEY, ET_CLIP_CLASS_TC, ET_CLIP_CLASS_G, ET_CLIP_CLASS_CLIP,
+  ET_CLIP_CLASS_CC,
+  ET_CLIP_CLASS_KEY,
+  ET_CLIP_CLASS_TC,
+  ET_CLIP_CLASS_G,
+  ET_CLIP_CLASS_CLIP,
   getdbeTrack,
   getDbePassage,
   ET_CLIP_CLASS_V,
@@ -27,7 +34,11 @@ import {
   GetMillSecondsByFrameNum,
   ETGetFrameRate
 } from '../lib/format.js'
-import { frameToTime, GetEntityType } from './transform.js'
+import {
+  frameToTime,
+  GetArchiveStatus,
+  GetEntityType
+} from './transform.js'
 import state from '../store/state.js'
 import store from '../store'
 import URLCONFIG from '../config/urlConfig.js'
@@ -42,7 +53,9 @@ import {
 } from '../data/repository'
 import ltcRepository from '../data/ltcRepository'
 import vitcRepository from '../data/vitcRepository'
-import { defaultQuery } from '../data/basicData'
+import {
+  defaultQuery
+} from '../data/basicData'
 import EVENT from '../dicts/eventTypes'
 import Guid from './Guid'
 import $ from 'jquery'
@@ -86,7 +99,7 @@ export function getValue() {
 export function throttle(delay, action, immediately) {
   let last = 0
   let id = -1
-  return function() {
+  return function () {
     if (last === 0 && immediately) {
       action.apply(this, arguments)
     }
@@ -129,7 +142,7 @@ export function sortBy(arr, type, symbol, flag) {
   if (!flag) {
     let specialArr = arr.filter(
       item =>
-        item.type === 'folder' && [292, 293, 294].indexOf(item.subtype) > -1
+      item.type === 'folder' && [292, 293, 294].indexOf(item.subtype) > -1
     )
     if (specialArr.length) {
       specialArr.forEach(item => arr.remove(item))
@@ -179,10 +192,10 @@ export function sortBy(arr, type, symbol, flag) {
         .reverse()
         .concat(
           otherArr
-            .sort((item1, item2) => {
-              return item1.createdate - item2.createdate
-            })
-            .reverse()
+          .sort((item1, item2) => {
+            return item1.createdate - item2.createdate
+          })
+          .reverse()
         )
     }
     return arr
@@ -314,7 +327,7 @@ export function packegeCustomSearchData(serverCondition) {
         type: item.dataType,
         placeholder: ''
       }
-      item.from.limit = function(value) {
+      item.from.limit = function (value) {
         if (typeof item.to.value === 'number') {
           if (item.to.value < value) {
             return item.to.value
@@ -330,7 +343,7 @@ export function packegeCustomSearchData(serverCondition) {
         type: item.dataType,
         placeholder: ''
       }
-      item.to.limit = function(value) {
+      item.to.limit = function (value) {
         if (typeof item.from.value === 'number') {
           if (value < item.from.value) {
             return item.from.value
@@ -350,11 +363,10 @@ export function packegeCustomSearchData(serverCondition) {
       item.options = item.options || []
       if (item.dataType === 'boolean') {
         item.multiple = false
-        item.value = item.value || {}
+        item.value = item.value || {};
         !item.options.length &&
           item.options.push(
-            ...[
-              {
+            ...[{
                 selected: true,
                 disabled: false,
                 value: 'None',
@@ -378,7 +390,7 @@ export function packegeCustomSearchData(serverCondition) {
             ]
           )
       } else {
-        item.multiple = true
+        item.multiple = item.multiple === void 0 ? item.multiple : true;
         !item.options.length &&
           (item.enumContents || item.fixItems).forEach(i => {
             item.options.push({
@@ -401,10 +413,7 @@ export function packegeCustomSearchData(serverCondition) {
         autoPosition: true,
         quickClose: true,
         timePicker: item.fieldtype === 'DateTime',
-        format:
-          item.fieldtype === 'DateTime'
-            ? 'YYYY-MM-DD HH:mm:ss'
-            : 'YYYY-MM-DD 00:00:00', // YYYY/MM/DD HH:mm:ss
+        format: item.fieldtype === 'DateTime' ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD 00:00:00', // YYYY/MM/DD HH:mm:ss
         monthList: [
           'January',
           'February',
@@ -449,10 +458,7 @@ export function packegeCustomSearchData(serverCondition) {
         autoPosition: true,
         quickClose: true,
         timePicker: item.fieldtype === 'DateTime',
-        format:
-          item.fieldtype === 'DateTime'
-            ? 'YYYY-MM-DD HH:mm:ss'
-            : 'YYYY-MM-DD 23:59:59', // YYYY/MM/DD HH:mm:ss
+        format: item.fieldtype === 'DateTime' ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD 23:59:59', // YYYY/MM/DD HH:mm:ss
         monthList: [
           'January',
           'February',
@@ -495,7 +501,7 @@ export function packegeCustomSearchData(serverCondition) {
       item.from = item.from || {}
       item.to = item.to || {}
       item.from.value = item.from.value || ''
-      item.from.limit = function(value) {
+      item.from.limit = function (value) {
         if (item.to.value) {
           if (value > item.to.value) {
             return item.to.value
@@ -505,7 +511,7 @@ export function packegeCustomSearchData(serverCondition) {
       }
       item.from.format = item.to.format = 'HH:mm:ss'
       item.to.value = item.to.value || ''
-      item.to.limit = function(value) {
+      item.to.limit = function (value) {
         if (item.from.value) {
           if (value < item.from.value) {
             return item.from.value
@@ -575,13 +581,12 @@ export function getDptUserTree(deptArr, userArr, dptid) {
   let tree = []
 
   function arrToTree(arr, userArr, superId, tree, floor) {
-    if (!arr.length) {
-    } else {
-      arr.forEach(function(item, index) {
+    if (!arr.length) {} else {
+      arr.forEach(function (item, index) {
         if (item.dept.superid === superId) {
           item.dept.childdept = []
           item.dept.userlist = []
-          userArr.forEach(function(i) {
+          userArr.forEach(function (i) {
             if (
               i.organizations &&
               i.organizations[0] &&
@@ -621,7 +626,7 @@ export function throttleAjax(ajaxArr, maxCount, cantCancel) {
     maxCount = maxCount || 5
     let count = 0
     let promiseArr = []
-    let id = setInterval(function() {
+    let id = setInterval(function () {
       if (count < maxCount && ajaxArr.length > 0) {
         count++
         let action = ajaxArr.shift()
@@ -767,11 +772,11 @@ export function extendData(sdata, node) {
   //  Storage Status
   if (clipData.type === 32) {
     node.onlinstatus =
-      clipData.archivestatus === undefined
-        ? 'Online'
-        : clipData.archivestatus === 'online_deleted'
-          ? 'Archived'
-          : 'Online'
+      clipData.archivestatus === undefined ?
+      'Online' :
+      clipData.archivestatus === 'online_deleted' ?
+      'Archived' :
+      'Online'
   } else if (clipData.type === 64) {
     node.onlinstatus = 'Online'
     node.archivetarget = 'Online'
@@ -782,14 +787,14 @@ export function extendData(sdata, node) {
     if (_filestatus & FileStatus.ET_Obj_FS_WA) {
       // WA类型的单独处理
       node.clipStatus =
-        clipData.item.capturestatus === undefined
-          ? 'Normal'
-          : GetClipStatus(clipData.item.capturestatus)
+        clipData.item.capturestatus === undefined ?
+        'Normal' :
+        GetClipStatus(clipData.item.capturestatus)
     } else {
       node.clipStatus =
-        clipData.item.capturestatus === undefined
-          ? ''
-          : GetClipStatus(clipData.item.capturestatus)
+        clipData.item.capturestatus === undefined ?
+        '' :
+        GetClipStatus(clipData.item.capturestatus)
     }
   }
   // HV
@@ -1139,8 +1144,7 @@ export function parseData(arr, father, option) {
         item.bgcolor = {
           background: 'rgb(' + RedColor + ',' + Gcolor + ',' + Bcolor + ')'
         }
-      } else {
-      }
+      } else {}
       if (item.type === 4) {
         item.typeName = 'Scene Mark'
         item.flag = 'smarker'
@@ -1177,8 +1181,7 @@ export function parseData(arr, father, option) {
         item.extendinfo = item.extendinfo || []
         item._extendinfo = item.extendinfo.groupBy('itemtype')
         if (!item._extendinfo || item._extendinfo.length < 3) {
-          ;[
-            {
+          [{
               itemtype: 0,
               itemname: 'Title',
               itemvalue: []
@@ -1246,12 +1249,12 @@ export function parseData(arr, father, option) {
         node.guid = item.entity.guid || 3
         node.id = item.entity.id
         node.name = item.entity.name || item.entity.key
-        node.iconfilename = item.entity.iconfilename
-          ? item.entity.iconfilename
-          : node.iconfilename
-        node.previewicon = item.entity.slideiconfilename
-          ? item.entity.slideiconfilename
-          : node.previewicon
+        node.iconfilename = item.entity.iconfilename ?
+          item.entity.iconfilename :
+          node.iconfilename
+        node.previewicon = item.entity.slideiconfilename ?
+          item.entity.slideiconfilename :
+          node.previewicon
         node.subtype = item.entity.subtype
         node.highgroupstatus = item.entity.highgroupstatus
         node.lowgroupstatus = item.entity.lowgroupstatus
@@ -1260,8 +1263,7 @@ export function parseData(arr, father, option) {
           item.metadata.original &&
           item.metadata.original.createdate
         if (node.recordingDate) {
-          node.recordingDate =
-            +new Date(node.recordingDate) > 0 ? node.recordingDate : ''
+          node.recordingDate = +new Date(node.recordingDate) > 0 ? node.recordingDate : ''
         }
         node.type = getMaterialType(item.entity)
         if (
@@ -1332,7 +1334,7 @@ export function parseData(arr, father, option) {
               node.dbestreamchannel = item.entity.dbestreamchannel
               if (
                 (item.entity.item.filestatus & FileStatus.ET_Obj_FS_HA_ALL) >
-                  0 ||
+                0 ||
                 (item.entity.item.filestatus & FileStatus.ET_Obj_FS_HV_ALL) > 0
               ) {
                 node.HQ = true
@@ -1341,7 +1343,7 @@ export function parseData(arr, father, option) {
               }
               if (
                 (item.entity.item.filestatus & FileStatus.ET_Obj_FS_LV_ALL) >
-                  0 ||
+                0 ||
                 (item.entity.item.filestatus & FileStatus.ET_Obj_FS_LA_ALL) > 0
               ) {
                 node.LQ = true
@@ -1451,8 +1453,8 @@ export function parseData(arr, father, option) {
   if (appSetting.USEROOTPATH && father.path === appSetting.ROOTPATH) {
     newArr = newArr.filter(
       item =>
-        item.name.toLowerCase() === 'public' ||
-        item.name.toLowerCase() === 'private'
+      item.name.toLowerCase() === 'public' ||
+      item.name.toLowerCase() === 'private'
     )
   }
   return newArr
@@ -1465,8 +1467,8 @@ export function getRight(entity, node) {
     state.userInfo.roleType ||
     state.userInfo.usercode === node.creatorCode ||
     node.creatorCode ===
-      (state.userInfo.nickname ||
-        state.userInfo.loginname.replace(/.*\\(.*)/g, '$1')) ||
+    (state.userInfo.nickname ||
+      state.userInfo.loginname.replace(/.*\\(.*)/g, '$1')) ||
     privilege.startsWith('public') ||
     privilege === state.userInfo.privilege ||
     (state.userInfo.depts &&
@@ -1654,14 +1656,13 @@ export function getContextMenu(sdata, node) {
 
   if (
     node.father.guid === 1 ||
-    node.father.guid === 2 ||
-    [292, 293, 294].indexOf(node.father.subtype) > -1
+    node.father.guid === 2 || [292, 293, 294].indexOf(node.father.subtype) > -1
   ) {
     node.operations.push('Open Path')
   }
 
   if (node.readonly) {
-    ;['Rename', 'Cut', 'Create New', 'Delete'].forEach(item =>
+    ['Rename', 'Cut', 'Create New', 'Delete'].forEach(item =>
       node.operations.remove(item)
     ) // RTV dingzhi ['Rename', 'Cut', 'Copy', 'Delete', 'Create New', 'Paste', 'Upload'].forEach(item => node.operations.remove(item))
     if (node.name === 'Public Material' && node.floor === 2) {
@@ -1672,7 +1673,8 @@ export function getContextMenu(sdata, node) {
     node.operations = ['Open']
   }
   if (node.type !== 'folder') {
-    node.operations.push('One Generation')
+    node.operations.push('Next One Generation')
+    node.operations.push('Previous One Generation')
   }
   /* if (node.type == 'folder' && node.guid.length > 1 && node.father.guid !== 0) {
     node.operations.unshift('Open')
@@ -1691,8 +1693,7 @@ export function getAllFather(material) {
   return arr
 }
 export function restrictContextMenu(item, node) {
-  if (state.userInfo.roleType) {
-  } else {
+  if (state.userInfo.roleType) {} else {
     // 回收站的素材
     if (node.father.guid === 0) {
       state.userInfo.permission.indexOf(PERMISSION.PURGE_TRASHCAN) === -1 &&
@@ -1703,7 +1704,7 @@ export function restrictContextMenu(item, node) {
     if (node.type === 'folder') {
       state.userInfo.permission.indexOf(PERMISSION.DELETE_FOLDER) === -1 &&
         state.userInfo.permission.indexOf(PERMISSION.DELETE_FOLDER_TREE) ===
-          -1 &&
+        -1 &&
         node.operations.remove('Delete', 'Restore')
       state.userInfo.permission.indexOf(PERMISSION.ADD_FOLDER) === -1 &&
         node.operations.remove('Create New')
@@ -1764,23 +1765,21 @@ export function locateFolder(store, folderList, fNode, opt) {
         getRepository(fNode.guid)
       ).filter(
         item =>
-          item.type === 'folder' &&
-          (item.name.toLowerCase() === folderName.toLowerCase() ||
-            item.path
-              .split('/')
-              .pop()
-              .toLowerCase() === folderName.toLowerCase())
+        item.type === 'folder' &&
+        (item.name.toLowerCase() === folderName.toLowerCase() ||
+          item.path
+          .split('/')
+          .pop()
+          .toLowerCase() === folderName.toLowerCase())
       )[0]
       if (folder) {
         opt.isShowWaiting && startLoading(store)
         store
           .dispatch({
-            type:
-              folderList.length === 1 && !opt.onlyFolder
-                ? opt.alwaysGet
-                  ? TYPES.GET_MATERIALS3
-                  : TYPES.GET_MATERIALS
-                : TYPES.GET_FOLDERS,
+            type: folderList.length === 1 && !opt.onlyFolder ?
+              opt.alwaysGet ?
+              TYPES.GET_MATERIALS3 :
+              TYPES.GET_MATERIALS : TYPES.GET_FOLDERS,
             source: folder,
             alwaysGet: opt.alwaysGet
           })
@@ -1815,8 +1814,7 @@ export function locateFolder(store, folderList, fNode, opt) {
                   })
                 }
               })
-            }
-            !opt.isSilent &&
+            }!opt.isSilent &&
               store.commit({
                 type: TYPES.EXPAND_FOLDER,
                 target: folder
@@ -1862,7 +1860,7 @@ export function getListHeader(left, arr, attr) {
   return arr[l - 1]
 }
 export function ignoreZHFunc(func, context) {
-  return function(a, b, c) {
+  return function (a, b, c) {
     if (/^[\u2E80-\u9FFF]+$/g.test(a) || /^[\u2E80-\u9FFF]+$/g.test(b)) {
       console.log(a + b)
     } else {
@@ -1911,12 +1909,10 @@ export function getAdvanceSearchCondition(tab, node) {
     count: true,
     usercode: state.userInfo.usercode,
     resourcename: 'entity',
-    sortbys: [
-      {
-        fieldname: 'name_',
-        isdesc: false
-      }
-    ]
+    sortbys: [{
+      fieldname: 'name_',
+      isdesc: false
+    }]
   }
   let type = 0
   let isMarker = false
@@ -1945,12 +1941,11 @@ export function getAdvanceSearchCondition(tab, node) {
         } else if (
           ['LM Title', 'LM Member', 'LM Action'].indexOf(k.name) > -1
         ) {
-          ;(k.value || k.checkedValue.length) &&
-            json.iteminfo.push({
-              itemtype: k.key,
-              itemvalue:
-                k.checkedValue.map(v => '"' + v.name + '"').join('|') + k.value
-            })
+          (k.value || k.checkedValue.length) &&
+          json.iteminfo.push({
+            itemtype: k.key,
+            itemvalue: k.checkedValue.map(v => '"' + v.name + '"').join('|') + k.value
+          })
         } else if (k.value) {
           json[k.key] = k.value
         }
@@ -1979,22 +1974,22 @@ export function packageQuery(tab) {
     if (item.isRange) {
       let fv =
         (item.from.value &&
-          (item.ctrl === 'vue-timepicker'
-            ? '1899-12-31 ' + item.from.value
-            : item.from.value)) ||
+          (item.ctrl === 'vue-timepicker' ?
+            '1899-12-31 ' + item.from.value :
+            item.from.value)) ||
         (item.from.value === 0 ? 0 : '*')
       let tv =
         (item.to.value &&
-          (item.ctrl === 'vue-timepicker'
-            ? '1899-12-31 ' + item.to.value
-            : item.to.value)) ||
-        (item.to.value === 0 ? 0 : '*')
-      ;(fv !== '*' || tv !== '*') &&
-        result.push({
-          key: item.key,
-          value: '[' + fv + ' TO ' + tv + ']',
-          queryoperation: 'and'
-        })
+          (item.ctrl === 'vue-timepicker' ?
+            '1899-12-31 ' + item.to.value :
+            item.to.value)) ||
+        (item.to.value === 0 ? 0 : '*');
+      (fv !== '*' || tv !== '*') &&
+      result.push({
+        key: item.key,
+        value: '[' + fv + ' TO ' + tv + ']',
+        queryoperation: 'and'
+      })
     } else if (item.name === 'Locations') {
       if (item.value.length > 1) {
         if (item.value.length === 3) {
@@ -2140,18 +2135,17 @@ export function getFulltextSearchCondtion(cond, node, type) {
   let json = {
     kvs: [],
     usercode: state.userInfo.usercode
-  }
-  ;([292, 293, 294].indexOf(node.subtype) > -1 &&
+  };
+  ([292, 293, 294].indexOf(node.subtype) > -1 &&
     ((json.subtype = node.subtype), 1)) ||
-    json.kvs.push({
-      key: 'tree_path_',
-      value: node.path
-    })
+  json.kvs.push({
+    key: 'tree_path_',
+    value: node.path
+  })
   cond.timeFilter.filter(item => item.checked).forEach(item =>
     json.kvs.push({
       key: 'createDate_',
-      value:
-        '[' +
+      value: '[' +
         new Date(+new Date() - 86400000 * item.key).format('yyyy-MM-dd') +
         ' 00:00:00 TO ' +
         new Date().format('yyyy-MM-dd') +
@@ -2188,17 +2182,17 @@ export function getCanSelectedItems(
     return
   }
   let children = context.getters.displayMaterials
-  let itemWidth = isMarkerList
-    ? 462
-    : context.state.thumbnailStyle.width * context.state.scaleTime +
-      2 * context.state.thumbPadding
-  let itemHeight = isMarkerList
-    ? 102
-    : 14 + context.state.thumbnailStyle.height * context.state.scaleTime + 45
+  let itemWidth = isMarkerList ?
+    462 :
+    context.state.thumbnailStyle.width * context.state.scaleTime +
+    2 * context.state.thumbPadding
+  let itemHeight = isMarkerList ?
+    102 :
+    14 + context.state.thumbnailStyle.height * context.state.scaleTime + 45
   let length = children.length
-  let rowCount = isMarkerList
-    ? Math.floor(width / itemWidth)
-    : Math.round((width - 2 * context.state.thumbPadding) / itemWidth)
+  let rowCount = isMarkerList ?
+    Math.floor(width / itemWidth) :
+    Math.round((width - 2 * context.state.thumbPadding) / itemWidth)
   let x1
   let x2
   let y1
@@ -2288,8 +2282,7 @@ export function updateMarkerList(
       item.bgcolor = {
         background: 'rgb(' + RedColor + ',' + Gcolor + ',' + Bcolor + ')'
       }
-    } else {
-    }
+    } else {}
     if (item.keyframe === undefined) {
       item.keyframe = item.inpoint
     }
@@ -2299,13 +2292,13 @@ export function updateMarkerList(
     let frameSec = GetSecondByEachFrame(videostandard).round(6)
     let intime = GetTimeStringByFrameNum(
       item.keyframe +
-        GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
+      GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
       ntsctcmode,
       videostandard
     )
     let outtime = GetTimeStringByFrameNum(
       item.endkeyframe +
-        GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
+      GetFrameNumByHundredNS(vtrin * 10000000, videostandard, ntsctcmode),
       ntsctcmode,
       videostandard
     )
@@ -2343,9 +2336,9 @@ export function updateMarkerList(
       item.correctSF =
         item.keyframe < item.startframe ? item.keyframe : item.startframe
       item.correctEF =
-        totalFrames && item.keyframe + item.endkeyframe > totalFrames
-          ? Math.max(totalFrames - item.keyframe, 0)
-          : item.endkeyframe
+        totalFrames && item.keyframe + item.endkeyframe > totalFrames ?
+        Math.max(totalFrames - item.keyframe, 0) :
+        item.endkeyframe
       item.typeName = 'Logging Mark'
       item.tag = 'loMarker'
       item.flag = 'lmarker'
@@ -2364,8 +2357,7 @@ export function updateMarkerList(
       item.extendinfo = item.extendinfo || []
       item._extendinfo = item.extendinfo.groupBy('itemtype')
       if (!item._extendinfo || item._extendinfo.length < 3) {
-        ;[
-          {
+        [{
             itemtype: 0,
             itemname: 'Title',
             itemvalue: []
@@ -2454,30 +2446,30 @@ export function updateMaterial(arr, data, store) {
     )
     all &&
       store
-        .dispatch({
-          type: TYPES.GET_OBJECT_INFO,
-          data: {
-            contentid: data.guid,
-            type: '32',
-            pathtype: 'http'
+      .dispatch({
+        type: TYPES.GET_OBJECT_INFO,
+        data: {
+          contentid: data.guid,
+          type: '32',
+          pathtype: 'http'
+        }
+      })
+      .then(res => {
+        all.forEach(item => {
+          let same = res.data.ext.entity.item.markpoints.find(
+            i => i.markguid === item.markguid
+          )
+          if (same) {
+            item = Object.assign(
+              item,
+              parseData([same], item.father, 'marker')[0]
+            )
+          } else {
+            getRepository(store.getters.currentNode.guid).remove(item)
+            forceUpdate(store.getters.currentNode.guid)
           }
         })
-        .then(res => {
-          all.forEach(item => {
-            let same = res.data.ext.entity.item.markpoints.find(
-              i => i.markguid === item.markguid
-            )
-            if (same) {
-              item = Object.assign(
-                item,
-                parseData([same], item.father, 'marker')[0]
-              )
-            } else {
-              getRepository(store.getters.currentNode.guid).remove(item)
-              forceUpdate(store.getters.currentNode.guid)
-            }
-          })
-        })
+      })
     return
   }
   arr.forEach(item => {
@@ -2510,8 +2502,7 @@ export function updateMaterial(arr, data, store) {
             item.folderpath !== res.data.ext.entity.folderpath
           ) {
             moveMaterial(
-              store.state.nodes,
-              {
+              store.state.nodes, {
                 folderPath: res.data.ext.entity.folderpath
               },
               item
@@ -2563,6 +2554,12 @@ export function updateMaterial(arr, data, store) {
             item.fileList = previewSame.fileList
             Object.assign(previewSame, item)
           }
+        }).catch(res => {
+          if (res.data.code === '404') { // 素材权限变化
+            item.father.folders.remove(item)
+            getRepository(item.father.guid).remove(item)
+            forceUpdate(item.father.guid)
+          }
         })
     } else if (
       item.type === 'folder' &&
@@ -2597,7 +2594,7 @@ export function moveMaterial(arr, data, item) {
   forceUpdate(item.father.guid)
   item.type === 'folder' && item.father.folders.remove(item)
   getMaterialFoder(arr, data).then(res => {
-    item.father = res
+    item.father = res;
     !getRepository(res.guid).some(i => i.guid === item.guid) &&
       getRepository(res.guid).add(item) // 解决从search result cut 时出现两个的问题
     forceUpdate(res.guid)
@@ -2674,6 +2671,7 @@ export function initData(file, father) {
 export function sync(promArr) {
   return new Promise((resolve, reject) => {
     var i = 0
+
     function loop() {
       if (i < promArr.length) {
         var func = promArr[i]
@@ -2816,7 +2814,7 @@ export function getLastItem(node) {
 }
 export function debounce(delay, action, immediately) {
   let id = -1
-  return function() {
+  return function () {
     if (immediately && id === -1) {
       action.apply(this, arguments)
     }
@@ -2824,13 +2822,10 @@ export function debounce(delay, action, immediately) {
     id = setTimeout(() => action.apply(this, arguments), delay)
   }
 }
-export function confirmMessage (title, content) {
+export function confirmMessage(title, content) {
   Model.confirm(title, content,
-    () => {
-    },
-    () => {
-    },
-    {
+    () => {},
+    () => {}, {
       large: true,
       cancelButton: {
         show: false,
@@ -2844,6 +2839,7 @@ export function confirmMessage (title, content) {
       }
     })
 }
+
 function getMosid(data, context) {
   if (data.father.mosid) {
     context.state.registerdata.oaFolderMosid = data.father.mosid
@@ -2851,7 +2847,7 @@ function getMosid(data, context) {
     getMosid(data.father, context)
   }
 }
-export function displayRegisterWindow (currentStudioData, context) {
+export function displayRegisterWindow(currentStudioData, context) {
   let registerData = context.state.registerdata
   let studioid = registerData.selectedStudioid
   let timer = registerData.selectTime
@@ -2965,15 +2961,13 @@ export function displayRegisterWindow (currentStudioData, context) {
               let rundownDate = timeDate && timeDate.filter(item => item.selected)
               rundownDate && (rundownDate[0].children = [...programData])
             }
-          }).catch((re) => {
-          })
+          }).catch((re) => {})
         } else {
           // context.state.registerdata.programInfo = []
           // context.state.registerdata.tempProgramInfodata = []
         }
       }
-    }).catch((res) => {
-    })
+    }).catch((res) => {})
   }
   if (context.state.registerdata.registerPath) {
     let path = context.state.registerdata.registerViewPath.replace(/ \/ /g, '/')
@@ -2985,8 +2979,7 @@ export function displayRegisterWindow (currentStudioData, context) {
         onlyFolder: true,
         alwaysGet: true,
         isCheck: true
-      }).then((res) => {
-      }).catch((res) => {
+      }).then((res) => {}).catch((res) => {
         if (res) {
           let path = res.path.slice(res.path.indexOf('OA Material'))
           context.state.registerdata.registerViewPath = path.replace(/\//g, ' / ')
@@ -3007,8 +3000,7 @@ export function displayRegisterWindow (currentStudioData, context) {
   }
 }
 export function newFolder(context, node) {
-  let folder = initData(
-    {
+  let folder = initData({
       name: 'NewFolder'
     },
     node
@@ -3166,8 +3158,7 @@ export function copyObject(context, item, target, ignoreName) {
   })
 }
 export function copyNode(item) {
-  let copiedItem = initData(
-    {
+  let copiedItem = initData({
       name: item.name
     },
     item.father
@@ -3215,8 +3206,7 @@ export function getDownloadUrl(data) {
             clipin: 0,
             clipout: i.clipout + j.clipout - i.clipin - j.clipin
           }
-        },
-        {
+        }, {
           clipin: 0,
           clipout: 0
         }
@@ -3402,7 +3392,7 @@ export function parseTrashCanData(arr, father) {
             node.filestatus = item.etobject.item.filestatus
             if (
               (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_HA_ALL) >
-                0 ||
+              0 ||
               (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_HV_ALL) > 0
             ) {
               node.HQ = true
@@ -3411,7 +3401,7 @@ export function parseTrashCanData(arr, father) {
             }
             if (
               (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_LV_ALL) >
-                0 ||
+              0 ||
               (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_LA_ALL) > 0
             ) {
               node.LQ = true
@@ -3469,12 +3459,23 @@ export function parseTrashCanData(arr, father) {
           if (
             !node.isAudio &&
             node.filestatus &
-              (FileStatus.ET_Obj_FS_LV_ALL | FileStatus.ET_Obj_FS_LV_SEG) &&
+            (FileStatus.ET_Obj_FS_LV_ALL | FileStatus.ET_Obj_FS_LV_SEG) &&
             node.filestatus &
-              (FileStatus.ET_Obj_FS_LA_ALL | FileStatus.ET_Obj_FS_LA_SEG)
+            (FileStatus.ET_Obj_FS_LA_ALL | FileStatus.ET_Obj_FS_LA_SEG)
           ) {
             node.canGenerateProxy = !item.etobject.isseparation
             node.proxyStatus = item.etobject.isseparation ? 'V + A' : 'VA'
+          } else if (node.type === 'image') {
+            if ((item.etobject.item.filestatus & FileStatus.ET_Obj_FS_HA_ALL) > 0 || (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_HV_ALL) > 0) {
+              node.HQ = true
+            } else {
+              node.HQ = false
+            }
+            if ((item.etobject.item.filestatus & FileStatus.ET_Obj_FS_LV_ALL) > 0 || (item.etobject.item.filestatus & FileStatus.ET_Obj_FS_LA_ALL) > 0) {
+              node.LQ = true
+            } else {
+              node.LQ = false
+            }
           }
         }
       } catch (e) {}
@@ -3555,7 +3556,7 @@ export function getRelations(arr) {
     return node
   })
 }
-export function getProperties (resultArr, materials, models, type, context, httpResArr) {
+export function getProperties(resultArr, materials, models, type, context, httpResArr) {
   let resFuncArr = []
   let ctrlTable = {
     'Single Line': 'rd-text',
@@ -3565,6 +3566,7 @@ export function getProperties (resultArr, materials, models, type, context, http
     'RadioButton': 'rd-radio',
     'Numeric': 'rd-number',
     'Dropdown': 'rd-select',
+    'MultiDropdown': 'rd-cascader',
     'Date': 'rd-datepicker',
     'Time': 'vue-timepicker',
     'DateTime': 'rd-datepicker',
@@ -3672,6 +3674,10 @@ export function getProperties (resultArr, materials, models, type, context, http
       t: v => v === 'online_deleted',
       dt: v => v ? 'online_deleted' : ''
     },
+    'Archived to 3rd': {
+      t: v => ['Archived', 'Retrieving', 'Retrieve Finished', 'Retrieve Failed'].indexOf(GetArchiveStatus(v)) > -1,
+      dt: v => v
+    },
     'Address': {
       t: v => v.replace(/^global_sobey_defaultclass\/MaterialList/, 'Network'),
       dt: v => v.replace(/^Network/, 'global_sobey_defaultclass/MaterialList')
@@ -3753,6 +3759,7 @@ export function getProperties (resultArr, materials, models, type, context, http
       dt: (v, m) => v
     }
   }
+
   function addKeyValue(fileds, tab, material, data) {
     fileds.forEach(f => {
       if (f.visable) {
@@ -3883,6 +3890,38 @@ export function getProperties (resultArr, materials, models, type, context, http
                   disabled: false,
                   value: i.name || i,
                   name: i.name || i
+                })
+              })
+              tab.keyValues.push(opt)
+            } else if (ctrl === ctrlTable['MultiDropdown']) {
+              var items = f.fielddetail && (f.fielddetail.enumContents || []).groupBy('description')
+              // dt = tTable['Dropdown'].dt('', material, items)
+              var opt = {
+                value: value,
+                displayValue: value && value.split('|')[state.defaultLanguage - 1] || '',
+                valueArr: [],
+                options: [],
+                order: f.order,
+                name: f.fielddetail && f.fielddetail.alias || f.displayname,
+                ctrl: ctrl,
+                readonly: readonly,
+                highLightHtml: material[keys[keys.length - 1] + '_hl'],
+                disabled: false,
+                keys: keys,
+                t: t,
+                dt: dt
+              }
+              items.forEach(i => {
+                opt.options.push({
+                  children: i.map(k => {
+                    return {
+                      selected: k.name === value,
+                      label: k.name.split('|')[state.defaultLanguage - 1],
+                      value: k.name
+                    }
+                  }),
+                  selected: i.some(j => j.name === value),
+                  label: i[0].description
                 })
               })
               tab.keyValues.push(opt)
@@ -4196,8 +4235,7 @@ export function getProperties (resultArr, materials, models, type, context, http
             tab.keyValues.push(kv)
           } else if (f.displayname === 'List') {
             let value = {
-              headers: [
-                {
+              headers: [{
                   name: 'Attribute',
                   attr: 'attribute',
                   width: 200,
@@ -4220,7 +4258,8 @@ export function getProperties (resultArr, materials, models, type, context, http
                   dragging: false,
                   checked: true,
                   resizable: true
-                }],
+                }
+              ],
               values: []
             }
             if (data.metadata && data.metadata.original && data.metadata.original.orgattribute && data.metadata.original.orgattribute.length) {
@@ -4354,7 +4393,7 @@ export function getProperties (resultArr, materials, models, type, context, http
   })
   return resFuncArr
 }
-export function getTimeString (time, videostandard, ntsctcmode, framerate) {
+export function getTimeString(time, videostandard, ntsctcmode, framerate) {
   let vs = videostandard === undefined ? 1 : videostandard
   let ntsc = ntsctcmode === undefined ? 1 : ntsctcmode
   let tstr = GetTimeStringByFrameNum(GetFrameNumByHundredNS(time, vs, ntsc), ntsc, vs, framerate)
@@ -4364,7 +4403,7 @@ export function getTimeString (time, videostandard, ntsctcmode, framerate) {
   }
   return tstr
 }
-export function getMarkers (entity, material, type, order, context, httpEntity) {
+export function getMarkers(entity, material, type, order, context, httpEntity) {
   let markers = {
     name: 'Marks',
     keyValues: {},
@@ -4394,12 +4433,10 @@ export function getMarkers (entity, material, type, order, context, httpEntity) 
       }
     }
     if (fileguid) {
-      keyframeArr.push(
-        {
-          fileGUID: fileguid,
-          keyFrameNo: item.keyframe
-        }
-      )
+      keyframeArr.push({
+        fileGUID: fileguid,
+        keyFrameNo: item.keyframe
+      })
     }
   })
   keyframeArr.length && context.dispatch({
@@ -4414,7 +4451,7 @@ export function getMarkers (entity, material, type, order, context, httpEntity) 
   })
   return markers
 }
-export function getFileList (entity, material, type, order) {
+export function getFileList(entity, material, type, order) {
   let fileList = {
     name: 'File List',
     keyValues: {},
@@ -4441,7 +4478,7 @@ export function getFileList (entity, material, type, order) {
     item.displaySOF = getTimeString(item.filein, videostandard, ntsctcmode, framerate)
     if ([ET_CLIP_CLASS_CC, ET_CLIP_CLASS_KEY, ET_CLIP_CLASS_TC, ET_CLIP_CLASS_G, ET_CLIP_CLASS_CLIP].indexOf(item.clipclass) > -1) {
       item.displayQuality = ''
-    // item.displayPassage = ''
+      // item.displayPassage = ''
     }
     if (['video', 'image'].indexOf(material.type) === -1) {
       item.displayQuality = ''
@@ -4453,8 +4490,7 @@ export function getFileList (entity, material, type, order) {
       item.displaySOF = ''
     }
   })
-  fileList.keyValues.headers = [
-    {
+  fileList.keyValues.headers = [{
       name: 'File Name',
       attr: 'filename',
       width: 200,
@@ -4518,7 +4554,7 @@ export function getFileList (entity, material, type, order) {
   ]
   return fileList
 }
-export function getRights (context, material, order) {
+export function getRights(context, material, order) {
   let deptTree1 = getDepTree(context.state.deptArr)
   let deptTree2 = getDepTree(context.state.deptArr)
   let rights = {
@@ -4551,27 +4587,27 @@ export function getRights (context, material, order) {
       } else {
         rights.keyValues.access[0].checked = true
       }
-    // rights.keyValues.access.forEach(item => item.disabled = false)
+      // rights.keyValues.access.forEach(item => item.disabled = false)
     } else if (permission.privilege && permission.privilege.startsWith('private')) {
       rights.keyValues.access.forEach(i => i.disabled = true)
       rights.keyValues.radio[1].checked = true
     } else {
       // cannot editing
       rights.keyValues.radio[0].checked = true
-    // rights.keyValues.readonly = true
+      // rights.keyValues.readonly = true
     }
     if (context.state.userInfo.roleType === 1 || state.userInfo.usercode === material.creatorCode || material.creatorCode === (state.userInfo.nickname || state.userInfo.loginname.replace(/.*\\(.*)/g, '$1')) || permission.privilege.startsWith('public') || permission.privilege === state.userInfo.privilege || (isWrite && getcurrentDepts(context.state.userInfo.usercode, context.state.userArr, context.state.deptArr).some(item => permission.privilegeUserGroup.indexOf(item.privilege_write_group_code) > -1))) {
       rights.keyValues.readonly = false
       material.readonly = false
-    // if (!context.state.userInfo.roleType) {
-    //   // if (material.type === 'folder') {
-    //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_FOLDER) === -1 && (material.readonly = true)
-    //   // } else if (material.type === 'h5pgm' || material.type === 'sequence') {
-    //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_EDL) === -1 && (material.readonly = true)
-    //   // } else {
-    //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_OBJ) === -1 && (material.readonly = true)
-    //   // }
-    // }
+      // if (!context.state.userInfo.roleType) {
+      //   // if (material.type === 'folder') {
+      //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_FOLDER) === -1 && (material.readonly = true)
+      //   // } else if (material.type === 'h5pgm' || material.type === 'sequence') {
+      //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_EDL) === -1 && (material.readonly = true)
+      //   // } else {
+      //   //   context.state.userInfo.permission.indexOf(PERMISSION.MODIFY_OBJ) === -1 && (material.readonly = true)
+      //   // }
+      // }
     } else {
       rights.keyValues.readonly = true
       material.readonly = true
@@ -4581,8 +4617,7 @@ export function getRights (context, material, order) {
       material.readonly = true
     }
   })
-  rights.keyValues.radio = [
-    {
+  rights.keyValues.radio = [{
       checked: false,
       value: 'Public',
       disabled: false,
@@ -4600,8 +4635,7 @@ export function getRights (context, material, order) {
       disabled: false
     }
   ]
-  rights.keyValues.access = [
-    {
+  rights.keyValues.access = [{
       checked: false,
       value: 'Access',
       disabled: true,
@@ -4629,7 +4663,7 @@ export function getRights (context, material, order) {
   // rights.keyValues.deptTree = deptTree
   return rights
 }
-export function getDepTree (depArr) {
+export function getDepTree(depArr) {
   let tree
   let rootDepts = depArr.filter(item => item.dept.superid === -1)
   if (rootDepts.length) {
@@ -4655,6 +4689,7 @@ export function getDepTree (depArr) {
     }]
     bl(tree[0].children, depArr)
   }
+
   function bl(children, Arr) {
     Arr.forEach(item => {
       let node = item.dept || item
@@ -4674,7 +4709,7 @@ export function getDepTree (depArr) {
   }
   return tree
 }
-export function checkDepTree (tree, code, onlyWrite) {
+export function checkDepTree(tree, code, onlyWrite) {
   let isWrite = false
   tree.forEach(item => {
     if (item.read === code && !onlyWrite) {
@@ -4691,7 +4726,7 @@ export function checkDepTree (tree, code, onlyWrite) {
   })
   return isWrite
 }
-export function getTrashcanPreviewInfo (resultArr, fileListArr, materials, type, context) {
+export function getTrashcanPreviewInfo(resultArr, fileListArr, materials, type, context) {
   let source = []
 
   resultArr.forEach((item, index) => {
@@ -4753,10 +4788,10 @@ export function getPreviewInfo(resultArr, materials, type, context) {
         })
       })
       sync(funcArr).then(res => {
-        material._LTCItem.sort(function(a, b) {
+        material._LTCItem.sort(function (a, b) {
           return b.offset - a.offset
         })
-        material._VITCItem.sort(function(a, b) {
+        material._VITCItem.sort(function (a, b) {
           return b.offset - a.offset
         })
         ltcRepository[material.guid] = material._LTCItem
@@ -4767,7 +4802,7 @@ export function getPreviewInfo(resultArr, materials, type, context) {
         material._VITCItem = []
         material.tcUpdate++
       }) // 同步执行
-    // }
+      // }
     }
     let lowBitrateArr = getLowBitrate(entity, framerate)
     if (item.data.ext.streammedia && item.data.ext.streammedia.length) {
@@ -4800,7 +4835,7 @@ export function getPreviewInfo(resultArr, materials, type, context) {
         text: 'online preview is not supported for this file',
         guid: entity.guid,
         video: {}
-      // markers: markerList
+        // markers: markerList
       })
       material.canPreview = false
     }
@@ -4823,7 +4858,7 @@ export function getPreviewInfo(resultArr, materials, type, context) {
   })
   return source
 }
-export function getLowBitrate (entity, framerate) {
+export function getLowBitrate(entity, framerate) {
   let lowBitrateArr = []
   if (entity && entity.item && entity.item.clipfile) {
     entity.item.clipfile.forEach(item => {
@@ -4879,10 +4914,10 @@ export function getLowBitrate (entity, framerate) {
   }
   return lowBitrateArr
 }
-export function encodeUrl (str) {
+export function encodeUrl(str) {
   return getIconFilename(str)
 }
-export function getTimeCodeInfo (context, material, clipfile, otcIndex, videoStandard, NtscTcMode) {
+export function getTimeCodeInfo(context, material, clipfile, otcIndex, videoStandard, NtscTcMode) {
   return new Promise((resolve, reject) => {
     let url = clipfile.filename
     let fileinFrame = parseInt(GetFrameNumByHundredNS(parseInt(clipfile.filein), videoStandard, NtscTcMode))
@@ -5074,11 +5109,11 @@ export function cellUpload(url, path, file, name, osspath, onsucces, onerror) {
         async: true, // 异步
         processData: false, // 很重要，告诉jquery不要对form进行处理
         contentType: false, // 很重要，指定为false才能形成正确的Content-Type
-        success: function(idx) {
+        success: function (idx) {
           onsucces(file)
           uploadingCount--
         },
-        error: function() {
+        error: function () {
           failedCount++
           Upload(file)
         }
@@ -5104,7 +5139,7 @@ export function cellUpload(url, path, file, name, osspath, onsucces, onerror) {
         index: i + 1
       })
     }
-    let intervalId = setInterval(function() {
+    let intervalId = setInterval(function () {
       if (uploadingCount < 5 && fileArr.length > 0) {
         uploadingCount++
         let file = fileArr.shift()
