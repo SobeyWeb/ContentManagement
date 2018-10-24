@@ -10,6 +10,7 @@ import {
 import EVENT from '../dicts/eventTypes'
 
 export default {
+  trashcan: treeNode.trashcan,
   operatingFilterData: {
     visible: false,
     header: {

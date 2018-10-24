@@ -1,81 +1,153 @@
 <template>
   <div>
     <div>
-    <div v-if="searchType===1">
-          <div>
-            <span class="header-label">Search Type:</span>
-            <span class="header-value">{{advanceHeader.name}}</span>
-          </div>
-          <div>
-            <div v-for="value in curKeyValues" :key="value.name">
-              <span class="header-label">{{value.name}}:</span>
-              <span class="header-value">{{value.value}}</span>
-            </div>
-          </div>
+      <div v-if="searchType===1">
+        <div>
+          <span class="header-label">Search Type:</span>
+          <span class="header-value">{{advanceHeader.name}}</span>
         </div>
-        <div v-else>
-          <div v-if="searchType===2">
-            <span  class="header-label">Keywords:</span>
-            <span class="header-value">{{currentNode.bakCondition.keywords}}</span>
-          </div>
-          <div>
-            <div  class="header-label">Time:</div>
-            <div>
-              <span class="header-value" :key="time.name" v-for="time in currentNode.bakCondition&&currentNode.bakCondition.timeFilter.filter(function(i){return i.checked})||[]">{{time.name}}</span>
-            </div>
-          </div>
-          <div>
-            <div  class="header-label">Content:</div>
-            <div :style="{left: condtionLeft, paddingRight:condtionLeft}">
-              <span class="header-value" :key="type.name"  v-for="type in  currentNode.bakCondition&&currentNode.bakCondition.typeFilter.filter(function(i){return i.checked})||[]">{{type.name}}</span>
-            </div>
-          </div>
-          <div :key="c.name" v-for="c in currentNode.bakCondition&&currentNode.bakCondition.booleanCondition||[]" v-if="searchType===3&&c.value">
-            <span  class="header-label">{{c.name}}</span>
-            <span class="header-value">{{c.value}}</span>
+        <div>
+          <div v-for="value in curKeyValues" :key="value.name">
+            <span class="header-label">{{value.name}}:</span>
+            <span class="header-value">{{value.value}}</span>
           </div>
         </div>
       </div>
-  <table border="1" style="margin:20px 0;">
-    <tbody>
-      <tr>
-        <th style="text-align: center;">No</th>
-        <th style="text-align: center;">Title</th>
-        <th style="text-align: center;">Comments</th>
-        <th style="text-align: center;">Rights</th>
-        <th style="text-align: center;">Total Duration</th>
-        <th style="text-align: center;">Delete Protection</th>
-        <th style="text-align: center;">To be Deleted</th>
-        <th style="text-align: center;">To to Archieved</th>
-        <th style="text-align: center;">Archieved</th>
-      </tr>
-      <tr>
-        <td colspan="9">{{currentNode.bakCondition?currentNode.bakCondition.node.path.replace(/^global_sobey_defaultclass\/MaterialList/, 'Network'):''}}</td>
-      </tr>
-      <tr v-for="(material, index) in materials" :key="material.guid">
-        <td style="text-align: center;">{{index}}</td>
-        <td style="text-align: center;">{{material.name}}</td>
-        <td style="text-align: center;">{{material.note}}</td>
-        <td style="text-align: center;">{{material.rights}}</td>
-        <td style="text-align: center;">{{material.totalDuration}}</td>
-        <td style="text-align: center;"></td>
-        <td style="text-align: center;">{{material.tobedel}}</td>
-        <td style="text-align: center;"></td>
-        <td style="text-align: center;">{{material.storageStatus}}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+      <div v-else>
+        <div v-if="searchType===2">
+          <span class="header-label">Keywords:</span>
+          <span class="header-value">{{currentNode.bakCondition.keywords}}</span>
+        </div>
+        <div>
+          <div class="header-label">Time:</div>
+          <div>
+            <span class="header-value" :key="time.name" v-for="time in currentNode.bakCondition&&currentNode.bakCondition.timeFilter.filter(function(i){return i.checked})||[]">{{time.name}}</span>
+          </div>
+        </div>
+        <div>
+          <div class="header-label">Content:</div>
+          <div :style="{left: condtionLeft, paddingRight:condtionLeft}">
+            <span class="header-value" :key="type.name" v-for="type in  currentNode.bakCondition&&currentNode.bakCondition.typeFilter.filter(function(i){return i.checked})||[]">{{type.name}}</span>
+          </div>
+        </div>
+        <div :key="c.name" v-for="c in currentNode.bakCondition&&currentNode.bakCondition.booleanCondition||[]" v-if="searchType===3&&c.value">
+          <span class="header-label">{{c.name}}</span>
+          <span class="header-value">{{c.value}}</span>
+        </div>
+      </div>
+    </div>
+    <table border="1" style="margin:20px 0;">
+      <tbody>
+        <tr>
+          <th style="text-align: center;">No</th>
+          <th style="text-align: center;">Title</th>
+          <th style="text-align: center;">Comments</th>
+          <th style="text-align: center;">Rights</th>
+          <th style="text-align: center;">Total Duration</th>
+          <th style="text-align: center;">Delete Protection</th>
+          <th style="text-align: center;">To be Deleted</th>
+          <th style="text-align: center;">To to Archieved</th>
+          <th style="text-align: center;">Archieved</th>
+        </tr>
+        <tr>
+          <td colspan="9">{{currentNode.bakCondition?currentNode.bakCondition.node.path.replace(/^global_sobey_defaultclass\/MaterialList/, 'Network'):''}}</td>
+        </tr>
+        <tr v-for="(material, index) in materials" :key="material.guid">
+          <td style="text-align: center;">{{index}}</td>
+          <td style="text-align: center;">{{material.name}}</td>
+          <td style="text-align: center;">{{material.note}}</td>
+          <td style="text-align: center;">{{material.rights}}</td>
+          <td style="text-align: center;">{{material.totalDuration}}</td>
+          <td style="text-align: center;"></td>
+          <td style="text-align: center;">{{material.tobedel}}</td>
+          <td style="text-align: center;"></td>
+          <td style="text-align: center;">{{material.storageStatus}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 <script>
+import { toXML } from '../../lib/js2xml'
 export default {
   name: 'SearchPrint',
   props: {
 
   },
+  methods: {
+    open () {
+      this.$open('A4', {
+        REPLACEMENT_CONTENT: this.$el.innerHTML
+      })
+    },
+    download () {
+      let opt = {
+        header: '<?xml version="1.0"?>',
+        indent: '  '
+      }
+      let json = {
+        SearchResult: {
+          SearchInfo: [{
+            Folder: this.currentNode.bakCondition ? this.currentNode.bakCondition.node.path.replace(/^global_sobey_defaultclass\/MaterialList/, 'Network') : ''
+          }],
+          SearchResultInfo: []
+        }
+      }
+      if (this.searchType === 1) {
+        json.SearchResult.SearchInfo.push({
+          SearchType: this.advanceHeader.name
+        })
+        json.SearchResult.SearchInfo.push(...this.curKeyValues.map(item => {
+          return {
+            [item.name]: item.value
+          }
+        }))
+      } else if (this.searchType === 2) {
+        json.SearchResult.SearchInfo.push({
+          Keywords: this.currentNode.bakCondition.keywords
+        })
+        json.SearchResult.SearchInfo.push(
+          ...this.currentNode.bakCondition && this.currentNode.bakCondition.timeFilter.filter(i => i.checked).map(item => {
+            return {
+              Time: item.value
+            }
+          }))
+        json.SearchResult.SearchInfo.push(
+          ...this.currentNode.bakCondition && this.currentNode.bakCondition.typeFilter.filter(i => i.checked).map(item => {
+            return {
+              Content: item.value
+            }
+          }))
+      } else {
+        json.SearchResult.SearchInfo.push(
+          ...this.currentNode.bakCondition && this.currentNode.bakCondition.booleanCondition.map(item => {
+            return {
+              Content: item.value
+            }
+          }))
+      }
+      this.materials.forEach(item => {
+        json.SearchResult.SearchResultInfo.push({
+          SearchResultDetails: {
+            InfoTitle: item.name,
+            ObjectID: item.guid,
+            DirFullpath: item.folderpath.replace(/^global_sobey_defaultclass\/MaterialList/, 'Network'),
+            Comments: item.note,
+            Rights: item.rights,
+            Duration: item.totalDuration,
+            ToBeDeleted: item.tobedel,
+            DeleteProtection: '',
+            ToBeArchived: '',
+            Archived: item.storageStatus
+          }
+        })
+      })
+      this.$download(toXML(json, opt), 'searchResult.xml', 'text/xml')
+    }
+  },
   computed: {
-    curKeyValues() {
+    curKeyValues () {
       var c = []
       this.advanceHeader && this.advanceHeader.keyValues.forEach(item => {
         if (item.isRange) {
@@ -110,10 +182,10 @@ export default {
       })
       return c
     },
-    currentNode() {
+    currentNode () {
       return this.$store.getters.currentNode
     },
-    advanceCondition() {
+    advanceCondition () {
       var c = []
       this.advanceHeader && this.advanceHeader.keyValues.forEach(item => {
         if (item.isRange) {
@@ -133,27 +205,27 @@ export default {
       })
       return c.join(',')
     },
-    advanceHeader() {
+    advanceHeader () {
       return this.currentNode.bakCondition.headers && this.currentNode.bakCondition.headers.filter(item => item.selected)[0]
     },
-    condtionLeft() {
+    condtionLeft () {
       return this.searchType === 3 ? '126px' : '90px'
     },
-    searchType() {
+    searchType () {
       return this.currentNode.bakCondition && this.currentNode.bakCondition.type
     },
-    fulltext() {
+    fulltext () {
       return this.$store.state.fulltextSearchCondition
     },
-    materials() {
+    materials () {
       return this.$store.getters.displayMaterials
     }
   },
-  data() {
+  data () {
     return {
     }
   },
-  created() {}
+  created () { }
 }
 </script>
 

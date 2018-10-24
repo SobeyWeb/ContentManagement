@@ -2077,6 +2077,7 @@ export default {
       context
         .dispatch({
           type: TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE,
+          name: payload.name,
           page: 1,
           size: 500
         })
@@ -2112,7 +2113,7 @@ export default {
                 target: payload.source,
                 data: resultArr
               })
-              resolve()
+              resolve(resultArr)
             })
             .catch(res => {
               util.stopLoading(context)
@@ -3257,66 +3258,72 @@ export default {
   },
   // always get new
   [TYPES.FULLTEXT_SEARCH_MATERIALS](context, payload) {
-    payload.showWaiting && util.startLoading(context)
-    let resultArr = []
-    let promiseArr = []
-    payload.data.json.page = 1
-    payload.data.json.size = 500
-    return new Promise((resolve, reject) => {
-      context
-        .dispatch({
-          type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
-          data: payload.data
-        })
-        .then(res => {
-          resultArr = resultArr.concat(
-            util.parseData(res.data.ext, payload.source)
-          )
-          let totalPage = res.data.totalPage
-          for (let i = 2; i <= totalPage; i++) {
-            let json = JSON.parse(JSON.stringify(payload.data))
-            json.json.page = i
-            promiseArr.push(() =>
-              context
-              .dispatch({
-                type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
-                data: json
-              })
-              .then(res => {
-                resultArr = resultArr.concat(
-                  util.parseData(res.data.ext, payload.source)
-                )
-              })
+    if (payload.data.json.isTrashCan) {
+      context.getters.searchResult.operations.add('Save Search Result')
+      return context.dispatch({
+        type: TYPES.GET_TRASHCAN_OBJECTS,
+        name: payload.data.json.name,
+        source: context.state.trashcan
+      })
+    } else {
+      context.getters.searchResult.operations.add('Save Search Result', 'Show OA File')
+      payload.showWaiting && util.startLoading(context)
+      let resultArr = []
+      let promiseArr = []
+      payload.data.json.page = 1
+      payload.data.json.size = 500
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
+            data: payload.data
+          })
+          .then(res => {
+            resultArr = resultArr.concat(
+              util.parseData(res.data.ext, payload.source)
             )
-          }
-          util
-            .throttleAjax(promiseArr)
-            .then(res => {
-              util.stopLoading(context)
-              resolve(resultArr)
-            })
-            .catch(res => {
-              util.stopLoading(context)
-              util.Notice.failed('Failed to get obejcts', '', 3000)
-              reject(res)
-            })
-        })
-        .catch(res => {
-          util.stopLoading(context)
-          // util.Notice.failed('Failed to get obejcts', '', 3000)
-          resolve([])
-        })
-    })
+            let totalPage = res.data.totalPage
+            for (let i = 2; i <= totalPage; i++) {
+              let json = JSON.parse(JSON.stringify(payload.data))
+              json.json.page = i
+              promiseArr.push(() =>
+                context
+                .dispatch({
+                  type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
+                  data: json
+                })
+                .then(res => {
+                  resultArr = resultArr.concat(
+                    util.parseData(res.data.ext, payload.source)
+                  )
+                })
+              )
+            }
+            util
+              .throttleAjax(promiseArr)
+              .then(res => {
+                util.stopLoading(context)
+                resolve(resultArr)
+              })
+              .catch(res => {
+                util.stopLoading(context)
+                util.Notice.failed('Failed to get obejcts', '', 3000)
+                reject(res)
+              })
+          })
+          .catch(res => {
+            util.stopLoading(context)
+            // util.Notice.failed('Failed to get obejcts', '', 3000)
+            resolve([])
+          })
+      })
+    }
   },
   [TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE](context, payload) {
     let url = API_CONFIG[TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE]({
       usertoken: context.state.userInfo.usertoken,
       pathtype: 'http'
     })
-    context.getters.searchResult.operations.add(
-      'Save Search Result',
-      'Show OA File'
-    )
     return new Promise((resolve, reject) => {
       axios
         .post(url, payload.data.json, false, {

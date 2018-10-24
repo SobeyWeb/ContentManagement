@@ -301,12 +301,13 @@ export function packegeCustomSearchData(serverCondition) {
     Date: 'rd-datepicker',
     DateTime: 'rd-datepicker',
     Time: 'vue-timepicker',
+    MultiDropdown: 'rd-cascader',
     enum: 'rd-select'
   }
 
   serverCondition.forEach(item => {
     let ctrl =
-      item.ctrl || ctrlTable[item.dataType] || ctrlTable[item.fieldtype]
+      item.ctrl || ctrlTable[item.fieldtype] || ctrlTable[item.dataType]
     item.volid = volid(item.name)
     item.isCustom = item.isCustom === undefined ? true : item.isCustom
     item.key = item.key === void 0 ? item.fieldName : item.key
@@ -518,6 +519,26 @@ export function packegeCustomSearchData(serverCondition) {
           }
         }
         return value
+      }
+    } else if (ctrl === 'rd-cascader') {
+      item.value = item.value || []
+      item.options = item.options || [];
+      item.displayValue = item.displayValue || ''
+      if (!item.options.length) {
+        var items = (item.enumContents || []).groupBy('description')
+        items.forEach(i => {
+          item.options.push({
+            children: i.map(k => {
+              return {
+                selected: k.name === item.value,
+                label: k.name.split('|')[state.defaultLanguage - 1],
+                value: k.name
+              }
+            }),
+            selected: i.some(j => j.name === item.value),
+            label: i[0].description
+          })
+        })
       }
     }
   })
@@ -919,7 +940,15 @@ export function extendData(sdata, node) {
   node.rights = clipData.rights
   let customer = clipData.customer || {}
   state.customKeys.forEach(item => {
-    node[item.fieldName] = item.dataType === 'date' ? customer[item.fieldName] && customer[item.fieldName].split(/\s/g)[0] : (item.dataType === 'time' ? customer[item.fieldName] && customer[item.fieldName].split(/\s/g)[1] : customer[item.fieldName])
+    if (item.dataType === 'date') {
+      node[item.fieldName] = customer[item.fieldName] && customer[item.fieldName].split(/\s/g)[0]
+    } else if (item.dataType === 'time') {
+      node[item.fieldName] = customer[item.fieldName] && customer[item.fieldName].split(/\s/g)[1]
+    } else if (item.fieldtype === 'MultiDropdown') {
+      node[item.fieldName] = customer[item.fieldName] && customer[item.fieldName].split('|')[state.defaultLanguage - 1]
+    } else {
+      node[item.fieldName] = customer[item.fieldName]
+    }
   })
   if (node.type === 'image') {
     node.totalDuration = GetTimeStringByFrameNum(
@@ -2136,37 +2165,43 @@ export function getFulltextSearchCondtion(cond, node, type) {
     kvs: [],
     usercode: state.userInfo.usercode
   };
-  ([292, 293, 294].indexOf(node.subtype) > -1 &&
-    ((json.subtype = node.subtype), 1)) ||
-  json.kvs.push({
-    key: 'tree_path_',
-    value: node.path
-  })
-  cond.timeFilter.filter(item => item.checked).forEach(item =>
-    json.kvs.push({
-      key: 'createDate_',
-      value: '[' +
-        new Date(+new Date() - 86400000 * item.key).format('yyyy-MM-dd') +
-        ' 00:00:00 TO ' +
-        new Date().format('yyyy-MM-dd') +
-        ' 23:59:59]'
-    })
-  )
-  cond.typeFilter.filter(item => item.checked).forEach(item =>
-    json.kvs.push({
-      key: 'type_',
-      value: item.key
-    })
-  )
-  if (type) {
-    json.searchtext = cond.keywords.trim() || ''
+  if (node.guid === 0) {
+    json.name = cond.keywords.trim() || ''
+    json.isTrashCan = true
+    return json
   } else {
-    json.condition = {}
-    cond.booleanCondition.forEach(
-      item => (json.condition[item.key] = item.value.trim())
+    ([292, 293, 294].indexOf(node.subtype) > -1 &&
+      ((json.subtype = node.subtype), 1)) ||
+    json.kvs.push({
+      key: 'tree_path_',
+      value: node.path
+    })
+    cond.timeFilter.filter(item => item.checked).forEach(item =>
+      json.kvs.push({
+        key: 'createDate_',
+        value: '[' +
+          new Date(+new Date() - 86400000 * item.key).format('yyyy-MM-dd') +
+          ' 00:00:00 TO ' +
+          new Date().format('yyyy-MM-dd') +
+          ' 23:59:59]'
+      })
     )
+    cond.typeFilter.filter(item => item.checked).forEach(item =>
+      json.kvs.push({
+        key: 'type_',
+        value: item.key
+      })
+    )
+    if (type) {
+      json.searchtext = cond.keywords.trim() || ''
+    } else {
+      json.condition = {}
+      cond.booleanCondition.forEach(
+        item => (json.condition[item.key] = item.value.trim())
+      )
+    }
+    return json
   }
-  return json
 }
 export function getCanSelectedItems(
   context,
@@ -2703,7 +2738,7 @@ export function mergeHeader(target, source) {
       item => !item.id && !target.find(i => i.name === item.name)
     )
     let index = 0
-    target.forEach((item, i) => {
+    target.filter(item => item.attr && item.name).forEach((item, i) => {
       if (!item.id) {
         let same = source.find(i => i.name === item.name)
         item.attr = (same && same.attr) || item.attr
@@ -3631,7 +3666,7 @@ export function getProperties(resultArr, materials, models, type, context, httpR
       onlyLength: true
     }
   }
-  let volid = key => e => volidInput(e.target.value, volidType[key] && volidType[key].length, e.target, volidType[key] && volidType[key].onlyLength, key)
+  let volid = key => e => volidType[key] && volidInput(e.target.value, volidType[key] && volidType[key].length, e.target, volidType[key] && volidType[key].onlyLength, key)
   let formatTime = (v, m) => v === undefined && ['image', 'video'].indexOf(m.type) === -1 ? '' : ['video', 'image'].indexOf(m.type) > -1 ? getTimeString(v, m.videostandard, m.ntsctcmode) : '' // util.toSmpteString((v || 0) / 10000, m.videoStandard)
   let formatFrame = (v, m) => v === undefined ? '' : GetTimeStringByFrameNum(v, m.ntsctcmode, m.videostandard)
   let tTable = {
@@ -4804,7 +4839,11 @@ export function getPreviewInfo(resultArr, materials, type, context) {
       }) // 同步执行
       // }
     }
-    let lowBitrateArr = getLowBitrate(entity, framerate)
+    let lowBitrateArr = getLowBitrate(entity, framerate).filter(item => {
+      var fileSuffix = item.src.substring(item.src.lastIndexOf('.') + 1, item.src.lastIndexOf('?') > -1 ? item.src.lastIndexOf('?') : undefined).toLowerCase();
+      var material = materials.find(i => i.guid === item.guid)
+      return !(['mp3', 'mp4', 'mpd', 'png'].indexOf(fileSuffix) === -1 && material.type === 'video')
+    })
     if (item.data.ext.streammedia && item.data.ext.streammedia.length) {
       // https中 替换pdf的预览
       item.data.ext.streammedia.filter(i => i.clipclass === 1 || i.clipclass === undefined).forEach(i => {

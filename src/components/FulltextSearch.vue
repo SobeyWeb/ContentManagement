@@ -2,7 +2,7 @@
   <div class="fulltext_container">
     <input placeholder="Keywords..." class="fulltext_input" v-model="fulltext.keywords" @keydown.enter="fulltextSearch" type="text" :disabled="disabled" />
     <button class="search_btn fr" @click="fulltextSearch" v-show="!disabled"></button>
-    <span class="toggle_btn fr" :class="{up_toggle_btn: dropdown}" @click="dropdown=!dropdown" v-show="!disabled"></span>
+    <span class="toggle_btn fr" :class="{up_toggle_btn: dropdown}" @click="dropdown=!dropdown" v-show="!disabled&&!isTrashCan"></span>
     <span class="fulltext_clear_btn fr" v-show="fulltext.keywords&&!disabled" @click="fulltext.keywords=''"></span>
     <div class="dropdown_container animated2" v-show="dropdown" :class="[dropdown?'slideInDown':'slideOutUp']">
       <div class="fulltext_filter_container">
@@ -191,8 +191,11 @@ export default {
     fulltext () {
       return this.$store.state.fulltextSearchCondition
     },
+    isTrashCan () {
+      return this.$store.getters.currentNode.guid === 0
+    },
     disabled () {
-      return [1, 2, -1, 0].indexOf(this.$store.getters.currentNode.guid) > -1
+      return [1, 2, -1].indexOf(this.$store.getters.currentNode.guid) > -1
     }
   },
   mounted () {
@@ -352,9 +355,9 @@ export default {
 .btn_container {
   line-height: 32px;
 }
-.checked_span.check_span::before{
+.checked_span.check_span::before {
   opacity: 1;
-  -webkit-transform: translate3d(0,0,0) skewX(0deg);
-  transform: translate3d(0,0,0) skewX(0deg);
+  -webkit-transform: translate3d(0, 0, 0) skewX(0deg);
+  transform: translate3d(0, 0, 0) skewX(0deg);
 }
 </style>

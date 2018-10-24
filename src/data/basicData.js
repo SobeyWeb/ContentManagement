@@ -1,7 +1,6 @@
 export const defaultFulltextSearchCondtion = {
   keywords: '',
-  timeFilter: [
-    {
+  timeFilter: [{
       name: 'One Day',
       checked: false,
       key: 0
@@ -22,8 +21,7 @@ export const defaultFulltextSearchCondtion = {
       key: 365
     }
   ],
-  typeFilter: [
-    {
+  typeFilter: [{
       name: 'Folder',
       checked: false,
       key: 'folder'
@@ -59,8 +57,7 @@ export const defaultFulltextSearchCondtion = {
       key: 'biz_sobey_other'
     }
   ],
-  booleanCondition: [
-    {
+  booleanCondition: [{
       name: 'Include These',
       key: 'include',
       value: ''
@@ -82,12 +79,10 @@ export const defaultFulltextSearchCondtion = {
     }
   ]
 }
-export const defaultAdvanceSearchCondtion = [
-  {
+export const defaultAdvanceSearchCondtion = [{
     checked: false,
     dragging: false,
-    keyValues: [
-      {
+    keyValues: [{
         name: 'Title',
         value: '',
         order: 0,
@@ -204,8 +199,7 @@ export const defaultAdvanceSearchCondtion = [
       },
       {
         name: 'Locations',
-        options: [
-          {
+        options: [{
             value: 'Online',
             key: 'archiveStatus_',
             val: 'ready',
@@ -239,8 +233,7 @@ export const defaultAdvanceSearchCondtion = [
   {
     checked: false,
     dragging: false,
-    keyValues: [
-      {
+    keyValues: [{
         name: 'Name',
         value: '',
         order: 0,
@@ -268,8 +261,7 @@ export const defaultAdvanceSearchCondtion = [
   {
     checked: false,
     dragging: false,
-    keyValues: [
-      {
+    keyValues: [{
         name: 'Title',
         value: '',
         order: 0,
@@ -332,8 +324,7 @@ export const defaultAdvanceSearchCondtion = [
   {
     checked: false,
     dragging: false,
-    keyValues: [
-      {
+    keyValues: [{
         name: 'Comments',
         value: '',
         order: 0,
@@ -343,10 +334,20 @@ export const defaultAdvanceSearchCondtion = [
         key: 'note'
       },
       {
+        name: 'Color',
+        value: '',
+        userdata: null,
+        order: 1,
+        isCustom: false,
+        ctrl: 'color-selector-ctrl',
+        visible: true,
+        key: 'color'
+      },
+      {
         name: 'LM Title',
         value: '',
         checkedValue: [],
-        order: 1,
+        order: 2,
         isCustom: false,
         ctrl: 'action-selector-ctrl',
         visible: true,
@@ -356,7 +357,7 @@ export const defaultAdvanceSearchCondtion = [
         name: 'LM Member',
         value: '',
         checkedValue: [],
-        order: 2,
+        order: 3,
         isCustom: false,
         ctrl: 'member-selector-ctrl',
         visible: true,
@@ -366,7 +367,7 @@ export const defaultAdvanceSearchCondtion = [
         name: 'LM Action',
         value: '',
         checkedValue: [],
-        order: 3,
+        order: 4,
         isCustom: false,
         ctrl: 'action-selector-ctrl',
         visible: true,
@@ -376,7 +377,7 @@ export const defaultAdvanceSearchCondtion = [
         name: 'LM Creator',
         value: '',
         userdata: null,
-        order: 4,
+        order: 5,
         isCustom: false,
         ctrl: 'user-selector-ctrl',
         visible: true,
@@ -385,7 +386,7 @@ export const defaultAdvanceSearchCondtion = [
       {
         name: 'Create Date',
         value: '',
-        order: 5,
+        order: 6,
         isCustom: false,
         ctrl: 'rd-datepicker',
         visible: true,
@@ -408,8 +409,7 @@ export const defaultAdvanceSearchCondtion = [
 ]
 
 export const defaultQuery = {
-  Clip: [
-    {
+  Clip: [{
       key: 'type_',
       value: 'biz_sobey_video',
       queryoperation: 'or'
@@ -435,13 +435,11 @@ export const defaultQuery = {
       queryoperation: 'or'
     }
   ],
-  PGM: [
-    {
-      key: 'type_',
-      value: 'biz_sobey_program',
-      queryoperation: 'or'
-    }
-  ]
+  PGM: [{
+    key: 'type_',
+    value: 'biz_sobey_program',
+    queryoperation: 'or'
+  }]
 }
 
 export const emptyMaterial = {
@@ -452,12 +450,10 @@ export const emptyMaterial = {
   canPreview: true,
   readonly: true,
   operations: [],
-  properties: [
-    {
+  properties: [{
       name: 'Basic Info',
       order: 0,
-      keyValues: [
-        {
+      keyValues: [{
           name: 'Title',
           value: '',
           limit: {
@@ -582,8 +578,7 @@ export const emptyMaterial = {
     {
       name: 'Filing',
       order: 1,
-      keyValues: [
-        {
+      keyValues: [{
           name: 'Input Source',
           value: '',
           limit: {
@@ -749,8 +744,7 @@ export const emptyMaterial = {
     },
     {
       name: 'Planning',
-      keyValues: [
-        {
+      keyValues: [{
           name: 'Place',
           value: '',
           limit: {
@@ -856,8 +850,7 @@ export const emptyMaterial = {
     {
       name: 'History',
       order: 3,
-      keyValues: [
-        {
+      keyValues: [{
           name: 'Modified(Date Time)',
           value: '',
           limit: {
@@ -1023,8 +1016,7 @@ export const emptyMaterial = {
       name: 'File List',
       keyValues: {
         values: [],
-        headers: [
-          {
+        headers: [{
             name: 'File Name',
             attr: 'filename',
             width: 200,
@@ -1100,8 +1092,7 @@ export const emptyMaterial = {
     {
       name: 'Original Metadata',
       order: 6,
-      keyValues: [
-        {
+      keyValues: [{
           name: 'User Media ID',
           value: '',
           limit: {
@@ -1231,8 +1222,7 @@ export const emptyMaterial = {
     {
       name: 'Original UMID',
       order: 7,
-      keyValues: [
-        {
+      keyValues: [{
           name: 'Basic UMID',
           value: '',
           limit: {
@@ -1271,8 +1261,7 @@ export const emptyMaterial = {
     {
       name: 'Rights',
       keyValues: {
-        radio: [
-          {
+        radio: [{
             checked: true,
             value: 'Public',
             disabled: true,
@@ -1290,8 +1279,7 @@ export const emptyMaterial = {
             disabled: true
           }
         ],
-        access: [
-          {
+        access: [{
             checked: false,
             value: 'Access',
             disabled: true

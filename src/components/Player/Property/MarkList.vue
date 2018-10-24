@@ -12,6 +12,7 @@
     <div class="filter_container">
       <input v-focus type="text" class="filter_input" v-model="condition" placeholder="input keywords to filter" @keydown.esc.prevent.stop="condition=''" />
       <span class="clear_btn" v-show="condition" @click.stop.prevent="condition=''"></span>
+      <span class="display_save_btn display_btn" style="position:absolute;top:5px;right:20px;" :class="{'print-disabled':loggingMarkers.length }" title="Print logging markers" @click.prevent="print"></span>
     </div>
     <vue-nice-scrollbar :speed="150" style="height:calc(100% - 70px);">
       <div class="sv_marker_box">
@@ -19,12 +20,14 @@
         </sv-marker-ctrl>
       </div>
     </vue-nice-scrollbar>
+    <logging-marker-template v-show="false" :material="material" :markers="loggingMarkers" ref="printer"></logging-marker-template>
   </div>
 </template>
 
 <script>
 import Marker from './Marker'
 import TYPES from '../../../dicts/mutationTypes'
+import LoggingMarker from '../../Print/LoggingMarker'
 export default {
   name: 'mark_list_ctrl',
   props: {
@@ -55,9 +58,13 @@ export default {
     }
   },
   components: {
-    'sv-marker-ctrl': Marker
+    'sv-marker-ctrl': Marker,
+    'logging-marker-template': LoggingMarker
   },
   computed: {
+    loggingMarkers () {
+      return this.markerList.filter(i => i.tag === 'loMarker')
+    },
     focused () {
       return this.$store.state.isFocusPlayer
     },
@@ -91,6 +98,9 @@ export default {
     }
   },
   methods: {
+    print () {
+      this.$refs.printer.print()
+    },
     saveMarker (type, tempMarker) {
       var markers = this.markerList
       if (type !== 'add') {
@@ -313,10 +323,26 @@ export default {
   border: none;
   border-radius: 4px;
   padding: 0 24px 0 10px;
-  width: 99%;
+  width: 94%;
   outline: none;
   resize: none;
   box-sizing: border-box;
   transition: border-color 0.3s eas;
+}
+.display_btn {
+  background-size: 100%;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  outline: none;
+  cursor: pointer;
+  display: inline-block;
+  line-height: 30px;
+  position: relative;
+  text-align: center;
+  margin-left: 5px;
+}
+.display_save_btn {
+  background-image: url(../../../assets/images/3_1.png);
 }
 </style>

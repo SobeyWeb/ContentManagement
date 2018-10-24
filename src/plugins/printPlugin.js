@@ -1,6 +1,6 @@
 export default {
-  install: function(Vue) {
-    Vue.prototype.$print = Vue.print = function(template, replacements) {
+  install: function (Vue) {
+    Vue.prototype.$print = Vue.print = function (template, replacements) {
       let frame = document.getElementById('printer')
       let templateUrl = './print/' + template + '.html?t=' + new Date().getTime()
       frame.onload = () => {
@@ -15,7 +15,7 @@ export default {
       }
       frame.src = templateUrl
     }
-    Vue.prototype.$open = Vue.open = function(template, replacements) {
+    Vue.prototype.$open = Vue.open = function (template, replacements) {
       let templateUrl = './print/' + template + '.html?t=' + new Date().getTime()
       let debugWindow = window.open(templateUrl)
       debugWindow.onload = () => {
@@ -26,6 +26,18 @@ export default {
         }
         debugWindow.document.documentElement.innerHTML = content
       }
+    }
+    Vue.prototype.$download = Vue.download = function (content, filename, type) {
+      let blob = new Blob([content], {
+        type: type || 'text/plain'
+      })
+      let ele = document.createElement('a')
+      ele.setAttribute('href', URL.createObjectURL(blob))
+      ele.setAttribute('download', filename)
+      ele.setAttribute('target', '_blank')
+      document.body.appendChild(ele)
+      ele.click()
+      document.body.removeChild(ele)
     }
   }
 }

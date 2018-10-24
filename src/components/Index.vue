@@ -124,13 +124,13 @@
                 <span class="display_keyword_span">Keywords</span>
                 <input class="display_keyword_input boolean_input" type="text" v-model="currentNode.bakCondition.keywords" @keydown.enter="reSearch" />
               </div>
-              <div class="content_filter_container clearfix">
+              <div class="content_filter_container clearfix" v-if="currentNode.bakCondition.node.guid">
                 <div class="display_filter_text">Time</div>
                 <div class="display_filter_items clearfix" :style="{left: condtionLeft, paddingRight:condtionLeft}">
                   <span class="check_span fl" :class="{checked_span: time.checked}" @click.stop="timeFilter(time)" v-for="time in currentNode.bakCondition.timeFilter" :key="time.name">{{time.name}}</span>
                 </div>
               </div>
-              <div class="content_filter_container clearfix">
+              <div class="content_filter_container clearfix" v-if="currentNode.bakCondition.node.guid">
                 <div class="display_filter_text">Content</div>
                 <div class="display_filter_items clearfix" :style="{left: condtionLeft, paddingRight:condtionLeft}">
                   <span class="check_span fl" :class="{checked_span: type.checked}" @click.stop="typeFilter(type)" v-for="type in currentNode.bakCondition.typeFilter" :key="type.name">{{type.name}}</span>
@@ -146,6 +146,7 @@
               <span class="display_modify_btn display_btn" v-show="searchType===1" title="Modify search condition" @click.prevent="modifySeachCondition"></span>
               <span class="display_save_btn display_btn" title="Save search template" @click.prevent="saveSeachCondition"></span>
               <span class="display_save_btn display_btn" title="Save search template" @click.prevent="printSearchResult"></span>
+              <span class="display_save_btn display_btn" title="Save search template" @click.prevent="downloadSearchResult"></span>
             </div>
           </div>
         </transition>
@@ -322,6 +323,8 @@ export default {
           } else {
             item.value && item.value.value && c.push(item.value.value)
           }
+        } else if (item.ctrl === 'rd-cascader') {
+          item.displayValue && c.push(item.displayValue)
         } else {
           item.value && c.push(item.username || item.value)
           item.checkedValue && item.checkedValue.length && c.push(item.checkedValue.map(i => i.name).join('|'))
@@ -457,9 +460,10 @@ export default {
   },
   methods: {
     printSearchResult () {
-      this.$open('A4', {
-        REPLACEMENT_CONTENT: this.$refs.printer.$el.innerHTML
-      })
+      this.$refs.printer.open()
+    },
+    downloadSearchResult () {
+      this.$refs.printer.download()
     },
     resizeTaskMonitor () {
       if (this.taskMonitorWindow && this.taskMonitorWindow.visible) {
@@ -2055,6 +2059,15 @@ export default {
                       } else {
                         same.options.forEach(item => ((item.value === k.value.value && (item.selected = true)) || (item.selected = false)))
                       }
+                    } else if (k.ctrl === 'rd-cascader') {
+                      same.value = k.value
+                      same.displayValue = k.displayValue
+                      same.options.forEach(item => {
+                        item.selected = item.children.some(j => j.value === same.value)
+                        item.children.forEach(j => {
+                          j.selected = j.value === same.value
+                        })
+                      })
                     } else {
                       same.value = k.value
                     }
@@ -2081,6 +2094,15 @@ export default {
                       } else {
                         same.options.forEach(item => ((item.value === k.value.value && (item.selected = true)) || (item.selected = false)))
                       }
+                    } else if (k.ctrl === 'rd-cascader') {
+                      same.value = k.value
+                      same.displayValue = k.displayValue
+                      same.options.forEach(item => {
+                        item.selected = item.children.some(j => j.value === same.value)
+                        item.children.forEach(j => {
+                          j.selected = j.value === same.value
+                        })
+                      })
                     } else {
                       same.value = k.value
                     }
@@ -2146,6 +2168,12 @@ export default {
                   k.to.value = k.to.bakValue
                 } else if (k.ctrl === 'rd-select') {
                   k.options = k.bakOptions
+                } else if (k.ctrl === 'rd-cascader') {
+                  k.value = k.bakValue
+                  k.displayValue = k.bakDisplayValue
+                  if (k.options) { // duoji xiala
+                    k.options = JSON.parse(k.bakOptions)
+                  }
                 } else {
                   k.value = k.bakValue
                   if (k.username) {
@@ -2181,6 +2209,12 @@ export default {
                     k.to.value = k.to.bakValue
                   } else if (k.ctrl === 'rd-select') {
                     k.options = k.bakOptions
+                  } else if (k.ctrl === 'rd-cascader') {
+                    k.value = k.bakValue
+                    k.displayValue = k.bakDisplayValue
+                    if (k.options) { // duoji xiala
+                      k.options = JSON.parse(k.bakOptions)
+                    }
                   } else {
                     k.value = k.bakValue
                     if (k.username) {
@@ -2244,6 +2278,15 @@ export default {
                           } else {
                             same.options.forEach(item => (item.value === k.value.value && (item.selected = true)) || (item.selected = false))
                           }
+                        } else if (k.ctrl === 'rd-cascader') {
+                          same.value = k.value
+                          same.displayValue = k.displayValue
+                          same.options.forEach(item => {
+                            item.selected = item.children.some(j => j.value === same.value)
+                            item.children.forEach(j => {
+                              j.selected = j.value === same.value
+                            })
+                          })
                         } else {
                           same.value = k.value
                         }
@@ -2270,6 +2313,15 @@ export default {
                           } else {
                             same.options.forEach(item => (item.value === k.value.value && (item.selected = true)) || (item.selected = false))
                           }
+                        } else if (k.ctrl === 'rd-cascader') {
+                          same.value = k.value
+                          same.displayValue = k.displayValue
+                          same.options.forEach(item => {
+                            item.selected = item.children.some(j => j.value === same.value)
+                            item.children.forEach(j => {
+                              j.selected = j.value === same.value
+                            })
+                          })
                         } else {
                           same.value = k.value
                         }
@@ -2303,6 +2355,12 @@ export default {
                     k.to.bakValue = k.to.value
                   } else if (k.ctrl === 'rd-select') {
                     k.bakOptions = JSON.parse(JSON.stringify(k.options))
+                  } else if (k.ctrl === 'rd-cascader') {
+                    k.bakValue = k.value
+                    k.bakDisplayValue = k.displayValue
+                    if (k.options) { // duoji xiala
+                      k.bakOptions = JSON.stringify(k.options)
+                    }
                   } else {
                     k.bakValue = k.value
                     k.bakUserdata = k.userdata
@@ -2324,6 +2382,12 @@ export default {
                   k.to.bakValue = k.to.value
                 } else if (k.ctrl === 'rd-select') {
                   k.bakOptions = JSON.parse(JSON.stringify(k.options))
+                } else if (k.ctrl === 'rd-cascader') {
+                  k.bakValue = k.value
+                  k.bakDisplayValue = k.displayValue
+                  if (k.options) { // duoji xiala
+                    k.bakOptions = JSON.stringify(k.options)
+                  }
                 } else {
                   k.bakValue = k.value
                   k.bakUserdata = k.userdata
@@ -2396,6 +2460,8 @@ export default {
     clearInterval(this.checkTaskId)
   },
   created () {
+    window.state = this.$store.state
+    window.defaultAdvanceSearchCondtion = defaultAdvanceSearchCondtion
     if (this.userInfo && this.userInfo.usertoken) {
       this.$store.dispatch({
         type: TYPES.INTERCEPT_AXIOS

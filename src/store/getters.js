@@ -1,6 +1,9 @@
 import * as util from '../lib/util.js';
 import APPSETTING from '../config/appSetting.js';
-import { getRepository, setRepository } from '../data/repository';
+import {
+  getRepository,
+  setRepository
+} from '../data/repository';
 
 export default {
   isFocusTree(state) {
@@ -83,54 +86,54 @@ export default {
     return getters.filteredMaterials[state.signIndex] || null;
   },
   filteredMaterials(state, getters) {
-    return state.listSymbol
-      ? getters.displayMaterials.filter(material => {
-          let flag = true;
-          for (let i = 0, l = state.filterHeaders.length; i < l; i++) {
-            let header = state.filterHeaders[i];
-            if (header.ctrl === 'date-time-filter') {
-              if (header.values && header.values.length === 2) {
-                var a = new Date(material[header.attr]);
-                if (a.toString() !== 'Invalid Date') {
-                  return +a >= +header.values[0] && +a <= +header.values[1];
-                } else {
-                  return true;
-                }
+    return state.listSymbol ?
+      getters.displayMaterials.filter(material => {
+        let flag = true;
+        for (let i = 0, l = state.filterHeaders.length; i < l; i++) {
+          let header = state.filterHeaders[i];
+          if (header.ctrl === 'date-time-filter') {
+            if (header.values && header.values.length === 2) {
+              var a = new Date(material[header.attr]);
+              if (a.toString() !== 'Invalid Date') {
+                return +a >= +header.values[0] && +a <= +header.values[1];
               } else {
                 return true;
               }
-            } else if (header.values && header.values.length) {
-              flag = header.values.some(item => {
-                var condition;
-                if (item.type === 'group') {
-                  condition = new RegExp(item.reg, 'gi');
+            } else {
+              return true;
+            }
+          } else if (header.values && header.values.length) {
+            flag = header.values.some(item => {
+              var condition;
+              if (item.type === 'group') {
+                condition = new RegExp(item.reg, 'gi');
+              } else {
+                if (typeof item === 'object') {
+                  condition = new RegExp(item.value, 'i');
                 } else {
-                  if (typeof item === 'object') {
-                    condition = new RegExp(item.value, 'i');
-                  } else {
-                    var regStr = '^';
-                    var condArr = item.split('*');
-                    condArr.forEach((item, index) => {
-                      if (item !== '' || !index) {
-                        regStr += item
-                          .replace(/[\\|&^*+?$[\](){}]/g, '\\$&')
-                          .replace(/\s+/, '\\s+');
-                        regStr += '.*';
-                      }
-                    });
-                    condition = new RegExp(regStr, 'i');
-                  }
+                  var regStr = '^';
+                  var condArr = item.split('*');
+                  condArr.forEach((item, index) => {
+                    if (item !== '' || !index) {
+                      regStr += item
+                        .replace(/[\\|&^*+?$[\](){}]/g, '\\$&')
+                        .replace(/\s+/, '\\s+');
+                      regStr += '.*';
+                    }
+                  });
+                  condition = new RegExp(regStr, 'i');
                 }
-                return condition.test(material[header.attr]);
-              });
-              if (!flag) {
-                break;
               }
+              return condition.test(material[header.attr]);
+            });
+            if (!flag) {
+              break;
             }
           }
-          return flag;
-        })
-      : getters.displayMaterials;
+        }
+        return flag;
+      }) :
+      getters.displayMaterials;
   },
   displayMaterials(state, getters) {
     let index = state.updateId;
@@ -138,11 +141,11 @@ export default {
     // return repository[getters.currentNode.guid].filter(item => 'folder' === item.type || state.archiveFiters[item.onlinstatus])
     return getRepository(getters.currentNode.guid).filter(
       item =>
-        (item.type === 'folder' || state.archiveFiters[item.archivetarget]) &&
-        ([1, 2].indexOf(getters.currentNode.guid) === -1 ||
-          state.showOAMaterials ||
-          !item.folderpath ||
-          !item.folderpath.startsWith(APPSETTING.OAPATH))
+      (item.type === 'folder' || state.archiveFiters[item.archivetarget]) &&
+      ([1, 2].indexOf(getters.currentNode.guid) === -1 ||
+        state.showOAMaterials ||
+        !item.folderpath ||
+        !item.folderpath.startsWith(APPSETTING.OAPATH))
     );
   },
   orderedSelectedMaterials(state, getters) {
@@ -171,20 +174,20 @@ export default {
     return state.detailviewSymbol || state.previewSymbol;
   },
   itemWidth(state, getters) {
-    return state.listSymbol
-      ? 1
-      : state.isMarker
-        ? 462
-        : state.thumbnailStyle.width * state.scaleTime + 2 * state.thumbPadding;
+    return state.listSymbol ?
+      1 :
+      state.isMarker ?
+      462 :
+      state.thumbnailStyle.width * state.scaleTime + 2 * state.thumbPadding;
   },
   itemHeight(state, getters) {
-    return state.listSymbol
-      ? state.system
-        ? 40
-        : 52
-      : state.isMarker
-        ? 102
-        : 14 + state.thumbnailStyle.height * state.scaleTime + 45;
+    return state.listSymbol ?
+      state.system ?
+      40 :
+      52 :
+      state.isMarker ?
+      102 :
+      14 + state.thumbnailStyle.height * state.scaleTime + 45;
   },
   thumbDisplay(state, getters) {
     let containerUpdate = state.containerUpdate; // add for resize  auto update
@@ -227,11 +230,11 @@ export default {
         el: box
       };
     } else {
-      let rowCount = state.isMarker
-        ? Math.floor(box.clientWidth / getters.itemWidth)
-        : Math.round(
-            (box.clientWidth - 2 * state.thumbPadding) / getters.itemWidth
-          );
+      let rowCount = state.isMarker ?
+        Math.floor(box.clientWidth / getters.itemWidth) :
+        Math.round(
+          (box.clientWidth - 2 * state.thumbPadding) / getters.itemWidth
+        );
       rowCount = Math.max(1, rowCount);
       let totalHeight = Math.ceil(length / rowCount) * itemHeight;
       let screenRows = Math.ceil(box.clientHeight / itemHeight) + 1;
@@ -259,6 +262,7 @@ export default {
     return {
       node: {
         path: state.searchNode.path,
+        guid: state.searchNode.guid,
         subtype: state.searchNode.subtype
       },
       headers: state.advanceSearchHeaders,
@@ -289,8 +293,7 @@ export default {
   },
   isHighLight(state, getters) {
     return (
-      [2, 3].indexOf(state.searchType) > -1 &&
-      [1, 2].indexOf(getters.currentNode.guid) > -1
+      [2, 3].indexOf(state.searchType) > -1 && [1, 2].indexOf(getters.currentNode.guid) > -1
     );
   },
   templateCondition(state, getters) {
