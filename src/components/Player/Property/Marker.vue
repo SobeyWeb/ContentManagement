@@ -74,11 +74,11 @@ export default {
     return {
       nostampUrl: require('../../../assets/images/nostamp.png'),
       colors: [
-        13684944,
         6844660,
-        6730483,
         6418415,
         10152321,
+        13684944,
+        6730483,
         15460225,
         15839589,
         15888307,

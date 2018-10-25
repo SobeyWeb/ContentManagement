@@ -244,6 +244,11 @@ export default {
     symbol: true,
     disabled: true
   },
+  markerOrder: {
+    type: 'LM Title',
+    symbol: true,
+    disabled: false
+  },
   selectedNode: null,
   eventArray: {},
   excutingTask: [],

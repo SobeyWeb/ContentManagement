@@ -2249,6 +2249,7 @@ export default {
         context.state.TYPESymbol = !context.state.TYPESymbol
         break
       default:
+        context.state.markerOrder.type = payload.data.name
     }
     let lastVisit = util.getCookie(
       'last_visit' + context.state.userInfo.usercode
@@ -2258,6 +2259,7 @@ export default {
       lastVisit.sortType = context.state.sortType
       lastVisit.TYPESymbol = context.state.TYPESymbol
       lastVisit.sortSymbol = context.state.sortSymbol
+      lastVisit.markerOrder = context.state.markerOrder
       util.setCookie(
         'last_visit' + context.state.userInfo.usercode,
         JSON.stringify(lastVisit)

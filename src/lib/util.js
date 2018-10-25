@@ -136,6 +136,106 @@ export function setCookie(name, value) {
       name + '=' + escape(value) + ';expires=' + exp.toGMTString()
   }
 }
+export function sortMarkerBy(arr, markerOrder, lmLanguage) {
+  let basicSortFunc = (i1, i2) => {
+    if (i1.keyframe - i2.keyframe) {
+      return i1.keyframe - i2.keyframe
+    } else {
+      return i1.markguid && i1.markguid.localeCompare(i2.markguid)
+    }
+  }
+  let loggingMarkers = arr.filter(item => item.flag === 'lmarker')
+  let otherMarkers = arr.filter(item => item.flag !== 'lmarker')
+  switch (markerOrder.type) {
+    case 'LM Title':
+      return loggingMarkers.sort((i1, i2) => {
+        let val1 = i1._extendinfo && i1._extendinfo[0].map(function (item) {
+          return item.itemvalue.map && item.itemvalue.map(function (item) {
+            return item.itemvalue
+          }).join('/') || ''
+        }).join('/')
+        let val2 = i2._extendinfo && i2._extendinfo[0].map(function (item) {
+          return item.itemvalue.map && item.itemvalue.map(function (item) {
+            return item.itemvalue
+          }).join('/') || ''
+        }).join('/')
+        return SortLikeWinBy('v')({
+          v: val1,
+          guid: val1.markguid
+        }, {
+          v: val2,
+          guid: val2.markguid
+        })
+      }).concat(otherMarkers.sort(basicSortFunc))
+    case 'LM Action':
+      return loggingMarkers.sort((i1, i2) => {
+        let val1 = i1._extendinfo && i1._extendinfo[2].map(function (item) {
+          return item.itemvalue.filter && item.itemvalue.filter(function (i) {
+            return i.languageid === lmLanguage
+          }).map(function (i) {
+            return i.itemvalue
+          }).join('/') || ''
+        }).join('/')
+        let val2 = i2._extendinfo && i2._extendinfo[2].map(function (item) {
+          return item.itemvalue.filter && item.itemvalue.filter(function (i) {
+            return i.languageid === lmLanguage
+          }).map(function (i) {
+            return i.itemvalue
+          }).join('/') || ''
+        }).join('/')
+        return SortLikeWinBy('v')({
+          v: val1,
+          guid: val1.markguid
+        }, {
+          v: val2,
+          guid: val2.markguid
+        }) || i1.markguid && i1.markguid.localeCompare(i2.markguid)
+      }).concat(otherMarkers.sort(basicSortFunc))
+    case 'LM Member':
+      return loggingMarkers.sort((i1, i2) => {
+        let val1 = i1._extendinfo && i1._extendinfo[1].map(function (item) {
+          return item.itemvalue.map && item.itemvalue.map(function (item) {
+            return item.itemvalue
+          }).join('/') || ''
+        }).join('/')
+        let val2 = i2._extendinfo && i2._extendinfo[1].map(function (item) {
+          return item.itemvalue.map && item.itemvalue.map(function (item) {
+            return item.itemvalue
+          }).join('/') || ''
+        }).join('/')
+        return SortLikeWinBy('v')({
+          v: val1,
+          guid: val1.markguid
+        }, {
+          v: val2,
+          guid: val2.markguid
+        }) || i1.markguid && i1.markguid.localeCompare(i2.markguid)
+      }).concat(otherMarkers.sort(basicSortFunc))
+    case 'Color':
+      let colors = [
+        6844660,
+        6418415,
+        10152321,
+        13684944,
+        6730483,
+        15460225,
+        15839589,
+        15888307,
+        11497715,
+        22414
+      ]
+      return arr.sort((i1, i2) => {
+        return (colors.indexOf(i1.color) - colors.indexOf(i2.color)) || i1.markguid && i1.markguid.localeCompare(i2.markguid)
+      })
+    case 'Comments':
+      return arr.sort(SortLikeWinBy('note'))
+    case 'Create Time':
+      return arr.sort(SortLikeWinBy('createdate'))
+    default:
+  }
+  return arr
+}
+
 export function sortBy(arr, type, symbol, flag) {
   let folderArr
   let otherArr
@@ -1181,7 +1281,6 @@ export function parseData(arr, father, option) {
         item.inPoint = frameToTime(item.keyframe, framerate)
         item.outPoint = frameToTime(item.endkeyframe, framerate)
         item.name = '4'
-        item.color = 'rgb(100,100,100)'
         item.time = item.keyframe / framerate
         item.guid = Guid.NewGuid().ToString('N')
         item.text = item.note
@@ -1192,7 +1291,6 @@ export function parseData(arr, father, option) {
         item.flag = 'emarker'
         item.pos = frameToTime(item.keyframe, framerate)
         item.name = '5'
-        item.color = 'rgb(150,150,100)'
         item.time = item.keyframe / framerate
         item.guid = Guid.NewGuid().ToString('N')
         item.text = item.note
@@ -1202,7 +1300,6 @@ export function parseData(arr, father, option) {
         item.pos = frameToTime(item.keyframe, framerate)
         item.name = '6'
         item.isLMarker = true
-        item.color = 'rgb(150,100,150)'
         item.time = item.keyframe / framerate
         item.guid = Guid.NewGuid().ToString('N')
         item.text = item.note
@@ -1239,7 +1336,6 @@ export function parseData(arr, father, option) {
         item.flag = 'cmarker'
         item.pos = frameToTime(item.keyframe, framerate)
         item.name = '7'
-        item.color = 'rgb(250,150,200)'
         // item.color = 'rgb(159,0,11)';
         item.bgcolor = {
           background: 'rgb(159,0,11)'

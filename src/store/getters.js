@@ -40,13 +40,14 @@ export default {
         )
       );
     } else if (state.isMarker) {
-      getRepository(cnode.guid).sort((i1, i2) => {
-        if (i1.keyframe - i2.keyframe) {
-          return i1.keyframe - i2.keyframe;
-        } else {
-          return i1.markguid && i1.markguid.localeCompare(i2.markguid);
-        }
-      });
+      setRepository(cnode.guid, util.sortMarkerBy(getRepository(cnode.guid), state.markerOrder, state.lmLanguage))
+      // getRepository(cnode.guid).sort((i1, i2) => {
+      //   if (i1.keyframe - i2.keyframe) {
+      //     return i1.keyframe - i2.keyframe;
+      //   } else {
+      //     return i1.markguid && i1.markguid.localeCompare(i2.markguid);
+      //   }
+      // });
     } else {
       if (state.sortType === 'type') {
         setRepository(
