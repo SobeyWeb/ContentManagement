@@ -1741,9 +1741,22 @@ export default {
         content: this.$refs.publishtoSNS.$el,
         title: 'Publish to SNS',
         onhide: () => {
-          this.$refs.publishtoSNS.resetData
+          this.$refs.publishtoSNS.resetData()
         },
         onshow: () => {
+          let defaultRequestType = [{
+            checked: true,
+            value: 'Publish Now'
+          }, {
+            checked: false,
+            value: 'Draft'
+          }, {
+            checked: false,
+            value: 'Schedule'
+          }]
+          this.$refs.publishtoSNS.tempAcountArr = []
+          this.$refs.publishtoSNS.countArr = []
+          this.$refs.publishtoSNS.tempTextArae = JSON.parse(JSON.stringify(this.$refs.publishtoSNS.textArae))
           this.$store.dispatch({
             type: TYPES.GET_SNSCONFIG,
             data: {}
@@ -1753,6 +1766,181 @@ export default {
             } else {
               this.$store.state.configSNSid = []
             }
+          })
+          Promise.all([this.$store.dispatch({
+            type: TYPES.GET_OBJECT_INFO,
+            data: {
+              contentid: this.selectedMaterials[0].guid,
+              pathtype: 'http',
+              type: this.selectedMaterials[0].typeid
+            }
+          }),
+          this.$store.dispatch({
+            type: TYPES.GET_TWITTER_ACOUNTS,
+            data: {}
+          })
+          ]).then(res => {
+            var datajson = res[0].data.ext
+            var countArr = res[1]
+            // 素材信息
+            var clipsize = 0
+            if (datajson.entity.subtype === 32) { // 图片
+              if (datajson.streammedia && datajson.streammedia.length > 0) {
+                this.$store.state.snsviewPath = datajson.streammedia[0].filepath || datajson.streammedia[0].filename
+              } else {
+                this.$store.state.snsviewPath = datajson.entity.iconfilename || ''
+              }
+              clipsize = datajson.entity.item.clipfile[0].filesize
+              this.$store.state.materialSpace = clipsize
+            } else {
+              // if (datajson.entity.item.markpoints.length > 0) {
+              //   this.$store.state.snsiconfilename = datajson.entity.item.markpoints[0].iconfilename
+              // } else {
+              //   this.$store.state.snsiconfilename = ''
+              // }
+              if (datajson.streammedia && datajson.streammedia.length > 0) {
+                this.$store.state.snsviewPath = datajson.streammedia[0].filepath || datajson.streammedia[0].filename
+              } else {
+                var pathData = datajson.entity.item && datajson.entity.item.clipfile && datajson.entity.item.clipfile.filter(item => item.qualitytype === 3 && item.clipclass === 1
+                )
+                pathData = pathData && pathData.length && pathData[0].filename
+                this.$store.state.snsviewPath = pathData || ''
+              }
+              var highsize = 0
+              var lowsize = 0
+              datajson.entity.item.clipfile.forEach(function (item) {
+                if (item.qualitytype === 0 && item.clipclass === 1) {
+                  highsize = item.filesize
+                }
+                if (item.qualitytype === 1 && item.clipclass === 1) {
+                  lowsize = item.filesize
+                }
+              })
+              if (this.$store.state.SNSPublishQuality === 'high') { // 如果是发高质量
+                if (highsize === 0) { // 没有高质量用低质量
+                  highsize = lowsize
+                }
+                clipsize = highsize
+              } else {
+                clipsize = lowsize
+              }
+              this.$store.state.materialSpace = clipsize
+            }
+
+            // 账号信息
+            countArr.sort(this.$refs.publishtoSNS.NumDescSort('apptype'))
+            this.tempAcountArr = []
+            let TypeObj = {
+              1: 'twitter',
+              2: 'facebook',
+              3: 'youtube'
+            }
+            let viewType = this.$store.state.selectedMaterials.length && this.$store.state.selectedMaterials[0].type === 'video' ? 1 : 2
+            viewType === 2 && (countArr = countArr.filter(item => item.apptype !== 3))
+            countArr.forEach((item) => {
+              let licenseArr = {
+                name: 'License',
+                value: {},
+                search: false,
+                multiple: false,
+                disabled: false,
+                options: [{
+                  id: 1,
+                  value: 'Standard Youtube License',
+                  description: 'youtube',
+                  type: 'info',
+                  selected: true,
+                  disabled: false
+                }, {
+                  id: 2,
+                  value: 'Creative Commons-Attribution',
+                  description: 'creativeCommon',
+                  type: 'info',
+                  selected: false,
+                  disabled: false
+                }]
+              }
+              let privacy = {
+                name: 'Privacy',
+                value: {},
+                search: false,
+                multiple: false,
+                disabled: false,
+                options: [{
+                  id: 1,
+                  value: 'public',
+                  description: 'public',
+                  type: 'info',
+                  selected: true,
+                  disabled: false
+                }, {
+                  id: 2,
+                  value: 'private',
+                  description: 'private',
+                  type: 'info',
+                  selected: false,
+                  disabled: false
+                }, {
+                  id: 3,
+                  value: 'unlisted',
+                  description: 'unlisted',
+                  type: 'info',
+                  selected: false,
+                  disabled: false
+                }]
+              }
+              let jsonData = {
+                pageid: item.pageid,
+                snsid: item.snsid,
+                acount: item.appcountname,
+                maxLength: item.commentlimit,
+                acountType: TypeObj[item.apptype],
+                title: '',
+                comments: '',
+                tag: '',
+                urlText: '',
+                headline: '',
+                timeWarning: this.$refs.publishtoSNS.getTimeWarning(item.timelimit),
+                spaceWarning: this.$refs.publishtoSNS.getSpaceWarning(item.apptype, item.filesizelimit),
+                maxSpace: this.$refs.publishtoSNS.getMaxSpace(item.apptype, item.filesizelimit),
+                requestType: item.apptype === 2 ? defaultRequestType : [],
+                requestDate: {
+                  value: ''
+                },
+                checkAcount: false,
+                checked: false,
+                playlist: {
+                  name: 'Playlist',
+                  value: {},
+                  search: false,
+                  multiple: false,
+                  disabled: false,
+                  options: item.apptype === 3 && item.pageaccesstoken ? this.$refs.publishtoSNS.getDropdata(item.pageaccesstoken) : []
+                },
+                license: licenseArr,
+                privacy: privacy,
+                category: {
+                  name: 'Category',
+                  value: {},
+                  search: false,
+                  multiple: false,
+                  disabled: false,
+                  options: item.apptype === 3 && item.accesstokensecret ? this.$refs.publishtoSNS.getDropdata(item.accesstokensecret) : []
+                }
+              }
+              let tempJson = JSON.parse(JSON.stringify(jsonData))
+              if (item.apptype === 3) {
+                // if (jsonData.playlist.options.length && jsonData.category.options.length) {
+                this.$refs.publishtoSNS.tempAcountArr.push(tempJson)
+                this.$refs.publishtoSNS.countArr.push(jsonData)
+                // }
+              } else {
+                this.$refs.publishtoSNS.tempAcountArr.push(tempJson)
+                this.$refs.publishtoSNS.countArr.push(jsonData)
+              }
+            })
+          }).catch(res => {
+
           })
         }
       })

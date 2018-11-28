@@ -10,5 +10,6 @@ export default {
   MAXTREEWIDTH: 500,
   MINTREEWIDTH: 100,
   ROOTPATH: 'global_sobey_defaultclass',
-  PRESNSPUBLISHPATH: 'global_sobey_defaultclass/MaterialList/SNSPublish'
+  PRESNSPUBLISHPATH: 'global_sobey_defaultclass/MaterialList/SNSPublish',
+  PUBLISHHEADLINE: false
 }
