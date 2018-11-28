@@ -168,7 +168,7 @@ export default {
   // highFileLength: 0,
   ispublish: false,
   publishWindow: {},
-  RegisterWundow: {},
+  RegisterWindow: {},
   SNSPublishQuality: 'high',
   materialSpace: 0,
   isSaveAs: false,

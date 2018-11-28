@@ -494,7 +494,7 @@ export default {
     resetDate () {
       this.$store.state.oaFolder[0].children = []
       this.$store.state.oaFolder[0].folders = []
-      this.$store.state.RegisterWundow.hide()
+      this.$store.state.RegisterWindow.hide()
     },
     cancelRegisterWindow () {
       this.currentRegisterView = 'registertoevent_ctrl'

@@ -5027,7 +5027,7 @@ export default {
                           .then(result => {
                             let datas = result
                             if (datas.Result) {
-                              context.state.RegisterWundow.show()
+                              context.state.RegisterWindow.show()
                               util.displayRegisterWindow(currentStudioData, context)
                             } else {
                               wainText = 'The Format is not support to on-air.' // The High-Res file of clip '" + clipName + "' doesn't not meet the criteria of
@@ -5039,7 +5039,7 @@ export default {
                             msger(wainText)
                           })
                       } else {
-                        context.state.RegisterWundow.show()
+                        context.state.RegisterWindow.show()
                         util.displayRegisterWindow(currentStudioData, context)
                       }
                     } else {
@@ -5095,7 +5095,7 @@ export default {
                     clipName +
                     '" is not available.Do you want to continue?',
                   () => {
-                    context.state.RegisterWundow.show()
+                    context.state.RegisterWindow.show()
                     util.displayRegisterWindow(currentStudioData, context)
                   },
                   () => {},
@@ -5114,7 +5114,7 @@ export default {
                   }
                 )
               } else {
-                context.state.RegisterWundow.show()
+                context.state.RegisterWindow.show()
                 util.displayRegisterWindow(currentStudioData, context)
               }
             }
