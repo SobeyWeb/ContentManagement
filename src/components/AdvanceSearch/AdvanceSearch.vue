@@ -90,7 +90,7 @@ export default {
       return this.$store.state.advanceSearchHeaders
     },
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     curTab () {
       var header = this.headers && this.headers.filter(item => item.selected)[0]
@@ -164,7 +164,9 @@ export default {
             }
           }
         }).then(res => {
+          this.$store.state.templateID = res.templateId
           // 重新备份
+          this.$store.state.templateCondition = condition
           this.$store.state.advanceSearchHeaders.forEach(h => {
             var kvs = h.keyValues.concat(h.hideKeyValues)
             kvs.forEach && kvs.forEach(k => {

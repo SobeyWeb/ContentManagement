@@ -62,8 +62,7 @@ export const ClipSubType = {
   ET_CLIPTYPE_DVD: 0x400000,
   ET_CLIPTYPE_OTHER: 0x8000000,
   ET_CLIPTYPE_ZIP: 0x10000000,
-  ET_CLIPTYPE_DOCUMENT:
-    this.ET_CLIPTYPE_TXT |
+  ET_CLIPTYPE_DOCUMENT: this.ET_CLIPTYPE_TXT |
     this.ET_CLIPTYPE_WORD |
     this.ET_CLIPTYPE_PPT |
     this.ET_CLIPTYPE_EXCEL |
@@ -119,4 +118,58 @@ export function GetEntityType(type, subtype) {
   } else {
     return HiveEntityType.ET_ENTITY_TYPE_OTHER
   }
+}
+export const ArchiveStatus = {
+  ET_CLIP_ARCHIVE_NORMAL: 0x00000000, // 素材处于非归档状态
+  ET_CLIP_ARCHIVE_SUBMIT: 0x00000001, // 素材处于提交归档状态
+  ET_CLIP_ARCHIVE_FINISHED: 0x00000002, // 素材处于归档完成状态
+  ET_CLIP_ARCHIVE_FAILED: 0x00000003, // 素材处于归档失败状态
+  ET_CLIP_ARCHIVE_SCHEDULE: 0X00000004, // 素材处于计划归档状态
+  ET_CLIP_ARCHIVE_RETURN: 0X00000005, // 素材在媒资中，但被审核拒绝
+
+  ET_CLIP_ARCHIVE_MAM: 0x00000010, // 素材存在于媒资中
+  ET_CLIP_ARCHIVE_RETRIEVE_SUBMIT: 0x00000011, // 素材处于提交回迁状态
+  ET_CLIP_ARCHIVE_RETRIEVE_FINISHED: 0x00000012, // 素材处于回迁完成状态
+  ET_CLIP_ARCHIVE_RETRIEVE_FAILED: 0x00000013, // 素材处于回迁失败状态
+  ET_CLIP_ARCHIVE_MAM_3RD: 0x00000014, // 素材下于第三方媒资下
+  ET_CLIP_ARCHIVE_RETRIEVE_DOING: 0x00000015, // 该素材正在回迁之中, 不用再发回迁
+  // 素材特殊归档状态定义（Tobe Archive + Not auto-Archive）
+  ET_CLIP_ARCHIVE_SPECIAL_NONE: 0x00000000, // 没有设置状态
+  ET_CLIP_ARCHIVE_SPECIAL_TOBE_ARCHIVE_ONLY: 0x00000001, // 素材处于即将归档状态
+  ET_CLIP_ARCHIVE_SPECIAL_NOT_AUTOMATICALLY_ONLY: 0x00000002, // 素材处于不允许自动归档状态
+  ET_CLIP_ARCHIVE_SPECIAL_ALL: 0x00000003, // 素材同时处于即将归档和不允许自动归档状态
+  ET_CLIP_ARCHIVE_SPECIAL_TOBE_RETRIEVE_ONLY: 0x00000004 // 处于媒资库中的素材
+}
+
+export function GetArchiveStatus(archiveflag) {
+  var text = '';
+  switch (archiveflag) {
+    case ArchiveStatus.ET_CLIP_ARCHIVE_NORMAL:
+      text = 'Unarchived'; // Normal
+      break;
+    case ArchiveStatus.ET_CLIP_ARCHIVE_SCHEDULE:
+      text = 'In Schedule';
+      break;
+    case ArchiveStatus.ET_CLIP_ARCHIVE_SUBMIT:
+      text = 'Archiving';
+      break;
+    case ArchiveStatus.ET_CLIP_ARCHIVE_FINISHED:
+      text = 'Archived';
+      break;
+    case ArchiveStatus.ET_CLIP_ARCHIVE_FAILED:
+      text = 'Archive Failed';
+      break;
+    case ArchiveStatus.ET_CLIP_ARCHIVE_RETRIEVE_FINISHED:
+      text = 'Retrieve Finished';
+      break;
+    case ArchiveStatus.ET_CLIP_ARCHIVE_RETRIEVE_SUBMIT:
+      text = 'Retrieving';
+      break;
+    case ArchiveStatus.ET_CLIP_ARCHIVE_RETRIEVE_FAILED:
+      text = 'Retrieve Failed';
+      break;
+    default:
+      text = 'Unarchived';
+  }
+  return text;
 }

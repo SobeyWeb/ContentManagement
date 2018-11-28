@@ -1,9 +1,28 @@
-import { throttle, debounce, getCookie } from '../lib/util'
+import {
+  throttle,
+  debounce,
+  getCookie
+} from '../lib/util'
 import treeNode from '../data/treeNode'
-import { emptyMaterial } from '../data/basicData'
+import {
+  emptyMaterial
+} from '../data/basicData'
 import EVENT from '../dicts/eventTypes'
 
 export default {
+  trashcan: treeNode.trashcan,
+  operatingFilterData: {
+    visible: false,
+    header: {
+      width: 0
+    },
+    position: {
+      x: 0,
+      y: 0
+    }
+  },
+  filterHeaders: [],
+  lastCheckedHeaderName: '',
   system: 'WEBCM',
   player: null,
   property: null,
@@ -19,14 +38,14 @@ export default {
   ws_materials: [],
   refreshFunc: throttle(
     3000,
-    function() {
+    function () {
       this.property.refresh()
     },
     true
   ),
   materialSelectionChangeFunc: debounce(
     300,
-    function() {
+    function () {
       window.$app.emit(
         EVENT.MATERIAL_SELECTED,
         this.selectedMaterials.map(item => {
@@ -48,7 +67,7 @@ export default {
   ),
   markSelectionChangeFunc: debounce(
     300,
-    function() {
+    function () {
       window.$app.emit(
         EVENT.MARKER_SELECTED,
         this.selectedMarkers.map(item => {
@@ -93,9 +112,9 @@ export default {
   siteList: [],
   archiveFiters: {
     // Archived: true,
-    double: false,
-    HDD: false,
-    ODA: false,
+    double: true,
+    HDD: true,
+    ODA: true,
     Online: true,
     [undefined]: true,
     '': true
@@ -109,6 +128,7 @@ export default {
     text: 'Remember'
   },
   templateID: '',
+  templateCondition: {},
   searchNode: {},
   searchType: 1,
   fulltextSearchCondition: {},
@@ -129,6 +149,9 @@ export default {
   },
   exportWindow: {},
   markerExportWindow: null,
+  dept: 'to',
+  relations: [],
+  relationsWindow: null,
   exportInfo: {
     isSaveFrame: false,
     isUseDefault: true,
@@ -221,12 +244,30 @@ export default {
     symbol: true,
     disabled: true
   },
+  markerOrder: {
+    type: 'LM Title',
+    symbol: true,
+    disabled: false
+  },
   selectedNode: null,
   eventArray: {},
   excutingTask: [],
   complateTask: [],
-  headers: [
+  hightLight: [{
+      name: 'Title',
+      attr: 'name'
+    },
     {
+      name: 'Comments',
+      attr: 'note'
+    },
+    {
+      name: 'Rights',
+      attr: 'rights'
+    }
+  ],
+  customKeys: [],
+  headers: [{
       name: 'Tittle',
       attr: 'name',
       width: 200,
@@ -243,13 +284,6 @@ export default {
     {
       name: 'Creation Date',
       attr: 'formatDate',
-      width: 130,
-      dragging: false,
-      checked: true
-    },
-    {
-      name: 'Recording Date',
-      attr: 'recordingDate',
       width: 130,
       dragging: false,
       checked: true
@@ -354,7 +388,7 @@ export default {
     },
     {
       name: 'Comments',
-      attr: 'comments',
+      attr: 'note',
       width: 200,
       dragging: false,
       checked: true
@@ -370,6 +404,20 @@ export default {
       name: 'HD/SD',
       attr: 'hsd',
       width: 70,
+      dragging: false,
+      checked: true
+    },
+    {
+      name: 'Recording Date',
+      attr: 'recordingDate',
+      width: 130,
+      dragging: false,
+      checked: true
+    },
+    {
+      name: 'Proxy Status',
+      attr: 'proxyStatus',
+      width: 130,
       dragging: false,
       checked: true
     }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ContentManagement Printer</title>
+  <link rel="stylesheet" href="./normalize.css">
+  <link rel="stylesheet" href="./paper.css">
+  <style>
+    body  { font-size: 7pt; zoom: 100%; }
+    table { width: 100%; }
+    @page { size: A4 }
+    td {
+      padding: 2px 5px;
+    }
+    .header-label{
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .header-value{
+      font-size: 20px;
+    }
+  </style>
+</head>
+
+<body class="A4">
+  <section class="sheet padding-10mm">
+    {{REPLACEMENT_CONTENT}}
+  </section>
+</body>
+</html>

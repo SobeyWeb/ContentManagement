@@ -84,7 +84,7 @@
           <span class="player_icon export_icon fr" v-show="curMaterial.father&&curMaterial.father.guid&&options.materials.length===1"></span>
           <div class="player_export_container">
             <ul>
-              <li :key="op.name" class="export_menu_item" v-show="(curMaterial.operations.indexOf('Retrieve')===-1&&curMaterial.operations.indexOf('Export')>-1||op.name!=='Export')&&((curMaterial.operations.indexOf('Retrieve')===-1&&curMaterial.father&&curMaterial.father.guid&&!curMaterial.isAudio&&options.materials.length===1)||op.name!=='Save as New Clip')&&(op.name!=='Marks to Clip'||curMaterial.markers.values.filter(function(item){return item.type == 4 || item.type == 65536}).length&&curMaterial.operations.indexOf('Retrieve')===-1)&&(op.name!=='Retrieve'||(curMaterial.operations.indexOf('Retrieve')>-1&&curMaterial.father&&curMaterial.father.guid&&!curMaterial.isAudio&&options.materials.length===1))&&(op.name!=='In-Out to OA'||curMaterial.operations.indexOf('Retrieve')===-1&&!curMaterial.isAudio)" @click.stop="apply(op.action)" v-for="op in operations">
+              <li :key="op.name" class="export_menu_item" v-show="(curMaterial.operations.indexOf('Retrieve')===-1&&canExport||op.name!=='Export')&&((curMaterial.operations.indexOf('Retrieve')===-1&&curMaterial.father&&curMaterial.father.guid&&!curMaterial.isAudio&&options.materials.length===1)||op.name!=='Save as New Clip')&&(op.name!=='Marks to Clip'||curMaterial.markers.values.filter(function(item){return item.type == 4 || item.type == 65536}).length&&curMaterial.operations.indexOf('Retrieve')===-1)&&(op.name!=='Retrieve'||(curMaterial.operations.indexOf('Retrieve')>-1&&curMaterial.father&&curMaterial.father.guid&&!curMaterial.isAudio&&options.materials.length===1))&&(op.name!=='In-Out to OA'||curMaterial.operations.indexOf('Retrieve')===-1&&!curMaterial.isAudio)" @click.stop="apply(op.action)" v-for="op in operations">
                 <a>{{op.name}}</a>
                 <span :class="op.icon+'_menu_icon'"></span>
               </li>
@@ -111,7 +111,7 @@ import worker from '../../../worker/player'
 import { GetFrameNumByHundredNS, GetSecondByEachFrame, GetTimeStringByFrameNum, GetMillSecondsByFrameNum, GetFrameRateByVideoStandard, FrameRateEnum, Format } from '../../../lib/format.js'
 import $ from 'jquery'
 import { GetEntityType } from '../../../lib/transform'
-
+import PERMISSION from '../../../dicts/permission'
 import TimeCode from './TimeCode'
 import TimeCodeBar from './TimeCodeBar'
 import KeyEvent from '../../../lib/KeyEvent.js'
@@ -193,12 +193,17 @@ export default {
         action: TYPES.DISPATCH_SAVE_PICTURE
       }],
       isShowRate: false,
-      displayRate: 0
+      displayRate: 0,
+      keyupEvents: [],
+      keydownEvents: []
     }
   },
   computed: {
+    canExport () {
+      return this.$store.state.userInfo.permission && this.$store.state.userInfo.permission.indexOf(PERMISSION.EXPORT) > -1
+    },
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     previewStatus () {
       return this.$store.getters.previewStatus
@@ -276,7 +281,7 @@ export default {
       }
     },
     focused () {
-      return this.$store.state.isFocusPlayer
+      return this.$store.getters.isFocusPlayer
     },
     markerList () {
       var markerlist = []
@@ -511,24 +516,24 @@ export default {
       return this.options.isLive
     }
   },
+  destroyed () {
+    window.removeEventListener('mousemove', this.volumeMousemove)
+    window.removeEventListener('mouseup', this.volumeMouseup)
+    window.removeEventListener('keydown', this.keydown)
+    window.removeEventListener('keyup', this.keyup)
+    document.removeEventListener('webkitfullscreenchange', this.calcWidth)
+    worker.removeEventListener('message', this.message)
+  },
   mounted () {
     this.currentTime = 0
-    window.addEventListener('mousemove', (e) => this.settingVolume && this.setVolume(e))
-    window.addEventListener('mouseup', () => this.settingVolume = false)
+    this.registerKeyup()
+    this.registerKeydown()
+    window.addEventListener('mousemove', this.volumeMousemove)
+    window.addEventListener('mouseup', this.volumeMouseup)
     window.addEventListener('keydown', this.keydown)
     window.addEventListener('keyup', this.keyup)
     document.addEventListener('webkitfullscreenchange', this.calcWidth)
-    worker.addEventListener('message', evt => {
-      if (evt.data.type === 'update' && this.$store.state.previewSymbol) {
-        if (this.curSource && this.curSource.video && this.curSource.video.currentTime !== undefined) {
-          if (this.curSource.video.currentTime > this.curEnd) {
-            this.onended()
-          } else {
-            this.curVideoTime = Math.max(this.curSource.start, Math.min(this.curSource.video.currentTime, this.curSource.end))
-          }
-        }
-      }
-    }, false)
+    worker.addEventListener('message', this.message, false)
     worker.postMessage({
       type: 'start'
     })
@@ -545,6 +550,23 @@ export default {
     // this.dispose()
   },
   methods: {
+    message (evt) {
+      if (evt.data.type === 'update' && this.$store.state.previewSymbol) {
+        if (this.curSource && this.curSource.video && this.curSource.video.currentTime !== undefined) {
+          if (this.curSource.video.currentTime > this.curEnd) {
+            this.onended()
+          } else {
+            this.curVideoTime = Math.max(this.curSource.start, Math.min(this.curSource.video.currentTime, this.curSource.end))
+          }
+        }
+      }
+    },
+    volumeMouseup () {
+      this.settingVolume = false
+    },
+    volumeMousemove (e) {
+      this.settingVolume && this.setVolume(e)
+    },
     showPlaybackRate (rate) {
       clearTimeout(this.rateId)
       this.displayRate = rate
@@ -797,14 +819,14 @@ export default {
           this.isDvModel && (0, this.isDvModel = false)
         }
       }))
-
-      this.$keyup.on(/keyup-\d+/g, event => {
-        let keycode = event.keycode
-        let events = keyEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === item.ctrlKey && event.shiftKey === item.shiftKey && event.metaKey === item.metaKey)
-        if (events.length) {
-          events.forEach(item => item.action(event))
-        }
-      })
+      this.keyupEvents = keyEvents
+      // this.$keyup.on(/keyup-\d+/g, event => {
+      //   let keycode = event.keycode
+      //   let events = keyEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === item.ctrlKey && event.shiftKey === item.shiftKey && event.metaKey === item.metaKey)
+      //   if (events.length) {
+      //     events.forEach(item => item.action(event))
+      //   }
+      // })
     },
     registerKeydown () {
       let keyEvents = []
@@ -837,7 +859,7 @@ export default {
         }
       }))
       // space
-      keyEvents.push(new KeyEvent(KEYCODES.end, {
+      keyEvents.push(new KeyEvent(KEYCODES.space, {
         action: event => {
           this.clearJ()
           this.playbackRate = 1
@@ -862,13 +884,39 @@ export default {
         }
       }))
 
-      this.$keydown.on(/keydown-\d+/g, event => {
-        let keycode = event.keycode
-        let events = keyEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === item.ctrlKey && event.shiftKey === item.shiftKey && event.metaKey === item.metaKey)
+      this.keydownEvents = keyEvents
+      // this.$keydown.on(/keydown-\d+/g, event => {
+      //   let keycode = event.keycode
+      //   let events = keyEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === item.ctrlKey && event.shiftKey === item.shiftKey && event.metaKey === item.metaKey)
+      //   if (events.length) {
+      //     events.forEach(item => item.action(event))
+      //   }
+      // })
+    },
+    keydown (event) {
+      var keycode = event.keyCode
+      var targetTag = event.target.tagName.toUpperCase()
+      if (targetTag !== 'INPUT' && targetTag !== 'TEXTAREA' && this.focused) {
+        if (keycode < 112 || keycode > 123) {
+          //  event.preventDefault()
+        }
+        event.stopPropagation()
+        let events = this.keydownEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === !!item.ctrlKey && event.shiftKey === !!item.shiftKey && event.metaKey === !!item.metaKey)
         if (events.length) {
           events.forEach(item => item.action(event))
         }
-      })
+      }
+    },
+    keyup (event) {
+      var keycode = event.keyCode
+      var targetTag = event.target.tagName.toUpperCase()
+      if (targetTag !== 'INPUT' && targetTag !== 'TEXTAREA' && this.focused) {
+        event.stopPropagation()
+        let events = this.keyupEvents.filter(item => item.keycodes.includes(keycode) && event.ctrlKey === !!item.ctrlKey && event.shiftKey === !!item.shiftKey && event.metaKey === !!item.metaKey)
+        if (events.length) {
+          events.forEach(item => item.action(event))
+        }
+      }
     },
     saveMarker (type, tempMarker) {
       var markers = this.curSource.markers
@@ -1286,9 +1334,7 @@ export default {
       })
       document.querySelector('.auto_center').appendChild(this.$el)
       this.$store.state.fullscreenSymbol = true
-      this.$nextTick(() => {
-        util.enterFullscreen()
-      })
+      util.enterFullscreen()
     },
     exitFullscreen () {
       this.options.source.forEach(item => {

@@ -3,7 +3,7 @@
     <div class="property_row" v-for="data in options" :key="data.name">
       <span class="prop_span" :title="data.name">{{data.name}}</span>
       <div class="prop_div">
-        <component v-if="Object.prototype.toString.call(data.value) !== '[object Array]'" @change="changeToAll(data)" :is="data.ctrl" :highlight="isHighLight" :textfield="data" :limit="data.limit" :select="data" :radio="data.value" :number="data.value" :checkbox="data.value" :date="data" :options="data.value" v-model="data.value" :format="data.format" :dis="data.disabled"></component>
+        <component v-if="Object.prototype.toString.call(data.value) !== '[object Array]'" @change="changeToAll(data)" :is="data.ctrl" :highlight="isHighLight" :textfield="data" :limit="data.limit" :select="data" :radio="data.value" :number="data.value" :checkbox="data.value" :date="data" :cascader="data" :options="data.value" v-model="data.value" :format="data.format" :dis="data.disabled"></component>
         <component v-else :is="v.ctrl||data.ctrl" :checkbox="v" :value="v.value" v-for="v in data.value" :key="v.text"></component>
       </div>
       <div class="apply_all_container" v-if="data.multiplable&&materials.length>1">

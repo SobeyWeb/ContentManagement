@@ -3,7 +3,7 @@
     <div class="property_row" v-for="data in options" :key="data.name">
       <span class="prop_span" :title="data.name">{{data.name}}</span>
       <div class="prop_div">
-        <component v-if="!data.isRange" :is="data.ctrl" :checkbox="data||data.value" :textfield="data" :limit="data.limit" :select="data" :radio="data.value" :number="data.value" :date="data" :options="data.value" v-model="data.value" :format="data.format" :dis="data.disabled"></component>
+        <component v-if="!data.isRange" :is="data.ctrl" :cascader="data" :checkbox="data||data.value" :textfield="data" :limit="data.limit" :select="data" :radio="data.value" :number="data.value" :date="data" :options="data.value" v-model="data.value" :format="data.format" :dis="data.disabled"></component>
         <div v-else style="line-height: 32px;position: relative;">
           <!--span class="from_span">From</span-->
           <div class="from_container fl">
@@ -24,6 +24,7 @@
 import UserSelector from './UserSelector'
 import MemberSelector from './MemberSelector'
 import ActionSelector from './ActionSelector'
+import ColorSelector from './ColorSelector'
 
 export default {
   name: 'basic_search_page_ctrl',
@@ -41,7 +42,8 @@ export default {
   components: {
     'user-selector-ctrl': UserSelector,
     'member-selector-ctrl': MemberSelector,
-    'action-selector-ctrl': ActionSelector
+    'action-selector-ctrl': ActionSelector,
+    'color-selector-ctrl': ColorSelector
   }
 }
 </script>

@@ -16,18 +16,288 @@ import {
   getTimeStringByFrameNum2,
   GetStudioSystemStandard
 } from '../dicts/StudioFormat.js'
-import { getRepository, setRepository } from '../data/repository.js'
+import {
+  getRepository,
+  setRepository
+} from '../data/repository.js'
 import appSetting from '../config/appSetting.js'
 import Vue from 'vue'
-import { emptyMaterial } from '../data/basicData'
+import {
+  emptyMaterial
+} from '../data/basicData'
 import Guid from '../lib/Guid'
-import { ET_VideoStandardIsHD, getclipclassType } from '../lib/format'
-import { GetEntityType, ClipSubType, ObjectType } from '../lib/transform'
+import {
+  ET_VideoStandardIsHD,
+  getclipclassType
+} from '../lib/format'
+import {
+  GetEntityType,
+  ClipSubType,
+  ObjectType
+} from '../lib/transform'
 import PERMISSION from '../dicts/permission'
 import $ from 'jquery'
 let md5 = require('../lib/md5.min.js').md5
 
 export default {
+  [TYPES.GET_GENERATION](context, payload) {
+    let url = API_CONFIG[TYPES.GET_GENERATION]({
+      pathtype: 'http'
+    })
+    var body = {
+      start: {
+        guid: payload.source.guid
+      },
+      dept: payload.dept,
+      maxdept: 1
+    }
+    return new Promise((resolve, reject) => {
+      axios.post(url, body).then(res => {
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      }).catch(res => {
+        reject(res)
+      })
+    })
+  },
+  [TYPES.DISPATCH_ONE_GENERATION](context, payload) {
+    var material = payload.target[0]
+    context.state.relations = []
+    context.state.dept = 'to'
+    context.dispatch(TYPES.GET_GENERATION, {
+      source: material,
+      dept: 'to'
+    }).then(res => {
+      context.state.relations = util.getRelations(res.data.ext.map(item => item.entityinfo))
+    }).catch(res => {
+      util.Notice.failed('Query relations failed!', '', 3000)
+    })
+    context.state.relationsWindow.show('Next One Generation')
+  },
+  [TYPES.DISPATCH_PREVIOUS_ONE_GENERATION](context, payload) {
+    context.state.dept = 'from'
+    var material = payload.target[0]
+    context.state.relations = []
+    context.dispatch(TYPES.GET_GENERATION, {
+      source: material,
+      dept: 'from'
+    }).then(res => {
+      context.state.relations = util.getRelations(res.data.ext.map(item => item.entityinfo))
+    }).catch(res => {
+      util.Notice.failed('Query relations failed!', '', 3000)
+    })
+    context.state.relationsWindow.show('Previous One Generation')
+  },
+  // 获取用户参数
+  [TYPES.GET_USERPARAM](context, payload) {
+    let url = API_CONFIG[TYPES.GET_USERPARAM]({
+      usertoken: context.state.userInfo.usertoken
+    })
+    return new Promise((resolve, reject) => {
+      axios.post(url, {
+        loginname: context.state.userInfo.loginname,
+        system: payload.data.system,
+        tool: 'DEFAULT',
+        paramname: payload.data.paramname,
+        paramvalue: null
+      }).then(res => { //
+        if (res.data.code === '0') {
+          resolve(res)
+        } else {
+          reject(res)
+        }
+      })
+    })
+  },
+  [TYPES.UPLOAD_FILES](context, payload) {
+    var URL1 = URLCONFIG.CM + '/Handler/WebLargeFileUploadService.aspx'
+
+    var files = payload.data.files
+    console.log(files)
+
+    var father = payload.source || context.getters.currentNode
+    var nasPath = context.state.uploadPath + 'cmupload' + '/' + new Date().format('yyyy-MM-dd')
+
+    var uploadPath
+    if (/\\\\.*?\\/.test(nasPath)) { // 匹配unc路径
+      uploadPath = (appSetting.uploadPath + nasPath.split(/\\\\.*?\\/)[1]).replace(/\\/g, '/')
+    } else {
+      util.Notice.warning('There is not enough user space to upload', '', 3000)
+      return
+    }
+    if (context.state.sumSpace !== -1 && [].reduce.call(files, (i1, i2) => {
+        return {
+          size: i1.size + i2.size
+        }
+      }).size > (context.state.sumSpace - context.state.useSpace)) {
+      util.Notice.warning('There is not enough user space to upload', '', 3000)
+      return
+    }
+    uploadFolders(files, father)
+
+    function uploadFolders(files, father) {
+      upload([].filter.call(files, item => !item.children), father);
+      [].forEach.call(files, item => {
+        if (item.children) {
+          uploadFolders(item.children, father)
+        }
+      })
+    }
+
+    function upload(files, father) {
+      [].filter.call(files, i => i.size).forEach(item => {
+        var material = util.initData(item, father)
+        if (/image/.test(item.type)) {
+          material.type = 'image'
+          material.iconfilename = URL.createObjectURL(item)
+        } else if (/video/.test(item.type)) {
+          material.type = 'video'
+          var video = document.createElement('video')
+          video.setAttribute('src', URL.createObjectURL(item))
+          video.playbackRate = 0
+          video.mute = true
+          video.crossOrigin = 'anonymous'
+          video.currentTime = 0
+          video.oncanplay = function () {
+            video.play()
+          }
+          video.onplaying = function () {
+            var canvas = document.createElement('canvas')
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            var ct = canvas.getContext('2d')
+            ct.drawImage(video, 0, 0)
+            var icon = canvas.toDataURL('image/jpeg', 0.5)
+            material.iconfilename = icon
+            video.onplaying = null
+            video.pause()
+            video = null
+            canvas = null
+            ct = null
+          }
+        } else {
+          material.type = 'other'
+        }
+        var index = 0
+        var symbol = Symbol('upload')
+        context.commit({
+          type: TYPES.PUSH_EVENT,
+          data: {
+            type: TYPES.UPLOAD_FILES,
+            target: material
+          },
+          symbol: symbol
+        })
+        var fileSuffix = material.name.substring(material.name.lastIndexOf('.'), material.name.lastIndexOf('?') > -1 ? material.name.lastIndexOf('?') : undefined)
+        var name = Guid.NewGuid().ToString('N') + (fileSuffix === material.name ? '' : fileSuffix) // + material.name
+        var osspath = context.state.s3Path.replace('?', '/cmupload/' + new Date().format('yyyy-MM-dd') + '/' + name + '?') || null
+        util.cellUpload(URL1, uploadPath, material.file, name, osspath, (data) => {
+          index++
+          material.percent = Math.round(index / data.total * 100, 2)
+          if (index === data.total) {
+            // 此处可优化为发起拼接，防止多节点的情况下不拼接
+            $.ajax({
+              type: 'post',
+              url: URLCONFIG.CM + '/Handler/MaterialList.ashx',
+              data: {
+                OperationType: 'CombineFiles',
+                usertoken: context.userInfo.usercode,
+                name: data.name,
+                total: data.total,
+                path: uploadPath,
+                temp: appSetting.TEMPPATH,
+                osspath: osspath
+              },
+              dataType: 'json',
+              async: true,
+              complete: function () {
+                save()
+              },
+              success: function (data) {
+                if (data.R) {
+                  // resolve(data)
+                }
+              }
+            })
+            var retryTimes = 0
+            var filePath = ''
+            if (osspath) {
+              filePath = osspath
+            } else {
+              filePath = (nasPath + '\\' + data.name).replace(/\//g, '\\')
+            }
+            material.name = material.name.substring(0, material.name.lastIndexOf('.') === -1 ? undefined : material.name.lastIndexOf('.')) // qu houzui
+            let save = () => {
+              retryTimes++
+              context.dispatch({
+                type: TYPES.SAVE_OBJECTINFO,
+                data: {
+                  name: material.name,
+                  folderPath: father.path,
+                  filePath: filePath,
+                  fileType: material.file.type
+                },
+                source: material
+              }).then((res) => {
+                material.guid = res.data.ext.contentid
+                material.uploading = false
+                // 获取信息
+                util.updateMaterial(getRepository(father.guid), {
+                  guid: material.guid
+                }, context)
+                // 删除事件
+                context.commit({
+                  type: TYPES.DELETE_EVENT,
+                  symbol: symbol
+                })
+              }).catch((res) => {
+                // 提示上传失败 是否删除material？ 或者支持重新上传或者入库 暂时只支持单个素材上传的重试
+                if (retryTimes < 1) { // 先自己重试3次
+                  save()
+                } else {
+                  util.Model.confirm(material.name + ' save object failed，try again?', '', save,
+                    () => {
+                      context.commit({
+                        type: TYPES.RECOVERY_EVENT,
+                        symbol: symbol
+                      })
+                    }, {
+                      large: true, // Boolean
+                      cancelButton: {
+                        show: true, // Boolean
+                        type: '', // String 请参考 Button
+                        text: 'Cancel' // String
+                      },
+                      confirmButton: {
+                        show: true,
+                        type: 'primary',
+                        text: 'Confirm'
+                      }
+                    })
+                }
+              })
+            }
+          }
+          // 更新进度
+          // 此处应push event  失败再回退，成功则更新material
+          // 入库
+        }, () => {
+          // 上传失败
+          util.Notice.failed('Failed to upload clip', '', 3000)
+          context.commit({
+            type: TYPES.RECOVERY_EVENT,
+            symbol: symbol
+          })
+        })
+        material.uploading = true
+        getRepository(father.guid).push(material)
+        util.forceUpdate(father.guid)
+      })
+    }
+  },
   [TYPES.GET_SEARCHMODEL](context, payload) {
     return context
       .dispatch({
@@ -36,7 +306,7 @@ export default {
       .then(res => {
         let temp = res.find(
           item =>
-            item.templateName === 'default' + context.state.userInfo.usercode
+          item.templateName === 'default' + context.state.userInfo.usercode
         )
         if (temp) {
           res.remove(temp)
@@ -211,8 +481,7 @@ export default {
     }
 
     if (
-      context.getters.currentNode.guid === 0 &&
-      ['RECYCLED', 'DELETE', 'RECOVERED'].indexOf(tarr[2]) > -1
+      context.getters.currentNode.guid === 0 && ['RECYCLED', 'DELETE', 'RECOVERED'].indexOf(tarr[2]) > -1
     ) {
       context.dispatch({
         type: TYPES.REFRESH_MATERIAL,
@@ -230,7 +499,7 @@ export default {
         util.getMaterialFoder(context.state.nodes, payload.data).then(res => {
           if (
             getRepository(res.guid)
-              .some(item => (item._guid || item.guid) === payload.data.guid)
+            .some(item => (item._guid || item.guid) === payload.data.guid)
           ) {
             util.updateMaterial(
               getRepository(res.guid),
@@ -275,7 +544,7 @@ export default {
         util.deleteMaterial(context.state.nodes, payload.data)
         util.deleteMaterial(context.state.publicPath, payload.data)
       }
-    } else {
+    } else if (tarr[0] !== 'FILEITEM') {
       util.updateMaterial(context.state.nodes, payload.data, context)
       util.updateMaterial(context.state.publicPath, payload.data, context) //  更新save clip 的tree
     }
@@ -284,8 +553,7 @@ export default {
   [TYPES.RENAME](context, payload) {
     let url
     if (payload.source.type === 'folder') {
-      url = API_CONFIG[TYPES.RENAME](
-        {
+      url = API_CONFIG[TYPES.RENAME]({
           usertoken: context.state.userInfo.usertoken,
           srcpath: payload.source.path,
           name: payload.data
@@ -293,8 +561,7 @@ export default {
         'folder'
       )
     } else {
-      url = API_CONFIG[TYPES.RENAME](
-        {
+      url = API_CONFIG[TYPES.RENAME]({
           usertoken: context.state.userInfo.usertoken,
           contentid: payload.source.guid,
           newobjectname: payload.data
@@ -312,9 +579,9 @@ export default {
           ) {
             //  merge children path
             util.mergeChildrenPath(
-              payload.source.hasGetChild
-                ? getRepository(payload.source.guid)
-                : payload.source.folders,
+              payload.source.hasGetChild ?
+              getRepository(payload.source.guid) :
+              payload.source.folders,
               payload.source.path
             )
           }
@@ -440,18 +707,18 @@ export default {
       folderArr.forEach(item => {
         promiseArr.push(
           context
-            .dispatch({
-              type: TYPES.GET_MATERIALS_BY_PAGE,
-              source: item,
-              page: 1,
-              size: 1
-            })
-            .then(res => {
-              res.data.ext.length && payload.target.remove(item)
-              context.state.userInfo.permission.indexOf(
-                PERMISSION.DELETE_FOLDER
-              ) === -1 && payload.target.remove(item)
-            })
+          .dispatch({
+            type: TYPES.GET_MATERIALS_BY_PAGE,
+            source: item,
+            page: 1,
+            size: 1
+          })
+          .then(res => {
+            res.data.ext.length && payload.target.remove(item)
+            context.state.userInfo.permission.indexOf(
+              PERMISSION.DELETE_FOLDER
+            ) === -1 && payload.target.remove(item)
+          })
         )
       })
     }
@@ -519,11 +786,9 @@ export default {
                   }
                   util.locateFolder(
                     context,
-                    path,
-                    {
+                    path, {
                       children: context.getters.folderTree
-                    },
-                    {
+                    }, {
                       isShowWaiting: true
                     }
                   )
@@ -845,9 +1110,9 @@ export default {
   [TYPES.PASTE](context, payload) {
     // paste
     let target =
-      payload.target && payload.target.length
-        ? payload.target[0]
-        : context.getters.currentNode
+      payload.target && payload.target.length ?
+      payload.target[0] :
+      context.getters.currentNode
     if (target.operations.indexOf('Paste') === -1) {
       util.Notice.warning('Can not be pasted in ' + target.name, '', 3000)
       return
@@ -860,28 +1125,28 @@ export default {
         if (
           arr.every(
             item =>
-              util.getAllFather(target).indexOf(item) > -1 ||
-              item.guid === target.guid
+            util.getAllFather(target).indexOf(item) > -1 ||
+            item.guid === target.guid
           )
         ) {
           util.Notice.warning('Can not be pasted in this folder', '', 3000)
         } else if (
           arr.some(
             item =>
-              util.getAllFather(target).indexOf(item) > -1 ||
-              item.guid === target.guid
+            util.getAllFather(target).indexOf(item) > -1 ||
+            item.guid === target.guid
           )
         ) {
           canPasteArr = arr.filter(
             item =>
-              util.getAllFather(target).indexOf(item) === -1 ||
-              item.guid !== target.guid
+            util.getAllFather(target).indexOf(item) === -1 ||
+            item.guid !== target.guid
           )
           util.Model.confirm(
             'Move',
             'Some materials can not be moved, are you sure to move other ' +
-              canPasteArr.length +
-              ' Materials',
+            canPasteArr.length +
+            ' Materials',
             () => {
               context.dispatch({
                 type: TYPES.MOVE_MATERIALS,
@@ -892,8 +1157,7 @@ export default {
                 type: TYPES.CLEAR_CLIPBOARD
               })
             },
-            () => {},
-            {
+            () => {}, {
               large: true, //  Boolean
               cancelButton: {
                 show: true, //  Boolean
@@ -922,8 +1186,8 @@ export default {
       if (
         arr.every(
           item =>
-            util.getAllFather(target).indexOf(item) > -1 ||
-            item.guid === target.guid
+          util.getAllFather(target).indexOf(item) > -1 ||
+          item.guid === target.guid
         )
       ) {
         // notice can not paste same folder
@@ -931,20 +1195,20 @@ export default {
       } else if (
         arr.some(
           item =>
-            util.getAllFather(target).indexOf(item) > -1 ||
-            item.guid === target.guid
+          util.getAllFather(target).indexOf(item) > -1 ||
+          item.guid === target.guid
         )
       ) {
         canPasteArr = arr.filter(
           item =>
-            util.getAllFather(target).indexOf(item) === -1 ||
-            item.guid !== target.guid
+          util.getAllFather(target).indexOf(item) === -1 ||
+          item.guid !== target.guid
         )
         util.Model.confirm(
           'Move',
           'Some materials can not be copied, are you sure to copy other ' +
-            canPasteArr.length +
-            ' Materials',
+          canPasteArr.length +
+          ' Materials',
           () => {
             context.dispatch({
               type: TYPES.COPY_MATERIALS,
@@ -952,8 +1216,7 @@ export default {
               target: target
             })
           },
-          () => {},
-          {
+          () => {}, {
             large: true, //  Boolean
             cancelButton: {
               show: true, //  Boolean
@@ -999,11 +1262,10 @@ export default {
               util.Model.confirm(
                 'Download',
                 'The hi-res part of "' +
-                  item.name +
-                  '" is not available, Do you want to download low-res or proxy?',
+                item.name +
+                '" is not available, Do you want to download low-res or proxy?',
                 download,
-                () => {},
-                {
+                () => {}, {
                   large: true, //  Boolean
                   cancelButton: {
                     show: true, //  Boolean
@@ -1018,6 +1280,7 @@ export default {
                 }
               )
             }
+
             function download() {
               obj.url.forEach((u, idx) => {
                 let ele = document.createElement('a')
@@ -1129,8 +1392,7 @@ export default {
       submitterid: context.state.userInfo.userid,
       hotfolder: payload.data.hotfolder,
       logicpath: payload.data.logicpath,
-      taskcondition:
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><COMMONGWDATA><CONDITION><INPOINT>' +
+      taskcondition: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><COMMONGWDATA><CONDITION><INPOINT>' +
         (payload.data.trimin || -1) +
         '</INPOINT><OUTPOINT>' +
         (payload.data.trimout || -1) +
@@ -1149,12 +1411,10 @@ export default {
               contentid: payload.data.clipguid,
               type: 6,
               name: payload.data.clipname,
-              items: [
-                {
-                  Name: 'TaskID',
-                  Val: res.data.ext
-                }
-              ]
+              items: [{
+                Name: 'TaskID',
+                Val: res.data.ext
+              }]
             }
           })
           resolve(res)
@@ -1172,69 +1432,68 @@ export default {
       payload.target.forEach(item => {
         promiseArr.push(
           context
-            .dispatch({
-              type: TYPES.GET_OBJECT_INFO,
-              data: {
-                contentid: item.guid,
-                pathtype: 'http',
-                type: item.typeid
-              }
-            })
-            .then(res => {
-              let json = res.data.ext
-              if (
-                json.entity.item.clipfile &&
-                json.entity.item.clipfile.length > 0
-              ) {
-                let channel = 0
-                let channel4Audio = 0
-                json.entity.item.clipfile.forEach(i => {
-                  if (i.mediachannel !== undefined && i.mediachannel !== null) {
-                    if (i.clipclass !== 1) {
-                      channel4Audio |= i.mediachannel
-                    }
-                    channel |= i.mediachannel
+          .dispatch({
+            type: TYPES.GET_OBJECT_INFO,
+            data: {
+              contentid: item.guid,
+              pathtype: 'http',
+              type: item.typeid
+            }
+          })
+          .then(res => {
+            let json = res.data.ext
+            if (
+              json.entity.item.clipfile &&
+              json.entity.item.clipfile.length > 0
+            ) {
+              let channel = 0
+              let channel4Audio = 0
+              json.entity.item.clipfile.forEach(i => {
+                if (i.mediachannel !== undefined && i.mediachannel !== null) {
+                  if (i.clipclass !== 1) {
+                    channel4Audio |= i.mediachannel
                   }
-                })
-                let hvFiles = json.entity.item.clipfile.filter(
-                  item => item.qualitytype === 0 && item.clipclass === 1
-                )
-                let hvLength = hvFiles.reduce(
-                  (i, j) => {
-                    return {
-                      clipin: 0,
-                      clipout: i.clipout + j.clipout - i.clipin - j.clipin
-                    }
-                  },
-                  {
+                  channel |= i.mediachannel
+                }
+              })
+              let hvFiles = json.entity.item.clipfile.filter(
+                item => item.qualitytype === 0 && item.clipclass === 1
+              )
+              let hvLength = hvFiles.reduce(
+                (i, j) => {
+                  return {
                     clipin: 0,
-                    clipout: 0
+                    clipout: i.clipout + j.clipout - i.clipin - j.clipin
                   }
-                ).clipout
-                let haFiles = json.entity.item.clipfile.filter(
-                  item =>
-                    item.qualitytype === 0 &&
-                    getclipclassType(item.clipclass).startsWith('Audio')
-                )
-                if (
-                  (hvFiles.length && hvLength >= json.entity.item.length) ||
-                  item.subtype === 4
-                ) {
-                  //  subtype 4 只需要有音频高质量
-                  item.hvFlag = true
-                } else {
-                  item.hvFlag = false
+                }, {
+                  clipin: 0,
+                  clipout: 0
                 }
-                if (haFiles.length || item.subtype === 2) {
-                  //  subtype 2 只需要有视频高质量
-                  item.haFlag = true
-                } else {
-                  item.haFlag = false
-                }
-                item.CHANNEL = channel
-                item.CHANNEL4AUDIO = channel4Audio
+              ).clipout
+              let haFiles = json.entity.item.clipfile.filter(
+                item =>
+                item.qualitytype === 0 &&
+                getclipclassType(item.clipclass).startsWith('Audio')
+              )
+              if (
+                (hvFiles.length && hvLength >= json.entity.item.length) ||
+                item.subtype === 4
+              ) {
+                //  subtype 4 只需要有音频高质量
+                item.hvFlag = true
+              } else {
+                item.hvFlag = false
               }
-            })
+              if (haFiles.length || item.subtype === 2) {
+                //  subtype 2 只需要有视频高质量
+                item.haFlag = true
+              } else {
+                item.haFlag = false
+              }
+              item.CHANNEL = channel
+              item.CHANNEL4AUDIO = channel4Audio
+            }
+          })
         )
       })
       Promise.all(promiseArr).then(res => {
@@ -1245,9 +1504,9 @@ export default {
           // 非高质量音视频全
           util.Notice.warning(
             payload.target
-              .filter(item => !item.hvFlag || !item.haFlag)
-              .map(item => item.name)
-              .join(',') + ' Can not export',
+            .filter(item => !item.hvFlag || !item.haFlag)
+            .map(item => item.name)
+            .join(',') + ' Can not export',
             '',
             3000
           )
@@ -1273,8 +1532,7 @@ export default {
               context.state.siteList = res.data.ext || []
               context.state.siteList.forEach(item => (item.checked = false))
               context.state.exportInfo = Object.assign(
-                context.state.exportInfo,
-                {
+                context.state.exportInfo, {
                   isUseDefault: true,
                   taskName: '',
                   comments: ''
@@ -1334,9 +1592,9 @@ export default {
                 .then(res => {
                   util.Notice.success(
                     item.name +
-                      ' switch to ' +
-                      (imageType ? '16:9' : '4:3') +
-                      ' successfully',
+                    ' switch to ' +
+                    (imageType ? '16:9' : '4:3') +
+                    ' successfully',
                     '',
                     3000
                   )
@@ -1344,8 +1602,8 @@ export default {
                 .catch(res => {
                   util.Notice.warning(
                     item.name +
-                      ' failed to switch to ' +
-                      (imageType ? '16:9' : '4:3'),
+                    ' failed to switch to ' +
+                    (imageType ? '16:9' : '4:3'),
                     '',
                     3000
                   )
@@ -1515,28 +1773,24 @@ export default {
           trimin: 0,
           trimout: 40000000,
           length: 863999600000,
-          clipfile: [
-            {
-              qualitytype: 0,
-              filestatus: 0,
-              clipclass: 1,
-              filename: filepath,
-              mediachannel: 1
-            }
-          ]
+          clipfile: [{
+            qualitytype: 0,
+            filestatus: 0,
+            clipclass: 1,
+            filename: filepath,
+            mediachannel: 1
+          }]
         }
       } else {
         json.object.entity.item = {
           capturestatus: 0,
-          clipfile: [
-            {
-              qualitytype: 0,
-              filestatus: 0,
-              clipclass: 1,
-              filename: filepath,
-              mediachannel: 1
-            }
-          ]
+          clipfile: [{
+            qualitytype: 0,
+            filestatus: 0,
+            clipclass: 1,
+            filename: filepath,
+            mediachannel: 1
+          }]
         }
       }
       if (type === 'biz_sobey_audio' || type === 'biz_sobey_video') {
@@ -1815,7 +2069,7 @@ export default {
     })
   },
   [TYPES.GET_TRASHCAN_OBJECTS](context, payload) {
-    let hideLoading = payload.option && payload.option.hideLoading
+    let hideLoading = payload.option && payload.option.hideLoading;
     !hideLoading && util.startLoading(context)
     let resultArr = []
     let promiseArr = []
@@ -1823,6 +2077,7 @@ export default {
       context
         .dispatch({
           type: TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE,
+          name: payload.name,
           page: 1,
           size: 500
         })
@@ -1834,19 +2089,19 @@ export default {
           for (let i = 2; i <= totalPage; i++) {
             promiseArr.push(() =>
               context
-                .dispatch({
-                  type: TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE,
-                  page: i,
-                  size: 500
-                })
-                .then(res => {
-                  resultArr = resultArr.concat(
-                    util.parseTrashCanData(
-                      res.data.ext.resultList,
-                      payload.source
-                    )
+              .dispatch({
+                type: TYPES.GET_TRASHCAN_OBJECTS_BY_PAGE,
+                page: i,
+                size: 500
+              })
+              .then(res => {
+                resultArr = resultArr.concat(
+                  util.parseTrashCanData(
+                    res.data.ext.resultList,
+                    payload.source
                   )
-                })
+                )
+              })
             )
           }
           util
@@ -1858,7 +2113,7 @@ export default {
                 target: payload.source,
                 data: resultArr
               })
-              resolve()
+              resolve(resultArr)
             })
             .catch(res => {
               util.stopLoading(context)
@@ -1905,9 +2160,9 @@ export default {
     let url = API_CONFIG[TYPES.CLEAR_TRASHCAN_OBJECTS]({
       usertoken: context.state.userInfo.usertoken
     })
-    let target = payload.target.length
-      ? payload.target[0]
-      : context.getters.currentNode
+    let target = payload.target.length ?
+      payload.target[0] :
+      context.getters.currentNode
     // body  contentid Arr
     let symbol = Symbol('clear trashcan')
     context.commit({
@@ -1949,11 +2204,9 @@ export default {
     if (appSetting.USEROOTPATH) {
       util.locateFolder(
         context,
-        payload.target[0].path.split('/'),
-        {
+        payload.target[0].path.split('/'), {
           children: context.getters.folderTree
-        },
-        {
+        }, {
           isShowWaiting: true,
           linkNode: payload.target[0].isDing ? payload.target[0] : null,
           isSilent: payload.target[0].isDing
@@ -1962,11 +2215,9 @@ export default {
     } else {
       util.locateFolder(
         context,
-        payload.target[0].path.split('/').slice(1),
-        {
+        payload.target[0].path.split('/').slice(1), {
           children: context.getters.folderTree
-        },
-        {
+        }, {
           isShowWaiting: true,
           linkNode: payload.target[0].isDing ? payload.target[0] : null,
           isSilent: payload.target[0].isDing
@@ -1998,6 +2249,7 @@ export default {
         context.state.TYPESymbol = !context.state.TYPESymbol
         break
       default:
+        context.state.markerOrder.type = payload.data.name
     }
     let lastVisit = util.getCookie(
       'last_visit' + context.state.userInfo.usercode
@@ -2007,6 +2259,7 @@ export default {
       lastVisit.sortType = context.state.sortType
       lastVisit.TYPESymbol = context.state.TYPESymbol
       lastVisit.sortSymbol = context.state.sortSymbol
+      lastVisit.markerOrder = context.state.markerOrder
       util.setCookie(
         'last_visit' + context.state.userInfo.usercode,
         JSON.stringify(lastVisit)
@@ -2044,22 +2297,18 @@ export default {
       if (appSetting.USEROOTPATH) {
         util.locateFolder(
           context,
-          material.path.split('/'),
-          {
+          material.path.split('/'), {
             children: context.getters.folderTree
-          },
-          {
+          }, {
             isShowWaiting: true
           }
         )
       } else {
         util.locateFolder(
           context,
-          material.path.split('/').slice(1),
-          {
+          material.path.split('/').slice(1), {
             children: context.getters.folderTree
-          },
-          {
+          }, {
             isShowWaiting: true
           }
         )
@@ -2108,14 +2357,14 @@ export default {
           context.state.archiveFiters.ODA = false
         }
         break
-      //  case 'Archive':
-      //    if (payload.data.checked) {
-      //      context.state.archiveFiters.Archived = true
-      //    } else {
-      //      context.state.archiveFiters.Archived = false
-      //    }
-      //    break
-      // default:
+        //  case 'Archive':
+        //    if (payload.data.checked) {
+        //      context.state.archiveFiters.Archived = true
+        //    } else {
+        //      context.state.archiveFiters.Archived = false
+        //    }
+        //    break
+        // default:
     }
     if (context.state.archiveFiters.ODA || context.state.archiveFiters.HDD) {
       context.state.archiveFiters.double = true
@@ -2156,19 +2405,18 @@ export default {
           let barcodeContent =
             '<div class="clearfix barcode-list">' +
             res
-              .map(
-                item =>
-                  item ? '<div class="barcode-item fl">' + item + '</div>' : ''
-              )
-              .join('') +
+            .map(
+              item =>
+              item ? '<div class="barcode-item fl">' + item + '</div>' : ''
+            )
+            .join('') +
             '</div>'
           util.Model.confirmWithHTML(
             'Retrieve',
             '<div>Selected material(s) is ready to be retrieved, please put below cartridge into the ODA Library to start auto-retrieving.</div>' +
-              barcodeContent,
+            barcodeContent,
             () => {},
-            () => {},
-            {
+            () => {}, {
               large: true, //  Boolean
               confirmButton: {
                 show: true,
@@ -2192,8 +2440,7 @@ export default {
         axios.get(url).then(res => {
           if (res.data.code === '0') {
             util.updateMaterial(
-              getRepository(item.father.guid),
-              {
+              getRepository(item.father.guid), {
                 guid: item.guid
               },
               context
@@ -2221,30 +2468,27 @@ export default {
       context
         .dispatch({
           type: TYPES.GET_BAR_CODE,
-          data: [
-            {
-              guid: payload.data.contentid,
-              type: 'video' //  for filegroupname
-            }
-          ]
+          data: [{
+            guid: payload.data.contentid,
+            type: 'video' //  for filegroupname
+          }]
         })
         .then(res => {
           let barcodeContent =
             '<div class="clearfix barcode-list">' +
             res
-              .map(
-                item =>
-                  item ? '<div class="barcode-item fl">' + item + '</div>' : ''
-              )
-              .join('') +
+            .map(
+              item =>
+              item ? '<div class="barcode-item fl">' + item + '</div>' : ''
+            )
+            .join('') +
             '</div>'
           util.Model.confirmWithHTML(
             'Retrieve',
             '<div>Selected material(s) is ready to be retrieved, please put below cartridge into the ODA Library to start auto-retrieving.</div>' +
-              barcodeContent,
+            barcodeContent,
             () => {},
-            () => {},
-            {
+            () => {}, {
               large: true, //  Boolean
               confirmButton: {
                 show: true,
@@ -2325,16 +2569,14 @@ export default {
     let material = payload.source
     let url
     if (material.type === 'folder') {
-      url = API_CONFIG[TYPES.GET_FILESIZE](
-        {
+      url = API_CONFIG[TYPES.GET_FILESIZE]({
           contentid: material.guid,
           usertoken: context.state.userInfo.usertoken
         },
         'folder'
       )
     } else {
-      url = API_CONFIG[TYPES.GET_FILESIZE](
-        {
+      url = API_CONFIG[TYPES.GET_FILESIZE]({
           clipguid: material.guid,
           usertoken: context.state.userInfo.usertoken
         },
@@ -2413,8 +2655,7 @@ export default {
     payload.source.forEach(item => {
       let body = {
         objguid: item.guid,
-        locktype:
-          item.type === 'h5pgm' || item.type === 'sequence' ? '4000' : '4010', // payload.data.locktype || '4010',
+        locktype: item.type === 'h5pgm' || item.type === 'sequence' ? '4000' : '4010', // payload.data.locktype || '4010',
         loginid: context.state.userInfo.logininfoid,
         usercode: context.state.userInfo.usercode,
         lockip: context.state.userInfo.ip,
@@ -2444,8 +2685,7 @@ export default {
       ).keyValues
       let p = ''
       let pg = []
-      let url = API_CONFIG[TYPES.SET_PERMISSION](
-        {
+      let url = API_CONFIG[TYPES.SET_PERMISSION]({
           type: payload.source.type === 'folder' ? 2 : 1,
           usertoken: context.state.userInfo.usertoken
         },
@@ -2541,11 +2781,9 @@ export default {
         }
         util.locateFolder(
           context,
-          pathList,
-          {
+          pathList, {
             children: context.getters.folderTree
-          },
-          {
+          }, {
             materialGuids: [material.guid],
             isPreview: true,
             isShowWaiting: true
@@ -2567,8 +2805,8 @@ export default {
         },
         dataType: 'json',
         async: true,
-        complete: function() {},
-        success: function(data) {
+        complete: function () {},
+        success: function (data) {
           if (data.R) {
             resolve(data)
           }
@@ -2580,11 +2818,9 @@ export default {
     if (appSetting.USEROOTPATH) {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/'),
-        {
+        context.state.exportInfo.material.folderpath.split('/'), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2593,11 +2829,9 @@ export default {
     } else {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/').slice(1),
-        {
+        context.state.exportInfo.material.folderpath.split('/').slice(1), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2613,11 +2847,9 @@ export default {
     if (appSetting.USEROOTPATH) {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/'),
-        {
+        context.state.exportInfo.material.folderpath.split('/'), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2626,11 +2858,9 @@ export default {
     } else {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/').slice(1),
-        {
+        context.state.exportInfo.material.folderpath.split('/').slice(1), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2646,11 +2876,9 @@ export default {
     if (appSetting.USEROOTPATH) {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/'),
-        {
+        context.state.exportInfo.material.folderpath.split('/'), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2659,11 +2887,9 @@ export default {
     } else {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/').slice(1),
-        {
+        context.state.exportInfo.material.folderpath.split('/').slice(1), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2679,11 +2905,9 @@ export default {
     if (appSetting.USEROOTPATH) {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/'),
-        {
+        context.state.exportInfo.material.folderpath.split('/'), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2692,11 +2916,9 @@ export default {
     } else {
       util.locateFolder(
         context,
-        context.state.exportInfo.material.folderpath.split('/').slice(1),
-        {
+        context.state.exportInfo.material.folderpath.split('/').slice(1), {
           children: context.state.publicPath
-        },
-        {
+        }, {
           onlyFolder: true,
           alwaysGet: true,
           isCheck: true
@@ -2710,12 +2932,12 @@ export default {
   },
   [TYPES.MARKERS_TO_CLIP](context, payload) {
     let url = API_CONFIG[TYPES.MARKERS_TO_CLIP]({})
-    return payload.data.isLive
-      ? context.dispatch({
+    return payload.data.isLive ?
+      context.dispatch({
         type: TYPES.LIVE_TRIM,
         data: payload.data
-      })
-      : new Promise((resolve, reject) => {
+      }) :
+      new Promise((resolve, reject) => {
         axios.post(url, payload.data).then(res => {
           if (res.data.code === '0') {
             resolve(res)
@@ -2730,12 +2952,12 @@ export default {
       trimin: payload.data.nanoSecIn,
       trimout: payload.data.nanoSecOut // 这个接口要传百纳秒
     })
-    return payload.data.isLive
-      ? context.dispatch({
+    return payload.data.isLive ?
+      context.dispatch({
         type: TYPES.LIVE_TRIM,
         data: payload.data
-      })
-      : new Promise((resolve, reject) => {
+      }) :
+      new Promise((resolve, reject) => {
         axios.post(url, payload.data).then(res => {
           if (res.data.code === '0') {
             resolve(res)
@@ -2901,19 +3123,19 @@ export default {
             json.json.page = i
             promiseArr.push(() =>
               context
-                .dispatch({
-                  type: TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE,
-                  data: json
-                })
-                .then(res => {
-                  resultArr = resultArr.concat(
-                    util.parseData(
-                      res.data.ext,
-                      payload.source,
-                      payload.data.isMarker ? 'mark' : ''
-                    )
+              .dispatch({
+                type: TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE,
+                data: json
+              })
+              .then(res => {
+                resultArr = resultArr.concat(
+                  util.parseData(
+                    res.data.ext,
+                    payload.source,
+                    payload.data.isMarker ? 'mark' : ''
                   )
-                })
+                )
+              })
             )
           }
           util
@@ -2937,17 +3159,13 @@ export default {
   },
   [TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE](context, payload) {
     let url = API_CONFIG[TYPES.ADVANCE_SEARCH_MATERIALS_BY_PAGE](
-      payload.data.isMarker,
-      {
+      payload.data.isMarker, {
         usertoken: context.state.userInfo.usertoken,
         pathtype: 'http'
-      },
-      {
+      }, {
         usertoken: context.state.userInfo.usertoken,
-        path:
-          [292, 293, 294].indexOf(payload.data.json.subtype) > -1
-            ? ''
-            : payload.data.path,
+        path: [292, 293, 294].indexOf(payload.data.json.subtype) > -1 ?
+          '' : payload.data.path,
         type: payload.data.type,
         pathtype: 'http'
       }
@@ -3042,27 +3260,36 @@ export default {
   },
   // always get new
   [TYPES.FULLTEXT_SEARCH_MATERIALS](context, payload) {
-    payload.showWaiting && util.startLoading(context)
-    let resultArr = []
-    let promiseArr = []
-    payload.data.json.page = 1
-    payload.data.json.size = 500
-    return new Promise((resolve, reject) => {
-      context
-        .dispatch({
-          type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
-          data: payload.data
-        })
-        .then(res => {
-          resultArr = resultArr.concat(
-            util.parseData(res.data.ext, payload.source)
-          )
-          let totalPage = res.data.totalPage
-          for (let i = 2; i <= totalPage; i++) {
-            let json = JSON.parse(JSON.stringify(payload.data))
-            json.json.page = i
-            promiseArr.push(() =>
-              context
+    if (payload.data.json.isTrashCan) {
+      context.getters.searchResult.operations.add('Save Search Result')
+      return context.dispatch({
+        type: TYPES.GET_TRASHCAN_OBJECTS,
+        name: payload.data.json.name,
+        source: context.state.trashcan
+      })
+    } else {
+      context.getters.searchResult.operations.add('Save Search Result', 'Show OA File')
+      payload.showWaiting && util.startLoading(context)
+      let resultArr = []
+      let promiseArr = []
+      payload.data.json.page = 1
+      payload.data.json.size = 500
+      return new Promise((resolve, reject) => {
+        context
+          .dispatch({
+            type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
+            data: payload.data
+          })
+          .then(res => {
+            resultArr = resultArr.concat(
+              util.parseData(res.data.ext, payload.source)
+            )
+            let totalPage = res.data.totalPage
+            for (let i = 2; i <= totalPage; i++) {
+              let json = JSON.parse(JSON.stringify(payload.data))
+              json.json.page = i
+              promiseArr.push(() =>
+                context
                 .dispatch({
                   type: TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE,
                   data: json
@@ -3072,36 +3299,33 @@ export default {
                     util.parseData(res.data.ext, payload.source)
                   )
                 })
-            )
-          }
-          util
-            .throttleAjax(promiseArr)
-            .then(res => {
-              util.stopLoading(context)
-              resolve(resultArr)
-            })
-            .catch(res => {
-              util.stopLoading(context)
-              util.Notice.failed('Failed to get obejcts', '', 3000)
-              reject(res)
-            })
-        })
-        .catch(res => {
-          util.stopLoading(context)
-          // util.Notice.failed('Failed to get obejcts', '', 3000)
-          resolve([])
-        })
-    })
+              )
+            }
+            util
+              .throttleAjax(promiseArr)
+              .then(res => {
+                util.stopLoading(context)
+                resolve(resultArr)
+              })
+              .catch(res => {
+                util.stopLoading(context)
+                util.Notice.failed('Failed to get obejcts', '', 3000)
+                reject(res)
+              })
+          })
+          .catch(res => {
+            util.stopLoading(context)
+            // util.Notice.failed('Failed to get obejcts', '', 3000)
+            resolve([])
+          })
+      })
+    }
   },
   [TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE](context, payload) {
     let url = API_CONFIG[TYPES.FULLTEXT_SEARCH_MATERIALS_BY_PAGE]({
       usertoken: context.state.userInfo.usertoken,
       pathtype: 'http'
     })
-    context.getters.searchResult.operations.add(
-      'Save Search Result',
-      'Show OA File'
-    )
     return new Promise((resolve, reject) => {
       axios
         .post(url, payload.data.json, false, {
@@ -3254,8 +3478,7 @@ export default {
                 source: item
               })
               .then(res => {
-                let copiedItem = util.initData(
-                  {
+                let copiedItem = util.initData({
                     name: item.name
                   },
                   linkRoot
@@ -3358,8 +3581,7 @@ export default {
         .post(
           url,
           JSON.stringify(payload.source.map(item => item.guid).join(',')),
-          false,
-          {
+          false, {
             username: context.state.userInfo.username,
             usercode: context.state.userInfo.usercode,
             'reply-to': replyUrl
@@ -3397,18 +3619,15 @@ export default {
     }
   },
   [TYPES.ADD_GENERATION](context, payload) {
-    let url = API_CONFIG[TYPES.ADD_GENERATION]({
-    })
+    let url = API_CONFIG[TYPES.ADD_GENERATION]({})
     let body = {
       contentid: payload.source.guid,
       sourcetype: payload.source.type,
       type: 'ClipToClip',
-      relations: [
-        {
-          contentid: payload.target.guid,
-          type: payload.target.type
-        }
-      ]
+      relations: [{
+        contentid: payload.target.guid,
+        type: payload.target.type
+      }]
     }
     return new Promise((resolve, reject) => {
       axios
@@ -3510,17 +3729,15 @@ export default {
         opt.type = type
         context.state.previewOptions = opt
         util.getProperties(
-          [
-            {
-              data: {
-                ext: {
-                  entity: {
-                    guid: payload.target[0].guid
-                  }
+          [{
+            data: {
+              ext: {
+                entity: {
+                  guid: payload.target[0].guid
                 }
               }
             }
-          ],
+          }],
           payload.target,
           [],
           type,
@@ -3533,9 +3750,9 @@ export default {
           type === 'video' &&
           !payload.target.every(
             item =>
-              item.framerate === payload.target[0].framerate &&
-              item.isAudio === payload.target[0].isAudio &&
-              item.previewType === 'video'
+            item.framerate === payload.target[0].framerate &&
+            item.isAudio === payload.target[0].isAudio &&
+            item.previewType === 'video'
           )
         ) {
           util.Notice.warning('Can not preiew', '', 3000)
@@ -3623,7 +3840,7 @@ export default {
                     Vue.nextTick(() =>
                       setTimeout(
                         () =>
-                          (context.state.player.$refs.player.currentTime = time),
+                        (context.state.player.$refs.player.currentTime = time),
                         0
                       )
                     )
@@ -3647,16 +3864,16 @@ export default {
             })
         })
       } else {
-        type = payload.target.some(item => item.previewType === 'video')
-          ? 'video'
-          : payload.target[0].previewType
+        type = payload.target.some(item => item.previewType === 'video') ?
+          'video' :
+          payload.target[0].previewType
         if (
           type === 'video' &&
           !payload.target.every(
             item =>
-              item.framerate === payload.target[0].framerate &&
-              item.isAudio === payload.target[0].isAudio &&
-              item.previewType === 'video'
+            item.framerate === payload.target[0].framerate &&
+            item.isAudio === payload.target[0].isAudio &&
+            item.previewType === 'video'
           )
         ) {
           util.Notice.warning('Can not preiew', '', 3000)
@@ -3721,51 +3938,51 @@ export default {
               //  context.state.previewOptions.source = []
               opt.materials = payload.target.slice()
               opt.type = type
-              //  unc
-              !payload.data.onlyPlayer &&
+                //  unc
+                !payload.data.onlyPlayer &&
                 Promise.all(propPromiseArr)
-                  .then(res => {
-                    let typeArr = payload.target.groupBy('subtype')
-                    let result = []
-                    let pArr = []
-                    typeArr.forEach(i => {
-                      let entities = []
-                      i.forEach(j =>
-                        entities.push(
-                          res.find(k => k.data.ext.entity.guid === j.guid)
+                .then(res => {
+                  let typeArr = payload.target.groupBy('subtype')
+                  let result = []
+                  let pArr = []
+                  typeArr.forEach(i => {
+                    let entities = []
+                    i.forEach(j =>
+                      entities.push(
+                        res.find(k => k.data.ext.entity.guid === j.guid)
+                      )
+                    )
+                    pArr.push(
+                      context
+                      .dispatch({
+                        type: TYPES.GET_CUSTOM_METADATA,
+                        data: {
+                          type: GetEntityType(i[0].typeid, i[0].subtype)
+                        }
+                      })
+                      .then(r => {
+                        let models = r.data.ext
+                        result.push(
+                          ...util.getProperties(
+                            entities,
+                            i,
+                            models,
+                            type,
+                            context,
+                            res1
+                          )
                         )
-                      )
-                      pArr.push(
-                        context
-                          .dispatch({
-                            type: TYPES.GET_CUSTOM_METADATA,
-                            data: {
-                              type: GetEntityType(i[0].typeid, i[0].subtype)
-                            }
-                          })
-                          .then(r => {
-                            let models = r.data.ext
-                            result.push(
-                              ...util.getProperties(
-                                entities,
-                                i,
-                                models,
-                                type,
-                                context,
-                                res1
-                              )
-                            )
-                          })
-                          .catch(res => {
-                            reject(res)
-                          })
-                      )
-                    })
-                    Promise.all(pArr).then(res => resolve(result))
+                      })
+                      .catch(res => {
+                        reject(res)
+                      })
+                    )
                   })
-                  .catch(res => {
-                    reject(res)
-                  })
+                  Promise.all(pArr).then(res => resolve(result))
+                })
+                .catch(res => {
+                  reject(res)
+                })
               let time =
                 payload.data &&
                 payload.data.isRefresh &&
@@ -3793,7 +4010,7 @@ export default {
                 Vue.nextTick(() =>
                   setTimeout(
                     () =>
-                      (context.state.player.$refs.player.currentTime = time),
+                    (context.state.player.$refs.player.currentTime = time),
                     0
                   )
                 )
@@ -3917,11 +4134,9 @@ export default {
         util
           .locateFolder(
             context,
-            path,
-            {
+            path, {
               children: context.getters.folderTree
-            },
-            {
+            }, {
               isShowWaiting: true
             }
           )
@@ -3988,8 +4203,7 @@ export default {
             })
             util.newFolder(context, node)
           })
-      } else {
-      }
+      } else {}
     } else {
       node = context.getters.currentNode
       util.newFolder(context, node)
@@ -4105,9 +4319,8 @@ export default {
       axios
         .post(url, {
           LOGINNAME: payload.data.username,
-          LOGINPWD: payload.data.isDomain
-            ? payload.data.password
-            : md5(payload.data.password),
+          LOGINPWD: payload.data.isDomain ?
+            payload.data.password : md5(payload.data.password),
           LOGINSUBSYSTEM: context.state.system,
           LOGINIP: payload.data.ip
         })
@@ -4174,13 +4387,11 @@ export default {
     })
     return new Promise((resolve, reject) => {
       axios
-        .post(url, [
-          {
-            system: payload.data.system,
-            tool: 'DEFAULT',
-            popedomname: payload.data.popedomname
-          }
-        ])
+        .post(url, [{
+          system: payload.data.system,
+          tool: 'DEFAULT',
+          popedomname: payload.data.popedomname
+        }])
         .then(res => {
           if (res.data.code === '0') {
             resolve(res.data)
@@ -4274,8 +4485,7 @@ export default {
             target: arr
           })
         },
-        () => {},
-        {
+        () => {}, {
           large: true,
           cancelButton: {
             show: true,
@@ -4296,16 +4506,15 @@ export default {
       util.Model.confirm(
         'Delete',
         'Some materials can not be deleted, are you sure to delete other ' +
-          arr.length +
-          ' Materials',
+        arr.length +
+        ' Materials',
         () => {
           context.dispatch({
             type: TYPES.RECYCLE,
             target: arr
           })
         },
-        () => {},
-        {
+        () => {}, {
           large: true,
           cancelButton: {
             show: true,
@@ -4325,13 +4534,13 @@ export default {
   [TYPES.GET_USERTREE](context, payload) {
     return new Promise((resolve, reject) => {
       Promise.all([
-        context.dispatch({
-          type: TYPES.GET_ALLUSER
-        }),
-        context.dispatch({
-          type: TYPES.GET_ALLDEPT
-        })
-      ])
+          context.dispatch({
+            type: TYPES.GET_ALLUSER
+          }),
+          context.dispatch({
+            type: TYPES.GET_ALLDEPT
+          })
+        ])
         .then(res => {
           let deptArr = res[1].data.ext
           let userArr = res[0].data.ext
@@ -4500,9 +4709,10 @@ export default {
         })
     })
   },
-  [TYPES.GET_MATERIALS_BY_PAGE](
-    {
-      state: { userInfo }
+  [TYPES.GET_MATERIALS_BY_PAGE]({
+      state: {
+        userInfo
+      }
     },
     payload
   ) {
@@ -4582,17 +4792,17 @@ export default {
           for (let i = 2; i <= totalPage; i++) {
             promiseArr.push(() =>
               context
-                .dispatch({
-                  type: TYPES.GET_MATERIALS_BY_PAGE,
-                  source: payload.source,
-                  page: i,
-                  size: 500
-                })
-                .then(res => {
-                  resultArr = resultArr.concat(
-                    util.parseData(res.data.ext, payload.source)
-                  )
-                })
+              .dispatch({
+                type: TYPES.GET_MATERIALS_BY_PAGE,
+                source: payload.source,
+                page: i,
+                size: 500
+              })
+              .then(res => {
+                resultArr = resultArr.concat(
+                  util.parseData(res.data.ext, payload.source)
+                )
+              })
             )
           }
           util
@@ -4632,9 +4842,7 @@ export default {
             target: payload.source
           })
         })
-    } else if (payload.source.guid === 2) {
-    } else if (payload.source.guid === -1) {
-    } else {
+    } else if (payload.source.guid === 2) {} else if (payload.source.guid === -1) {} else {
       context
         .dispatch({
           type: TYPES.GET_FOLDERS,
@@ -4751,7 +4959,7 @@ export default {
           let resDate = res.data.ext
           let datas = []
           if (resDate && resDate.length > 0) {
-            resDate.forEach(function(item) {
+            resDate.forEach(function (item) {
               if (item.attributeKey) {
                 datas.push(item.attributeKey)
               }
@@ -4863,19 +5071,19 @@ export default {
         .then(result => {})
       // 先获取studio 若获取不到就不显示窗口
       Promise.all([
-        context.dispatch({
-          type: TYPES.GET_STUDIO,
-          data: {}
-        }),
-        context.dispatch({
-          type: TYPES.GET_OBJECT_INFO,
-          data: {
-            contentid: payload.target[0].guid,
-            pathtype: 'unc',
-            type: payload.target[0].typeid
-          }
-        })
-      ])
+          context.dispatch({
+            type: TYPES.GET_STUDIO,
+            data: {}
+          }),
+          context.dispatch({
+            type: TYPES.GET_OBJECT_INFO,
+            data: {
+              contentid: payload.target[0].guid,
+              pathtype: 'unc',
+              type: payload.target[0].typeid
+            }
+          })
+        ])
         .then(res => {
           let studioArr = res[0]
           let objInfo = res[1].data.ext
@@ -5024,14 +5232,13 @@ export default {
                 util.Model.confirm(
                   'Register to OA',
                   'The hi-res part of "' +
-                    clipName +
-                    '" is not available.Do you want to continue?',
+                  clipName +
+                  '" is not available.Do you want to continue?',
                   () => {
                     context.state.RegisterWindow.show()
                     util.displayRegisterWindow(currentStudioData, context)
                   },
-                  () => {},
-                  {
+                  () => {}, {
                     large: true,
                     cancelButton: {
                       show: true,
@@ -5078,15 +5285,13 @@ export default {
     let data = {
       FilterGroup: {
         ObjType: 'AttributeConditionType',
-        Items: [
-          {
-            Attribute: {
-              Name: 'StudioName',
-              Value: Guid.NewGuid().ToString('N')
-            },
-            Condition: ConditionType.NOT_EQUALS
-          }
-        ],
+        Items: [{
+          Attribute: {
+            Name: 'StudioName',
+            Value: Guid.NewGuid().ToString('N')
+          },
+          Condition: ConditionType.NOT_EQUALS
+        }],
         Operator: FilterGroupTypeOperator.AND
       }
     }
@@ -5139,8 +5344,7 @@ export default {
       StudioID: payload.data,
       FilterGroup: {
         ObjType: 'AttributeConditionType',
-        Items: [
-          {
+        Items: [{
             Attribute: {
               Name: 'RundownName',
               Value: Guid.NewGuid().ToString('N')
@@ -5198,7 +5402,9 @@ export default {
   },
   [TYPES.GET_EVENTS](context, payload) {
     let URL = API_CONFIG[TYPES.GET_EVENTS]({})
-    let data = { StoryID: payload.data.storyID }
+    let data = {
+      StoryID: payload.data.storyID
+    }
     return new Promise((resolve, reject) => {
       axios.post(URL, data).then(res => {
         if (
@@ -5219,15 +5425,13 @@ export default {
       RundownID: payload.data.rundownid,
       FilterGroup: {
         ObjType: 'AttributeConditionType',
-        Items: [
-          {
-            Attribute: {
-              Name: 'StoryName',
-              Value: Guid.NewGuid().ToString('N')
-            },
-            Condition: ConditionType.NOT_EQUALS
-          }
-        ],
+        Items: [{
+          Attribute: {
+            Name: 'StoryName',
+            Value: Guid.NewGuid().ToString('N')
+          },
+          Condition: ConditionType.NOT_EQUALS
+        }],
         Operator: FilterGroupTypeOperator.AND
       }
     }
@@ -5253,27 +5457,27 @@ export default {
           eventlist.forEach(item => {
             promiseArr.push(() =>
               context
-                .dispatch({
-                  type: TYPES.GET_EVENTS,
-                  data: {
-                    storyID: item.StoryID
-                  }
-                })
-                .then(res => {
-                  let json = {
-                    StoryID: item.StoryID,
-                    Name: item.Name,
-                    Comment: item.Comment,
-                    CreateDate: item.CreateDate,
-                    RundownID: item.RundownID,
-                    RundownName: item.RundownName,
-                    Type: item.Type,
-                    Events: res
-                  }
-                  programeinfo.push(json)
-                  // resolve(programeinfo)
-                })
-                .catch(res => {})
+              .dispatch({
+                type: TYPES.GET_EVENTS,
+                data: {
+                  storyID: item.StoryID
+                }
+              })
+              .then(res => {
+                let json = {
+                  StoryID: item.StoryID,
+                  Name: item.Name,
+                  Comment: item.Comment,
+                  CreateDate: item.CreateDate,
+                  RundownID: item.RundownID,
+                  RundownName: item.RundownName,
+                  Type: item.Type,
+                  Events: res
+                }
+                programeinfo.push(json)
+                // resolve(programeinfo)
+              })
+              .catch(res => {})
             )
           })
           util.sync(promiseArr).then(res => {
@@ -5281,32 +5485,32 @@ export default {
             let cdata = programeinfo
             let ndf = Standard || 0
             if (cdata.length > 0) {
-              cdata.forEach(function(i, d) {
+              cdata.forEach(function (i, d) {
                 if (cdata[d].Events) {
-                  i.Events.forEach(function(p, j) {
+                  i.Events.forEach(function (p, j) {
                     let Duration =
-                      i.Events[j].Type === 2
-                        ? ''
-                        : getTimeStringByFrameNum2(
-                          i.Events[j].Duration,
-                          ndf
-                        ).substr(0, 8)
+                      i.Events[j].Type === 2 ?
+                      '' :
+                      getTimeStringByFrameNum2(
+                        i.Events[j].Duration,
+                        ndf
+                      ).substr(0, 8)
                     let Version =
                       i.Events[j].Type === 2 ? '' : i.Events[j].Version
                     let SOM =
-                      i.Events[j].Type === 2
-                        ? ''
-                        : getTimeStringByFrameNum2(
-                          i.Events[j].InPoint,
-                          ndf
-                        ).substr(0, 8)
+                      i.Events[j].Type === 2 ?
+                      '' :
+                      getTimeStringByFrameNum2(
+                        i.Events[j].InPoint,
+                        ndf
+                      ).substr(0, 8)
                     let EOM =
-                      i.Events[j].Type === 2
-                        ? ''
-                        : getTimeStringByFrameNum2(
-                          i.Events[j].OutPoint,
-                          ndf
-                        ).substr(0, 8)
+                      i.Events[j].Type === 2 ?
+                      '' :
+                      getTimeStringByFrameNum2(
+                        i.Events[j].OutPoint,
+                        ndf
+                      ).substr(0, 8)
                     let eventStatus = getEnumKeyByValue(
                       i.Events[j].Status,
                       EventStatusType

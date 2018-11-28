@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <router-view/>
+    <router-view />
   </div>
 </template>
 
@@ -60,10 +60,28 @@ export default {
       } else {
         this.$router.push('/login')
       }
+    },
+    initPublicEvents () {
+      this.$app.on(EVENT.ADD_TASK, e => {
+        let data = e.data
+        this.$store.commit({
+          type: TYPES.PUSH_EVENT,
+          data: data.data || {},
+          symbol: data.symbol
+        })
+      })
+      this.$app.on(EVENT.REMOVE_TASK, e => {
+        let data = e.data
+        this.$store.commit({
+          type: TYPES.DELETE_EVENT,
+          symbol: data.symbol
+        })
+      })
     }
   },
   created () {
     this.initNativeEvents()
+    this.initPublicEvents()
     this.getUserInfo()
   },
   mounted () {

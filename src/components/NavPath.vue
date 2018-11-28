@@ -140,4 +140,14 @@ export default {
   background: #444;
   border-radius: 3px;
 }
+.backup_icon:hover {
+  background: #444444;
+  background-image: url(../assets/images/arrow_left.png);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 9px 13px;
+  height: 27px;
+  margin-left: 12px;
+  border-radius: 3px;
+}
 </style>

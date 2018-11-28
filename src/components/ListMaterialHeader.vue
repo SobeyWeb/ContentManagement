@@ -1,5 +1,5 @@
 <template>
-  <div class="list_header_container" :style="{width: headerWidth+'px'}" @contextmenu.prevent.stop @drop.stop.prevent @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent @mousedown.stop.prevent @mouseup.prevent>
+  <div class="list_header_container" :style="{width: headerWidth+'px'}" @mousewheel.stop.prevent="moveScrollbar" @contextmenu.prevent.stop @drop.stop.prevent @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent @mousedown.stop.prevent @mouseup.prevent>
     <div class="header_filter_container" v-show="filterSymbol" ref="header_filter_container">
       <div class="header_all_box">
         <input type="checkbox" id="checkAll" v-on:change="selectAll" :checked="selectedAllSymbol" />
@@ -30,10 +30,13 @@
           <span class="drag_area fr" v-on:mousedown.stop="resize($event)"></span>
           <span>Title</span>
         </div-->
-    <div class="list_header_item fl" :class="{list_header_item_dragging:header.dragging}" v-for="header in headers" :key="header.name" v-on:mousedown="dragstart($event, header)" :style="{width: header.width + 'px'}">
-      <span class="list_sort_btn btn_up" v-on:mousedown.stop="sortBy(header, true)"></span>
-      <span class="list_sort_btn btn_down" v-on:mousedown.stop="sortBy(header, false)"></span>
+    <div class="list_header_item fl" :class="{list_header_item_dragging:header.dragging,list_header_item_clicking:clicking}" :key="index" v-for="(header,index) in headers" v-on:mousedown="dragstart($event, header)" :style="{width: header.width + 'px'}">
+      <span class="list_sort_btn btn_up" v-if="!listOrder.disabled&&listOrder.symbol&&(header.attr===listOrder.type||(['totalDuration', 'length', 'trimin', 'trimout'].indexOf(header.attr) > -1 && 'f' + header.attr === listOrder.type))"></span>
+      <span class="list_sort_btn btn_down" v-if="!listOrder.disabled&&!listOrder.symbol&&(header.attr===listOrder.type||(['totalDuration', 'length', 'trimin', 'trimout'].indexOf(header.attr) > -1 && 'f' + header.attr === listOrder.type))"></span>
       <span class="drag_area fr" v-on:mousedown.stop="resize($event, header)"></span>
+      <span v-if="['totalDuration', 'length', 'trimin', 'triminout'].indexOf(header.attr>-1)" @mousedown.stop="filterClick($event, header)" class="filter-icon">
+        <i style="line-height:30px;" class="el-select__caret" :class="(!$store.state.operatingFilterData.visible||header.attr!==$store.state.operatingFilterData.header.attr)&&$store.state.filterHeaders.find(item=>item.attr===header.attr)&&$store.state.filterHeaders.find(item=>item.attr===header.attr).values.length?'el-icon-check':'el-icon-search'"></i>
+      </span>
       <span>{{header.name}}</span>
     </div>
     <div class="list_header_item dragging_item" v-show="dragging" :style="{left: x + 'px', width: dragItem.width + 'px'}">
@@ -72,12 +75,52 @@ export default {
       resizeItem: null,
       oldWidth: 0,
       filterSymbol: false,
+      isClick: true,
+      clicking: false,
       filterWindow: null,
       checkedHeaders: [],
       lastX: 0
     }
   },
   methods: {
+    filterClick (event, header) {
+      this.$store.state.operatingFilterData.header = this.$store.state.filterHeaders.find(item => item.attr === header.attr)
+      this.$store.state.operatingFilterData.position = {
+        x: event.x,
+        y: event.y
+      }
+      this.$store.state.operatingFilterData.visible = !this.$store.state.operatingFilterData.visible
+    },
+    moveScrollbar (event) {
+      if (event.deltaY < 0) {
+        this.$parent.$refs.materialScollbar.normalizeHorizontal(this.$parent.$refs.materialScollbar.left - 100)
+      } else {
+        this.$parent.$refs.materialScollbar.normalizeHorizontal(this.$parent.$refs.materialScollbar.left + 100)
+      }
+    },
+    swapHeader (right) {
+      var header = util.getListHeader(this.x - this.stampWidth + 30, this.headers)
+      if (header !== this.dragItem) {
+        var index = this.$store.state.headers.indexOf(header)
+        if ((right && index < this.index) || (!right && index > this.index)) {
+          return
+        }
+        if (index > this.index) {
+          index -= 1
+          this.index = index + 1
+        } else {
+          this.index = index
+        }
+        // 待替换为mutation
+        this.$store.commit({
+          type: TYPES.SWAP_HEADERITEMS,
+          data: {
+            item: this.dragItem,
+            index: index
+          }
+        })
+      }
+    },
     selectAll () {
       if (this.checkedHeaders.every(item => item.checked)) {
         this.checkedHeaders.forEach(item => {
@@ -119,14 +162,17 @@ export default {
       this.filterWindow.hide()
     },
     dragstart (event, header) {
-      if (header.attr === 'name') {
-        return false
-      }
-      var ele = event.target.tagName === 'DIV' ? $(event.target) : $(event.target).parent()
+      window.addEventListener('mouseup', this.mouseup)
+      this.clicking = true
       this.dragItem = header
       this.dragName = header.name
       header.dragging = true
-      this.index = this.headers.indexOf(header)
+      if (header.attr === 'name') {
+        return false
+      }
+      this.isClick = true
+      var ele = event.target.tagName === 'DIV' ? $(event.target) : $(event.target).parent()
+      this.index = this.$store.state.headers.indexOf(header)
       this.stampLeft = $('.list_header_stamp').offset().left
       this.stampWidth = $('.list_header_stamp').width()
       this.titleWidth = this.headers[0].width
@@ -137,9 +183,12 @@ export default {
       this.dragging = true
       this.lastX = event.x
       window.addEventListener('mousemove', this.mousemove)
-      window.addEventListener('mouseup', this.mouseup)
     },
-    sortBy (header, symbol) {
+    sortBy (header) {
+      var symbol = true
+      if (header.attr === this.listOrder.type || (['totalDuration', 'length', 'trimin', 'trimout'].indexOf(header.attr) > -1 && 'f' + header.attr === this.listOrder.type)) {
+        symbol = !this.listOrder.symbol
+      }
       this.$store.commit({
         type: TYPES.SET_ORDERTYPE,
         data: {
@@ -159,21 +208,46 @@ export default {
   },
   created () {
     var _this = this
+    this.scrollLeftMove = util.throttle(50, () => {
+      this.$parent.$refs.materialScollbar.normalizeHorizontal(this.$parent.$refs.materialScollbar.left - 40)
+      this.x = Math.max(this.x - 40, this.stampWidth + this.titleWidth)
+      this.swapHeader(false)
+    })
+    this.scrollRightMove = util.throttle(50, () => {
+      this.$parent.$refs.materialScollbar.normalizeHorizontal(this.$parent.$refs.materialScollbar.left + 40)
+      this.x = Math.min(this.x + 40, this.headerWidth - this.offset)
+      this.swapHeader(true)
+    })
+    var moveId = -1
     this.mousemove = function (event) {
       var header
       var right = false
       var min = _this.stampWidth
+      if (Math.abs(_this.lastX - event.x) > 5) {
+        _this.isClick = false
+      }
+      clearInterval(moveId)
       var x = Math.min(_this.headers.reduce((item1, item2) => {
         return {
           width: item1.width + item2.width
         }
-      }).width + min, Math.max(event.x - _this.stampLeft, min + _this.titleWidth))
+      }).width + min, Math.max(event.x - $('.list_header_stamp').offset().left, min + _this.titleWidth))
       if (event.x > _this.lastX) {
         // →  30 为缓冲距离
+        if (event.x > _this.$parent.$refs.proppreview.offsetLeft + _this.$parent.leftTreeWidth - 30) {
+          let time = 640 / (event.x - _this.$parent.$refs.proppreview.offsetLeft - _this.$parent.leftTreeWidth)
+          moveId = setInterval(_this.scrollRightMove, time)
+          _this.scrollRightMove()
+        }
         _this.x = Math.max(x - _this.offset, min + _this.titleWidth)
         header = util.getListHeader(_this.x - min - 30 + _this.targetWidth, _this.headers)
         right = true
       } else {
+        if (_this.$parent.leftTreeWidth > event.x - 30) {
+          let time = _this.$parent.leftTreeWidth / (_this.$parent.leftTreeWidth - event.x)
+          moveId = setInterval(_this.scrollLeftMove, time)
+          _this.scrollLeftMove()
+        }
         _this.x = Math.max(x - _this.offset, min + _this.titleWidth)
         header = util.getListHeader(_this.x - min + 30, _this.headers)
         right = false
@@ -202,6 +276,11 @@ export default {
       }
     }
     this.mouseup = function (event) {
+      _this.clicking = false
+      if (_this.isClick) {
+        _this.sortBy(_this.dragItem)
+      }
+      clearInterval(moveId)
       _this.dragging = false
       _this.dragItem.name = _this.dragName
       _this.dragItem.dragging = false
@@ -221,6 +300,9 @@ export default {
     }
   },
   computed: {
+    listOrder () {
+      return this.$store.state.listOrder
+    },
     cheaders () {
       return this.checkedHeaders
     },
@@ -257,7 +339,7 @@ export default {
   white-space: nowrap;
   width: 200px;
   position: relative;
-  cursor: default;
+  cursor: pointer5p;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -282,40 +364,46 @@ export default {
   /*隐藏文字，仿windows*/
 }
 
+.list_header_item_clicking:hover {
+  background-color: #363636;
+  border-left: 1px solid #1b1b1b;
+  box-shadow: 0 1px 8px #101010;
+  color: #fff;
+  /*隐藏文字，仿windows*/
+}
+
 .list_header_item_checked {
   background: #363636;
   box-shadow: 0 1px 4px #1b1b1b;
 }
 
 .list_sort_btn {
-  opacity: 0;
   width: 0;
   height: 0;
   border: 5px solid transparent;
   cursor: pointer;
   position: absolute;
+  left: 50%;
+  margin-left: -5px;
 }
 
 .btn_up {
   border-bottom: 5px solid #ffffff;
-  top: 0;
-  right: 8px;
+  top: -3px;
 }
 
 .btn_down {
   border-top: 5px solid #ffffff;
-  top: 15px;
-  right: 8px;
-}
-
-.list_header_item:hover .list_sort_btn {
-  opacity: 1;
+  top: 2px;
 }
 
 .btn_up:hover {
   border-bottom: 5px solid #f89b39;
 }
 
+.btn_down:hover {
+  border-top: 5px solid #f89b39;
+}
 .btn_down:hover {
   border-top: 5px solid #f89b39;
 }
@@ -344,5 +432,12 @@ export default {
   position: absolute;
   cursor: pointer;
   background: url(../assets/images/sort_icon.png) no-repeat center center;
+}
+.filter-icon {
+  position: absolute;
+  right: 3px;
+  top: 0;
+  width: 20px;
+  height: 30px;
 }
 </style>

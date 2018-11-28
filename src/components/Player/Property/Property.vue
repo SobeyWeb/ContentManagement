@@ -51,7 +51,7 @@ export default {
   },
   computed: {
     isPremiere () {
-      return this.$store.state.system
+      return this.$store.state.system !== 'WEBCM'
     },
     readonly () {
       return this.materials.some(item => (item.subtype === 256 || util.getAllFather(item).some(i => i.subtype === 256) || item.floor === 1 || (item.father && item.father.guid === 0) || item.readonly)) // OA  第一级的folders
@@ -81,14 +81,32 @@ export default {
     lastCheckedHeaderName () {
       return this.$store.state.lastCheckedHeaderName
     },
+    isHighLight () {
+      return this.$store.getters.isHighLight
+    },
     curTab () {
       var lastHeader
       var header = this.headers && this.headers.filter(item => item.selected)[0]
+      var flag
       if (!header && this.headers && this.headers.length && this.$refs.propertyHeader) {
-        lastHeader = this.headers.find(item => item.name === this.lastCheckedHeaderName)
+        if (this.isHighLight) {
+          for (let i = 0, l = this.headers.length; i < l; i++) {
+            if (this.headers[i].keyValues.some && this.headers[i].keyValues.some(item => {
+              let key = item.keys && item.keys.slice(-1)[0] + '_hl'
+              return this.curMaterial[key]
+            })) {
+              lastHeader = this.headers[i]
+              flag = true
+              break
+            }
+          }
+        }
+        if (!lastHeader) {
+          lastHeader = this.headers.find(item => item.name === this.lastCheckedHeaderName)
+        }
         if (lastHeader) {
           header = lastHeader
-          this.$refs.propertyHeader.selectHeader(this.headers.indexOf(header))
+          this.$refs.propertyHeader.selectHeader(this.headers.indexOf(header), flag)
         } else {
           this.$refs.propertyHeader.selectHeader(0, true)
           this.$refs.propertyHeader.init()
@@ -176,6 +194,10 @@ export default {
               }
             } else if (!k.readonly) {
               k.bakValue = k.value
+              k.bakDisplayValue = k.displayValue
+              if (k.options) { // duoji xiala
+                k.bakOptions = JSON.stringify(k.options)
+              }
               k.bakChecked = k.checked
               if (k.multiplable) {
                 k.multiOption.bakChecked = k.multiOption.checked
@@ -264,6 +286,10 @@ export default {
               }
             } else if (!k.readonly) {
               k.value = k.bakValue
+              k.displayValue = k.bakDisplayValue
+              if (k.options) { // duoji xiala
+                k.options = JSON.parse(k.bakOptions)
+              }
               k.checked = k.bakChecked
               if (k.multiplable) {
                 k.multiOption.checked = k.multiOption.Bakchecked

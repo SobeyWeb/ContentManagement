@@ -20,6 +20,9 @@ module.exports = {
   plugins: ['vue'],
   // add your custom rules here
   rules: {
+    "operator-linebreak": [0, "after"],
+    "semi": [0, 0],
+    "indent": [0, 0],
     'space-before-function-paren': 0,
     'no-mixed-operators': 0,
     'no-return-assign': 0,

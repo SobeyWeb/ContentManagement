@@ -1,6 +1,9 @@
 import TYPES from '../dicts/mutationTypes.js'
 import * as util from '../lib/util.js'
-import { getRepository, setRepository } from '../data/repository.js'
+import {
+  getRepository,
+  setRepository
+} from '../data/repository.js'
 import $ from 'jquery'
 export default {
   [TYPES.SET_USERINFO](state, payload) {
@@ -43,8 +46,7 @@ export default {
     var arr = []
     for (let i of Object.getOwnPropertySymbols(state.eventArray)) {
       if (
-        state.eventArray[i] &&
-        [TYPES.RESTORE, TYPES.DELETE, TYPES.RECYCLE].indexOf(
+        state.eventArray[i] && [TYPES.RESTORE, TYPES.DELETE, TYPES.RECYCLE].indexOf(
           state.eventArray[i].type
         ) > -1
       ) {
@@ -91,8 +93,7 @@ export default {
     var arr = []
     for (let i of Object.getOwnPropertySymbols(state.eventArray)) {
       if (
-        state.eventArray[i] &&
-        [TYPES.RESTORE, TYPES.DELETE, TYPES.RECYCLE].indexOf(
+        state.eventArray[i] && [TYPES.RESTORE, TYPES.DELETE, TYPES.RECYCLE].indexOf(
           state.eventArray[i].type
         ) > -1
       ) {
@@ -418,14 +419,13 @@ export default {
     payload.data.status = 'Excuting'
     payload.data.name = util.getValue(
       payload.data.data && payload.data.data.name,
-      payload.data.data && payload.data.data.map
-        ? payload.data.data.map(item => item.name).join(',')
-        : util.getValue(
-          payload.data.target && payload.data.target.name,
-          payload.data.target &&
-              payload.data.target.map &&
-              payload.data.target.map(item => item.name).join(',')
-        )
+      payload.data.data && payload.data.data.map ?
+      payload.data.data.map(item => item.name).join(',') : util.getValue(
+        payload.data.target && payload.data.target.name,
+        payload.data.target &&
+        payload.data.target.map &&
+        payload.data.target.map(item => item.name).join(',')
+      )
     )
     payload.data.checkbox = {
       disabled: false,
@@ -482,7 +482,7 @@ export default {
           util.forceUpdate(event.from.guid)
           item.type === 'folder' &&
             (event.from.folders.push(item),
-            (item.path = event.from.path + '/' + item.name))
+              (item.path = event.from.path + '/' + item.name))
           item.father = event.from
           item.waiting = false
           item.folderpath = event.from.path

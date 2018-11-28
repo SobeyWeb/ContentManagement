@@ -10,17 +10,25 @@ import vuexI18n from 'vuex-i18n'
 import translationsEn from './dicts/translationsEn.js'
 import hotkeys from 'hotkeys-js'
 import eventPlugin from './plugins/eventPlugin.js'
+import printPlugin from './plugins/printPlugin.js'
 import EVENT from './dicts/eventTypes.js'
 import TYPES from './dicts/mutationTypes'
+import urlConfig from './config/urlConfig'
 import './lib/prototype.js'
 
 import './assets/css/rest.css'
 import './assets/css/radon-ui.css'
+import '../theme/index.css'
 import './assets/css/main.css'
 import './assets/css/animate.css'
 import ScrollBar from './lib/scrollbar.js'
+import ElementUI from 'element-ui'
+import locale from 'element-ui/lib/locale/lang/en'
 const RadonUI = require('./lib/radon-ui.js')['radon-ui']
 
+Vue.use(ElementUI, {
+  locale
+})
 Vue.use(Vue => {
   for (let key in RadonUI) {
     if (key.startsWith('rd')) {
@@ -30,6 +38,7 @@ Vue.use(Vue => {
 })
 Vue.prototype.$hotkeys = hotkeys
 Vue.use(eventPlugin)
+Vue.use(printPlugin)
 Vue.use(RadonUI.RadonInstall, {
   Modal: true,
   Notification: true,
@@ -83,7 +92,7 @@ Vue.config.keyCodes = {
 }
 
 Vue.directive('focus', {
-  inserted: function(el) {
+  inserted: function (el) {
     el.value = el.getAttribute('val')
     el.focus()
     el.select()
@@ -91,7 +100,7 @@ Vue.directive('focus', {
 })
 
 Vue.directive('dispose', {
-  unbind: function(el) {
+  unbind: function (el) {
     el.src = 'http://'
   }
 })
@@ -102,7 +111,9 @@ new Vue({
   el: '#app',
   store,
   router,
-  components: { App },
+  components: {
+    App
+  },
   template: '<App/>',
   methods: {
     initPlugn() {
@@ -112,6 +123,7 @@ new Vue({
       window.$app = this.$app
       window.$app.EVENT = EVENT
       window.$app.userInfo = this.$store.state.userInfo
+      window.URL_CONFIG = urlConfig
     },
     initDefaultEvent() {
       this.$app.MATERIAL_DRAGSTART_DEFAULT = this.materialDragStart

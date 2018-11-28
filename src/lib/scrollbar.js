@@ -189,6 +189,12 @@ import $ from 'jquery'
               )
             )
           },
+          materials() {
+            return this.$store.getters.displayMaterials
+          },
+          lastSeletedNode() {
+            return this.$store.state.lastSeletedNode
+          },
           _left() {
             var left = Math.max(
               0,
@@ -211,10 +217,63 @@ import $ from 'jquery'
           horizontalScrollbar: _horizontalScrollbar2.default
         },
         watch: {
-          scrollContentHeight: function(oldVal, newVal) {
+          materials: function(val) {
             if (this.$el === this.$store.getters.thumbDisplay.el) {
-              this.normalizeHorizontal(0)
-              this.hMovement = 0
+              this.calculateSize()
+            }
+          },
+          scrollContentHeight: function(newVal, oldVal) {
+            if (this.$el === this.$store.getters.thumbDisplay.el) {
+              this.$nextTick(() => {
+                var thumbDisplay = this.$store.getters.thumbDisplay
+                this.normalizeVertical(
+                  (thumbDisplay.height / thumbDisplay.totalHeight) *
+                    thumbDisplay.totalHeight
+                ) // 纠正Y  margin
+                this.normalizeHorizontal(0)
+                this.hMovement = 0
+              })
+            }
+          },
+          lastSeletedNode: function(val) {
+            if (
+              document.getElementById('save_clip_folder_box') &&
+              document.getElementById('save_clip_folder_box') === this.$el
+            ) {
+              if (!$('.save_clip_path_container .folder_selected')[0]) {
+                this.normalizeVertical(0)
+                Vue.nextTick(() => {
+                  this.calculateSize()
+                  var top = $(
+                    '.save_clip_path_container .folder_selected'
+                  ).position().top
+                  this.normalizeVertical(top)
+                })
+              }
+            }
+          },
+          'lastSeletedNode.path': function(val) {
+            if (
+              document.getElementById('save_clip_folder_box') &&
+              document.getElementById('save_clip_folder_box') === this.$el
+            ) {
+              if ($('.save_clip_path_container .folder_selected')[0]) {
+                Vue.nextTick(() => {
+                  var top = $(
+                    '.save_clip_path_container .folder_selected'
+                  ).position().top
+                  if (top < -30 || top > 170) {
+                    this.normalizeVertical(0)
+                    Vue.nextTick(() => {
+                      this.calculateSize()
+                      top = $(
+                        '.save_clip_path_container .folder_selected'
+                      ).position().top
+                      this.normalizeVertical(top)
+                    })
+                  }
+                })
+              }
             }
           }
         },
@@ -287,6 +346,7 @@ import $ from 'jquery'
             else if (nextY < 0) nextY = 0
 
             this.top = nextY
+            this.vMovement = (this.top / this.scrollContentHeight) * 100
           },
           normalizeHorizontal: function normalizeHorizontal(nextX) {
             var rightEnd = this.scrollContentWidth - this.scrollContainerWidth
@@ -295,6 +355,7 @@ import $ from 'jquery'
             else if (nextX < 0) nextX = 0
 
             this.left = nextX
+            this.hMovement = (this.left / this.scrollContentWidth) * 100
           },
           moveTheScrollbar: function moveTheScrollbar() {
             this.vMovement = (this.top / this.scrollContentHeight) * 100

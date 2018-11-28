@@ -16,6 +16,12 @@
     <trim ref="saveClip"></trim>
     <export ref="export"></export>
     <save-search ref="saveSearch"></save-search>
+    <component :is="printTemplate" ref="printer"></component>
+    <div class="relation-container" ref="relationsTable">
+      <vue-nice-scrollbar style="height: 800px;" :speed="150">
+        <relation-table :dept="dept" :data="relations" :source="selectedMaterials[0]||{}"></relation-table>
+      </vue-nice-scrollbar>
+    </div>
     <!--left block-->
     <div class="left_container" :class="{transition:!resizeSymbol}" :style="{left:(folderBlockStatus?0:- leftTreeWidth)+'px', width: leftTreeWidth + 'px'}">
       <div class="resize_handle" @mousedown.stop.prevent.capture="resizeMousedown"></div>
@@ -38,10 +44,10 @@
         <div id="div_fullTextSearch">
           <fulltext-search></fulltext-search>
         </div>
-        <input type="button" class="advance_search" v-on:click="openAdvanceSearch" :value="'Advance Search'" />
+        <input type="button" class="advance_search" v-on:click="openAdvanceSearch" :value="'Advanced Search'" />
         <input type="button" class="task_monitor" :value="'Task Monitor'" v-on:click="taskMonitor" />
         <input type="button" class="task_monitor" :value="'Web Quick Editing'" v-on:click="gotoJove" v-show="!isPremiere" />
-        <input type="button" v-if="false" class="task_monitor" value="Order List" v-on:click="oderList" @drop.prevent="add2OderList" @dragenter.prevent @dragover.prevent="dragover" @dragleave.prevent/>
+        <input type="button" v-if="false" class="task_monitor" value="Order List" v-on:click="oderList" @drop.prevent="add2OderList" @dragenter.prevent @dragover.prevent="dragover" @dragleave.prevent />
         <div class="fr">
           <div class="hidden_bar">
             <span class="xx_icon fr" v-show="false" @click="localTaskStatus = !localTaskStatus">
@@ -118,13 +124,13 @@
                 <span class="display_keyword_span">Keywords</span>
                 <input class="display_keyword_input boolean_input" type="text" v-model="currentNode.bakCondition.keywords" @keydown.enter="reSearch" />
               </div>
-              <div class="content_filter_container clearfix">
+              <div class="content_filter_container clearfix" v-if="currentNode.bakCondition.node.guid">
                 <div class="display_filter_text">Time</div>
                 <div class="display_filter_items clearfix" :style="{left: condtionLeft, paddingRight:condtionLeft}">
                   <span class="check_span fl" :class="{checked_span: time.checked}" @click.stop="timeFilter(time)" v-for="time in currentNode.bakCondition.timeFilter" :key="time.name">{{time.name}}</span>
                 </div>
               </div>
-              <div class="content_filter_container clearfix">
+              <div class="content_filter_container clearfix" v-if="currentNode.bakCondition.node.guid">
                 <div class="display_filter_text">Content</div>
                 <div class="display_filter_items clearfix" :style="{left: condtionLeft, paddingRight:condtionLeft}">
                   <span class="check_span fl" :class="{checked_span: type.checked}" @click.stop="typeFilter(type)" v-for="type in currentNode.bakCondition.typeFilter" :key="type.name">{{type.name}}</span>
@@ -139,13 +145,17 @@
               <span class="display_excute_btn display_btn" v-show="searchType!==1" title="Research" @click.prevent="reSearch"></span>
               <span class="display_modify_btn display_btn" v-show="searchType===1" title="Modify search condition" @click.prevent="modifySeachCondition"></span>
               <span class="display_save_btn display_btn" title="Save search template" @click.prevent="saveSeachCondition"></span>
+              <span class="display_save_btn display_btn" title="Save search template" @click.prevent="printSearchResult"></span>
+              <span class="display_save_btn display_btn" title="Save search template" @click.prevent="downloadSearchResult"></span>
             </div>
           </div>
         </transition>
         <div class="list_headers_box">
           <list-material-header v-show="listSymbol"></list-material-header>
+          <header-filter ref="listFilter" v-show="listSymbol"></header-filter>
+          <div style="width:100%;height:100%;background-color:#000;position:fixed;;top:0;left:0;z-index:10049;opacity:0;" v-if="$store.state.operatingFilterData.visible" @mousedown="$store.state.operatingFilterData.visible=false"></div>
         </div>
-        <vue-nice-scrollbar class="scrollbar_container" :class="{focused: !isFocusTree, blur: loading}" :speed="150" @click="focusMaterialList">
+        <vue-nice-scrollbar ref="materialScollbar" class="scrollbar_container" :class="{focused: !isFocusTree, blur: loading}" :speed="150" @click="focusMaterialList">
           <div ref="materialBox" class="material_box clearfix" :class="{list_material_box:listSymbol, marker_material_box: currentCtrl=='marker-ctrl'}" :style="{marginLeft: thumbPadding + 'px', marginRight: thumbPadding + 'px'}" @click="focusMaterialList" @mousedown="dragStart">
             <div class="searchBox animated2" v-show="showSearch" :class="[showSearch?'zoomIn':'zoomOut']">
               <local-search :data="materials" :callback="searchCallback" @close="showSearch = false" />
@@ -162,13 +172,14 @@
         <loading-ctrl :name="'Loading...'" v-show="loading"></loading-ctrl>
         <div class="preview_switcher" :class="{arrow_left :previewSymbol}" @click="switchPreview" @dragenter.stop.prevent="openPreview" @dragover.stop.prevent @dragleave.stop.prevent @contextmenu.prevent.stop></div>
       </div>
-      <div id="proppreviewDiv" :class="{dv_model_view: detailviewSymbol}" :style="{right: previewSymbol? '0':'-640px'}" @mousedown.capture="focusPlayer">
+      <div id="proppreviewDiv" ref="proppreview" :class="{dv_model_view: detailviewSymbol}" :style="{right: previewSymbol? '0':'-640px'}" @mousedown.capture="focusPlayer">
         <player ref="player"></player>
         <div class="preview_drop_div" @drop="preview" @dragenter.stop.prevent @dragover.stop.prevent @dragleave.stop.prevent v-show="previewDragSymbol">
         </div>
       </div>
     </div>
     <iframe class="taskmonitorifm" ref="taskmonitor" :src="taskMonitorUrl"></iframe>
+    <iframe id="printer"></iframe>
   </div>
 </template>
 
@@ -203,7 +214,10 @@ import PublishToSNS from './PublishToSNS'
 import registerToOA from './RegisterToOA/RegisterToOA'
 import Trim from './Trim'
 import Export from './Export'
+import RelationTable from './RelationTable'
 import SaveSearchResult from './SaveSearchResult'
+import HeaderFilter from './HeaderFilter/HeaderFilter'
+import SearchTemplate from './Print/Search'
 import appSetting from '../config/appSetting.js'
 import axios from 'axios'
 import urlConfig from '../config/urlConfig.js'
@@ -227,10 +241,15 @@ export default {
     'regiter-tooa-ctrl': registerToOA,
     'export': Export,
     'trim': Trim,
-    'save-search': SaveSearchResult
+    'save-search': SaveSearchResult,
+    'relation-table': RelationTable,
+    'search-template': SearchTemplate,
+    'header-filter': HeaderFilter
   },
   data () {
     return {
+      noUseHandler: () => { },
+      printTemplate: 'search-template',
       taskMonitorUrl: '',
       tempIndex: 0,
       sortByStatus: false,
@@ -244,6 +263,7 @@ export default {
       listSymbol: false,
       leftTreeWidth: 200,
       resizeX: 0,
+      blackList: [],
       dragData: {
         left: 0,
         top: 0,
@@ -261,7 +281,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['detailviewSymbol', 'previewDragSymbol', 'bakCondition', 'userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'isMarker', 'linkNodes', 'player', 'loading', 'thumbnailStyle', 'scaleTime', 'thumbPadding', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
+    ...mapState(['dept', 'relations', 'detailviewSymbol', 'previewDragSymbol', 'bakCondition', 'userInfo', 'fullscreenSymbol', 'isAdvanceConfig', 'isMarker', 'linkNodes', 'player', 'loading', 'thumbnailStyle', 'scaleTime', 'signIndex', 'selectedMaterials', 'alwaysGet', 'trashcan']),
     ...mapGetters(['currentNode', 'selectedNode', 'searchResult', 'orderedSelectedMaterials', 'folderTree', 'isFocusTree', 'isFocusML', 'isFocusPlayer']),
     scaleTime: {
       get () {
@@ -270,6 +290,9 @@ export default {
       set (val) {
         this.$store.state.scaleTime = val
       }
+    },
+    thumbPadding () {
+      return this.currentCtrl === 'material-ctrl' ? this.$store.state.thumbPadding : 0
     },
     previewSymbol: {
       get () {
@@ -300,6 +323,8 @@ export default {
           } else {
             item.value && item.value.value && c.push(item.value.value)
           }
+        } else if (item.ctrl === 'rd-cascader') {
+          item.displayValue && c.push(item.displayValue)
         } else {
           item.value && c.push(item.username || item.value)
           item.checkedValue && item.checkedValue.length && c.push(item.checkedValue.map(i => i.name).join('|'))
@@ -333,7 +358,7 @@ export default {
       }
     },
     isPremiere () {
-      return this.$store.state.system === 'PREMIEREPLUGIN'
+      return this.$store.state.system !== 'WEBCM'
     },
     searchNode: {
       get () {
@@ -352,7 +377,7 @@ export default {
       return 'material'
     },
     materials () {
-      return this.$store.getters.displayMaterials
+      return this.$store.getters.filteredMaterials
     },
     stand () {
       return this.$store.getters.thumbDisplay
@@ -434,6 +459,12 @@ export default {
     }
   },
   methods: {
+    printSearchResult () {
+      this.$refs.printer.open()
+    },
+    downloadSearchResult () {
+      this.$refs.printer.download()
+    },
     resizeTaskMonitor () {
       if (this.taskMonitorWindow && this.taskMonitorWindow.visible) {
         let bw = $($('.h5.window')[0].parentElement).width()
@@ -581,6 +612,16 @@ export default {
         this.$store.commit({
           type: TYPES.SET_THUMBPADDING
         })
+        setTimeout(() => this.$store.state.containerUpdate++, 300)
+      })
+    },
+    openPreview () {
+      this.previewSymbol = true
+      this.$nextTick(() => {
+        this.$store.commit({
+          type: TYPES.SET_THUMBPADDING
+        })
+        setTimeout(() => this.$store.state.containerUpdate++, 300)
       })
     },
     refreshMaterial () {
@@ -747,13 +788,13 @@ export default {
     },
     startFLHeartbeate () {
       let flFailedCount = 0
-      let noUseHandler = util.debounce((appSetting.FLInterval || 20) * 60 * 1000, () => {
+      this.noUseHandler = util.debounce((appSetting.FLInterval || 20) * 60 * 1000, () => {
         this.logout()
-        window.removeEventListener('mousemove', noUseHandler)
-        window.removeEventListener('keydown', noUseHandler)
+        window.removeEventListener('mousemove', this.noUseHandler)
+        window.removeEventListener('keydown', this.noUseHandler)
       })
-      window.addEventListener('mousemove', noUseHandler)
-      window.addEventListener('keydown', noUseHandler)
+      window.addEventListener('mousemove', this.noUseHandler)
+      window.addEventListener('keydown', this.noUseHandler)
       this.flIntervalId = setInterval(() => {
         axios.get(urlConfig.FL + '/webheart?token=' + this.userInfo.fltoken).then(res => {
           flFailedCount = 0
@@ -794,11 +835,8 @@ export default {
         })
         clearInterval(this.flIntervalId)
         clearInterval(this.heartbeateIntervalId)
-        this.$app.on(EVENT.LOGOUTED, e => {
-          console.log('logouted')
-        })
       }
-      if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0) {
+      if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0 || Object.getOwnPropertyNames(this.$store.state.eventArray).length > 1) {
         util.Model.confirm('Some Tasks Are Executing', 'Are You Sure to Logout', lo,
           () => {
           }, {
@@ -842,7 +880,8 @@ export default {
         token: this.userInfo.usertoken,
         userCode: $.base64.encode(this.userInfo.usercode),
         FolderPath: $.base64.encode(this.$store.getters.currentNode.path),
-        userid: $.base64.encode(this.userInfo.userid)
+        userid: $.base64.encode(this.userInfo.userid),
+        LoginInfoID: $.base64.encode(this.userInfo.logininfoid)
       })
       window.open(url, '_blank')
     },
@@ -858,6 +897,7 @@ export default {
         this.$store.commit({
           type: TYPES.SET_THUMBPADDING
         })
+        setTimeout(() => this.$store.state.containerUpdate++, 300)
       })
     },
     upload (event) {
@@ -907,6 +947,7 @@ export default {
           this.$store.commit({
             type: TYPES.SET_THUMBPADDING
           })
+          setTimeout(() => this.$store.state.containerUpdate++, 300)
         })
       }
     }, true),
@@ -929,7 +970,9 @@ export default {
     dragEnd () {
       this.dragSymbol = false
       this.resizeSymbol = false
-      util.setCookie('leftWidth' + this.$store.state.userInfo.usercode, this.leftTreeWidth)
+      if (this.leftTreeWidth !== parseInt(util.getCookie('leftWidth' + this.$store.state.userInfo.usercode))) {
+        util.setCookie('leftWidth' + this.$store.state.userInfo.usercode, this.leftTreeWidth)
+      }
       this.mousePosition = {
         x: 0,
         y: 0
@@ -1554,31 +1597,59 @@ export default {
         }
       })
     },
-    initNativeEvents () {
+    keydown (event) {
+      if (document.querySelector('.h5')) {
+        // use state
+      } else {
+        let keycode = event.keyCode
+        let tag = event.target.tagName.toUpperCase()
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          this.$keydown.emit('keydown-' + keycode, [event])
+        }
+      }
+    },
+    keyup (event) {
+      if (document.querySelector('.h5')) {
+        // use state
+      } else {
+        let keycode = event.keyCode
+        let tag = event.target.tagName.toUpperCase()
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          this.$keydown.emit('keyup-' + keycode, [event])
+        }
+      }
+    },
+    resizeCallback: util.throttle(100, function (e) {
+      console.log(this)
+      var status = document.isFullScreen || document.webkitIsFullScreen || document.mozIsFullScreen || document.msIsFullScreen
+      if (this.fullscreenSymbol && !status) {
+        this.$store.state.player && this.$store.state.player.exitFullscreen()
+      }
+      this.$store.state.containerUpdate++
+      this.$store.commit({
+        type: TYPES.SET_THUMBPADDING
+      })
+      this.$store.commit({
+        type: TYPES.SET_DVPADDING
+      })
+      this.resizeTaskMonitor()
+    }, true),
+    bindNativeEvents () {
       this.registerKeydown()
-      window.addEventListener('unload', this.setCookie)
-      window.addEventListener('keydown', event => {
-        if (document.querySelector('.h5')) {
-          // use state
-        } else {
-          let keycode = event.keyCode
-          let tag = event.target.tagName.toUpperCase()
-          if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
-            this.$keydown.emit('keydown-' + keycode, [event])
-          }
-        }
-      })
-      window.addEventListener('keyup', event => {
-        if (document.querySelector('.h5')) {
-          // use state
-        } else {
-          let keycode = event.keyCode
-          let tag = event.target.tagName.toUpperCase()
-          if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
-            this.$keydown.emit('keyup-' + keycode, [event])
-          }
-        }
-      })
+      window.addEventListener('unload', this.saveCookie)
+      window.addEventListener('resize', this.resizeCallback)
+      window.addEventListener('keydown', this.keydown)
+      window.addEventListener('keyup', this.keyup)
+    },
+    removeKeydown () {
+      this.$hotkeys.unbind('*')
+    },
+    removeNativeEvents () {
+      this.removeKeydown()
+      window.removeEventListener('unload', this.saveCookie)
+      window.removeEventListener('resize', this.resizeCallback)
+      window.removeEventListener('keydown', this.keydown)
+      window.removeEventListener('keyup', this.keyup)
     },
     initAppData () {
       this.$store.dispatch({
@@ -1715,7 +1786,94 @@ export default {
       }).catch((res) => {
 
       })
+      // get upload black list
+      this.$store.dispatch({
+        type: TYPES.GETSYSPARAM,
+        target: {
+          tool: 'DEFAULT',
+          system: 'WEBCM',
+          paramname: 'Blacklist'
+        }
+      }).then((res) => {
+        if (res.paramvalue) {
+          this.blackList = res.paramvalue.toLowerCase().split(';')
+        }
+      }).catch((res) => {
 
+      })
+      // 获取网管配置的参数LOGGING MARK的language路径
+      this.$store.dispatch({
+        type: TYPES.GET_USERPARAM,
+        data: {
+          system: null,
+          paramname: 'LOGGING_LANGUAGE_DEFAULT'
+        }
+      }).then((res) => {
+        if (res.data.ext.paramvalue) {
+          this.$store.state.lmLanguage = parseInt(/\d+/g.exec(res.data.ext.paramvalue)[0])
+          this.$store.state.defaultLanguage = this.$store.state.lmLanguage
+          var promiseArr = []
+          for (let i = 1; i <= this.$store.state.lmLanguage; i++) {
+            promiseArr.push(this.$store.dispatch({
+              type: TYPES.GETSYSPARAM,
+              target: {
+                tool: 'DEFAULT',
+                paramname: 'LOGGING_LANGUAGE_ID' + i
+              }
+            }).then(res => {
+              var value = {
+                value: res.paramvalue,
+                id: i,
+                selected: i === this.$store.state.lmLanguage
+              }
+              this.languageOption.options.push(value)
+            }))
+          }
+          let gl = (index) => {
+            this.$store.dispatch({
+              type: TYPES.GETSYSPARAM,
+              target: {
+                tool: 'DEFAULT',
+                paramname: 'LOGGING_LANGUAGE_ID' + index
+              }
+            }).then(res => {
+              var value = {
+                value: res.paramvalue,
+                id: index,
+                selected: false
+              }
+              this.languageOption.options.push(value)
+              gl(++index)
+            })
+          }
+          Promise.all(promiseArr).then(res => {
+            this.languageOption.options.sort((i1, i2) => {
+              return i1.id - i2.id
+            })
+            gl(this.$store.state.lmLanguage + 1)
+          })
+        }
+      }).catch((res) => {
+      })
+      // 获取网管配置的参数 自动登出时间
+      this.$store.dispatch({
+        type: TYPES.GETSYSPARAM,
+        target: {
+          tool: 'DEFAULT',
+          system: 'WEBCM',
+          paramname: 'FLHeartbeatInterval'
+        }
+      }).then((res) => {
+        if (res.paramvalue) {
+          if (appSetting.FLInterval === parseInt(res.paramvalue)) {
+          } else {
+            appSetting.FLInterval = parseInt(res.paramvalue)
+          }
+        }
+        appSetting.USEFL && this.startFLHeartbeate()
+      }).catch((res) => {
+        appSetting.USEFL && this.startFLHeartbeate()
+      })
       this.$store.state.materialBox = document.querySelector('.scrollbar_container')
     },
     initModalWindow () {
@@ -1729,14 +1887,6 @@ export default {
         onshow: this.resizeTaskMonitor
       })
       this.taskMonitorUrl = urlConfig.TMWEB + 'TaskMonitor.html?UserCode=' + btoa(this.userInfo.usercode)
-      // this.$store.state.saveClipWindow = new ModalWindow({
-      //   content: this.$refs.saveClip.$el,
-      //   title: 'Save As'
-      // })
-      // this.$store.state.exportWindow = new ModalWindow({
-      //   content: this.$refs.export.$el,
-      //   title: 'Export'
-      // })
       this.$store.state.publishWindow = new ModalWindow({
         content: this.$refs.publishtoSNS.$el,
         title: 'Publish to SNS',
@@ -1962,6 +2112,10 @@ export default {
         content: this.$refs.export.$el,
         title: 'Export'
       })
+      this.$store.state.relationsWindow = new ModalWindow({
+        content: this.$refs.relationsTable,
+        title: 'One Generation'
+      })
       this.$store.dispatch({
         type: TYPES.GET_SEARCH_QUERY
       }).then(res => {
@@ -1980,36 +2134,101 @@ export default {
           if (temp.condition.booleanCondition) {
             this.$store.state.fulltextSearchCondition.booleanCondition = temp.condition.booleanCondition
           }
-          temp.condition.headers.forEach(item => {
-            util.packegeCustomSearchData(item.keyValues)
-            util.packegeCustomSearchData(item.hideKeyValues)
-          })
-          this.$store.state.advanceSearchHeaders = temp.condition.headers
+          if (temp.condition.headers && temp.condition.headers.length) {
+            temp.condition.headers.forEach(item => {
+              util.packegeCustomSearchData(item.keyValues)
+              util.packegeCustomSearchData(item.hideKeyValues)
+            })
+            this.$store.state.advanceSearchHeaders = temp.condition.headers
+          }
           res.remove(temp)
+          this.$store.dispatch({
+            type: TYPES.GET_USERTREE,
+            data: -1 // root department id
+          }).then(res => {
+            let cookieLastVisited = JSON.parse(util.getCookie('last_visit' + this.userInfo.usercode))
+            var lastVisit = temp.condition.lastVisit
+            if (lastVisit || cookieLastVisited) {
+              lastVisit = Object.assign(cookieLastVisited || {}, lastVisit || {})
+              // 同步数据
+              temp.condition.archiveFiters && (this.$store.state.archiveFiters = Object.assign(this.$store.state.archiveFiters, temp.condition.archiveFiters))
+              temp.condition.listHeaders && (this.$store.state.headers = util.mergeHeader(temp.condition.listHeaders, this.$store.state.headers), util.setCookie('item_headers' + this.$store.state.userInfo.usercode, JSON.stringify(this.$store.state.headers)))
+              temp.condition.treeWidth && (this.leftTreeWidth = util.getValue(temp.condition.treeWidth, this.leftTreeWidth), util.setCookie('leftWidth' + this.$store.state.userInfo.usercode, this.leftTreeWidth))
+              temp.condition.scaleTime && (this.$store.state.scaleTime = util.getValue(temp.condition.scaleTime, this.$store.state.scaleTime), util.setCookie('scale_time' + this.$store.state.userInfo.usercode, this.$store.state.scaleTime))
+              temp.condition.lastCheckedHeaderName && (this.$store.state.lastCheckedHeaderName = util.getValue(temp.condition.lastCheckedHeaderName, this.$store.state.lastCheckedHeaderName))
+              this.listSymbol = lastVisit.listSymbol // side effects , 最后执行
+              util.setCookie('last_visit' + this.userInfo.usercode, JSON.stringify(lastVisit))
+              this.$store.commit({
+                type: TYPES.SET_APPDATA,
+                data: lastVisit
+              })
+              this.locateFolder(lastVisit).then(res => {
+                if (lastVisit.selectedMaterial && lastVisit.selectedMaterial.length) {
+                  // check in material
+                  this.$nextTick(() => {
+                    var children = this.displayMaterials
+                    children.forEach(item => {
+                      if (lastVisit.selectedMaterial.indexOf(item.guid) > -1) {
+                        item.selected = true
+                        this.$store.commit({
+                          type: TYPES.ADD_SELECTEDITEM,
+                          data: item
+                        })
+                        this.$store.commit({
+                          type: TYPES.SET_SIGNMATERIAL,
+                          data: children.indexOf(item)
+                        })
+                      }
+                    })
+                  })
+                }
+              })
+            } else {
+              this.$store.dispatch({
+                type: TYPES.GET_MATERIALS,
+                source: this.nodes[0]
+              }).then(() => {
+                this.$store.commit({
+                  type: TYPES.EXPAND_FOLDER,
+                  target: this.nodes[0],
+                  data: []
+                })
+                this.$store.commit({
+                  type: TYPES.GET_NAVPATH,
+                  target: this.nodes[0],
+                  data: []
+                })
+              })
+            }
+          })
         }
         // 获取所有的自定义元数据字段，存在的更新  不存在的remove  新增的加到后面
         this.$store.dispatch({
           type: TYPES.GET_CUSTOM_SEARCH_CONDTION
         }).then(res => {
-          let flag = false
-          console.log(flag)
+          var tempCustomData = JSON.parse(JSON.stringify(res.data.ext))
+          tempCustomData.forEach(item => item.extraData && (item.extraData = JSON.parse(item.extraData)))
+          this.$store.state.customKeys = tempCustomData.filter(item => item.extraData && item.extraData.isShowInList && item.fieldvisable && item.tabvisable).groupBy('id').map((item) => {
+            return item[0]
+          })
+          this.$store.commit({
+            type: TYPES.SET_CUSTOM_HEADERS,
+            data: this.$store.state.customKeys
+          })
+          this.$store.state.hightLight.push(...res.data.ext.filter(item => item.isHighLight && item.fieldvisable && item.tabvisable)) // 获取所有需要高亮的自定义字段
           this.$store.state.advanceSearchHeaders.forEach(item => {
-            let kvs = item.keyValues
-            let hkvs = item.hideKeyValues
-            let query = defaultQuery[item.name]
+            var kvs = item.keyValues
+            var hkvs = item.hideKeyValues
+            var query = defaultQuery[item.name]
             if (query) {
-              let customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && item.fieldvisable && item.tabvisable && query.some(i => i.value === item.entitytype)))
+              var customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && item.fieldvisable && item.tabvisable && query.some(i => i.value === item.entitytype)).sort((i1, i2) => {
+                return query.map(item => item.value).indexOf(i1.entitytype) - query.map(item => item.value).indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
+              }))
               if (item.name === 'Clip') {
-                let ckvsGroup = customKvs.groupBy('id')
-                let distinctArr = []
+                var ckvsGroup = customKvs.groupBy('id')
+                var distinctArr = []
                 ckvsGroup.forEach(item => {
-                  if (item.length > 1) {
-                    distinctArr.push(item.sort((i1, i2) => {
-                      return query.indexOf(i1.entitytype) - query.indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
-                    })[0])
-                  } else {
-                    distinctArr.push(item[0])
-                  }
+                  distinctArr.push(item[0])
                 })
                 customKvs = distinctArr
               }
@@ -2021,7 +2240,6 @@ export default {
                   tempKvs.push(k)
                 } else if (k.isCustom) { // 如果找到same 就在所有的自定义字段中remove掉这项避免重复
                   // if (k.name !== same.name || k.ctrl !== same.ctrl) {
-                  flag = true
                   if (k.ctrl === same.ctrl) {
                     if (k.ctrl === 'rd-select') {
                       if (same.multiple) {
@@ -2029,6 +2247,15 @@ export default {
                       } else {
                         same.options.forEach(item => ((item.value === k.value.value && (item.selected = true)) || (item.selected = false)))
                       }
+                    } else if (k.ctrl === 'rd-cascader') {
+                      same.value = k.value
+                      same.displayValue = k.displayValue
+                      same.options.forEach(item => {
+                        item.selected = item.children.some(j => j.value === same.value)
+                        item.children.forEach(j => {
+                          j.selected = j.value === same.value
+                        })
+                      })
                     } else {
                       same.value = k.value
                     }
@@ -2048,7 +2275,6 @@ export default {
                   tempHkvs.push(k)
                 } else if (k.isCustom) {
                   // if (k.name !== same.name || k.ctrl !== same.ctrl) {
-                  flag = true
                   if (k.ctrl === same.ctrl) {
                     if (k.ctrl === 'rd-select') {
                       if (same.multiple) {
@@ -2056,6 +2282,15 @@ export default {
                       } else {
                         same.options.forEach(item => ((item.value === k.value.value && (item.selected = true)) || (item.selected = false)))
                       }
+                    } else if (k.ctrl === 'rd-cascader') {
+                      same.value = k.value
+                      same.displayValue = k.displayValue
+                      same.options.forEach(item => {
+                        item.selected = item.children.some(j => j.value === same.value)
+                        item.children.forEach(j => {
+                          j.selected = j.value === same.value
+                        })
+                      })
                     } else {
                       same.value = k.value
                     }
@@ -2108,7 +2343,7 @@ export default {
       this.$store.state.fulltextSearchCondition = defaultFulltextSearchCondtion
       this.$store.state.advanceSearchWindow = new ModalWindow({
         content: this.$refs.advanceSearch.$el,
-        title: 'Advance Search',
+        title: 'Advanced Search',
         onhide: () => {
           if (this.$store.state.isModifyCondtion) {
             this.$store.state.isModifyCondtion = false // 暂时不处理被编辑了的高级搜索条件
@@ -2121,6 +2356,12 @@ export default {
                   k.to.value = k.to.bakValue
                 } else if (k.ctrl === 'rd-select') {
                   k.options = k.bakOptions
+                } else if (k.ctrl === 'rd-cascader') {
+                  k.value = k.bakValue
+                  k.displayValue = k.bakDisplayValue
+                  if (k.options) { // duoji xiala
+                    k.options = JSON.parse(k.bakOptions)
+                  }
                 } else {
                   k.value = k.bakValue
                   if (k.username) {
@@ -2156,6 +2397,12 @@ export default {
                     k.to.value = k.to.bakValue
                   } else if (k.ctrl === 'rd-select') {
                     k.options = k.bakOptions
+                  } else if (k.ctrl === 'rd-cascader') {
+                    k.value = k.bakValue
+                    k.displayValue = k.bakDisplayValue
+                    if (k.options) { // duoji xiala
+                      k.options = JSON.parse(k.bakOptions)
+                    }
                   } else {
                     k.value = k.bakValue
                     if (k.username) {
@@ -2193,18 +2440,14 @@ export default {
                 var hkvs = item.hideKeyValues
                 var query = defaultQuery[item.name]
                 if (query) {
-                  var customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && query.some(i => i.value === item.entitytype)))
+                  var customKvs = util.packegeCustomSearchData(res.data.ext.filter(item => item.isAdvanceSearch && item.fieldvisable && item.tabvisable && query.some(i => i.value === item.entitytype)).sort((i1, i2) => {
+                    return query.map(item => item.value).indexOf(i1.entitytype) - query.map(item => item.value).indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
+                  }))
                   if (item.name === 'Clip') {
                     var ckvsGroup = customKvs.groupBy('id')
                     var distinctArr = []
                     ckvsGroup.forEach(item => {
-                      if (item.length > 1) {
-                        distinctArr.push(item.sort((i1, i2) => {
-                          return query.indexOf(i1.entitytype) - query.indexOf(i2.entitytype) // 按 V A PIC DOC OTHER 排序
-                        })[0])
-                      } else {
-                        distinctArr.push(item[0])
-                      }
+                      distinctArr.push(item[0])
                     })
                     customKvs = distinctArr
                   }
@@ -2223,6 +2466,15 @@ export default {
                           } else {
                             same.options.forEach(item => (item.value === k.value.value && (item.selected = true)) || (item.selected = false))
                           }
+                        } else if (k.ctrl === 'rd-cascader') {
+                          same.value = k.value
+                          same.displayValue = k.displayValue
+                          same.options.forEach(item => {
+                            item.selected = item.children.some(j => j.value === same.value)
+                            item.children.forEach(j => {
+                              j.selected = j.value === same.value
+                            })
+                          })
                         } else {
                           same.value = k.value
                         }
@@ -2249,6 +2501,15 @@ export default {
                           } else {
                             same.options.forEach(item => (item.value === k.value.value && (item.selected = true)) || (item.selected = false))
                           }
+                        } else if (k.ctrl === 'rd-cascader') {
+                          same.value = k.value
+                          same.displayValue = k.displayValue
+                          same.options.forEach(item => {
+                            item.selected = item.children.some(j => j.value === same.value)
+                            item.children.forEach(j => {
+                              j.selected = j.value === same.value
+                            })
+                          })
                         } else {
                           same.value = k.value
                         }
@@ -2282,6 +2543,12 @@ export default {
                     k.to.bakValue = k.to.value
                   } else if (k.ctrl === 'rd-select') {
                     k.bakOptions = JSON.parse(JSON.stringify(k.options))
+                  } else if (k.ctrl === 'rd-cascader') {
+                    k.bakValue = k.value
+                    k.bakDisplayValue = k.displayValue
+                    if (k.options) { // duoji xiala
+                      k.bakOptions = JSON.stringify(k.options)
+                    }
                   } else {
                     k.bakValue = k.value
                     k.bakUserdata = k.userdata
@@ -2303,6 +2570,12 @@ export default {
                   k.to.bakValue = k.to.value
                 } else if (k.ctrl === 'rd-select') {
                   k.bakOptions = JSON.parse(JSON.stringify(k.options))
+                } else if (k.ctrl === 'rd-cascader') {
+                  k.bakValue = k.value
+                  k.bakDisplayValue = k.displayValue
+                  if (k.options) { // duoji xiala
+                    k.bakOptions = JSON.stringify(k.options)
+                  }
                 } else {
                   k.bakValue = k.value
                   k.bakUserdata = k.userdata
@@ -2337,21 +2610,68 @@ export default {
         sortSymbol: state.sortSymbol,
         selectedMaterial: state.selectedMaterials.map(item => item.guid)
       }))
+    },
+    saveCookie () {
+      var lastVisit = util.getCookie('last_visit' + this.$store.state.userInfo.usercode)
+      var listHeaders = util.getCookie('item_headers' + this.$store.state.userInfo.usercode)
+      var treeWidth = util.getCookie('leftWidth' + this.$store.state.userInfo.usercode)
+      var scaleTime = util.getCookie('scale_time' + this.$store.state.userInfo.usercode)
+      var condition = this.$store.state.templateCondition || {}
+      lastVisit && (condition.lastVisit = JSON.parse(lastVisit))
+      listHeaders && (condition.listHeaders = JSON.parse(listHeaders))
+      treeWidth && (condition.treeWidth = JSON.parse(treeWidth))
+      scaleTime && (condition.scaleTime = JSON.parse(scaleTime))
+      condition.archiveFiters = this.$store.state.archiveFiters
+      this.$store.dispatch({
+        type: TYPES.MODIFY_SEARCH_QUERY,
+        data: {
+          templateID: this.$store.state.templateID,
+          json: {
+            templateName: 'default' + this.$store.state.userInfo.usercode,
+            condition: condition
+          }
+        }
+      }).then(res => console.log(res)).catch(res => {
+        util.Notice.failed('Failed to save search template', '', 3000)
+      })
+    },
+    bindEvents () {
+      this.$app.on(EVENT.SAVE_STATUS, this.saveCookie)
+    },
+    removeEvents () {
+      this.$app.off(EVENT.SAVE_STATUS, this.saveCookie)
     }
   },
+  destroyed () {
+    this.removeEvents()
+    this.removeNativeEvents()
+    clearInterval(this.checkTaskId)
+  },
   created () {
+    window.state = this.$store.state
+    window.defaultAdvanceSearchCondtion = defaultAdvanceSearchCondtion
     if (this.userInfo && this.userInfo.usertoken) {
       this.$store.dispatch({
         type: TYPES.INTERCEPT_AXIOS
       })
       this.startHeartbeate()
-      appSetting.USEFL && this.startFLHeartbeate()
+      this.bindEvents()
+      this.checkTaskId = setInterval(() => {
+        if (Object.getOwnPropertySymbols(this.$store.state.eventArray).length > 0 || (this.$store.state.property && this.$store.state.property.editing) || Object.getOwnPropertyNames(this.$store.state.eventArray).length > 1) {
+          window.onbeforeunload = window.onbeforeunload || function (e) {
+            return 'Some Task are Excuting...'
+          }
+          this.noUseHandler() // delay fl
+        } else {
+          window.onbeforeunload = null
+        }
+      }, 500)
     } else {
       this.$router.push('/login')
     }
   },
   mounted () {
-    this.initNativeEvents()
+    this.bindNativeEvents()
     this.initAppData()
     this.initModalWindow()
   }
@@ -2397,6 +2717,7 @@ export default {
   top: 0;
   bottom: 0;
   right: 0;
+  z-index: 3;
 }
 .right_container .top_box {
   height: 49px;
@@ -2916,5 +3237,31 @@ export default {
   right: -10px;
   cursor: w-resize;
   z-index: 1;
+}
+.auto_center {
+  position: relative;
+  top: 50%;
+  background: #222;
+  transform: translateY(-50%);
+  max-height: 100%;
+}
+.fullScreen_container {
+  position: fixed;
+  background: #000;
+  height: 100%;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
+}
+.relation-container {
+  height: 800px;
+  width: 1000px;
+  background: #222;
+  padding: 20px;
+}
+.filter-container {
+  position: fixed;
+  z-index: 10050;
 }
 </style>
